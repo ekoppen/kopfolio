@@ -1,0 +1,45 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Roboto', sans-serif;
+}
+
+.masonry-grid {
+  display: flex;
+  width: auto;
+  margin-left: -16px;
+}
+
+.masonry-grid_column {
+  padding-left: 16px;
+  background-clip: padding-box;
+}
+
+.masonry-grid_item {
+  margin-bottom: 16px;
+}
+
+.photo-card {
+  transition: transform 0.2s ease-in-out;
+}
+
+.photo-card:hover {
+  transform: scale(1.02);
+}
+
+.page-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.admin-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+} 

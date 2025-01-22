@@ -1,0 +1,81 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { pool } from '../models/db.js';
+
+export const register = async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // Check of gebruiker al bestaat
+    const userExists = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username]
+    );
+
+    if (userExists.rows.length > 0) {
+      return res.status(400).json({ message: 'Gebruikersnaam bestaat al' });
+    }
+
+    // Hash wachtwoord
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Gebruiker opslaan
+    const result = await pool.query(
+      'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username',
+      [username, hashedPassword]
+    );
+
+    // JWT token genereren
+    const token = jwt.sign(
+      { id: result.rows[0].id, username: result.rows[0].username },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      message: 'Gebruiker succesvol geregistreerd',
+      token,
+      user: { id: result.rows[0].id, username: result.rows[0].username }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const login = async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // Gebruiker zoeken
+    const result = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'Ongeldige inloggegevens' });
+    }
+
+    // Wachtwoord verifiëren
+    const validPassword = await bcrypt.compare(password, result.rows[0].password);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Ongeldige inloggegevens' });
+    }
+
+    // JWT token genereren
+    const token = jwt.sign(
+      { id: result.rows[0].id, username: result.rows[0].username },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({
+      message: 'Succesvol ingelogd',
+      token,
+      user: { id: result.rows[0].id, username: result.rows[0].username }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+}; 
