@@ -1,5 +1,6 @@
 import express from 'express';
-import { uploadPhotos, getPhotos, getPhotosByAlbum, updatePhoto, deletePhoto } from '../controllers/photos.js';
+import multer from 'multer';
+import { uploadPhotos, getPhotos, getPhotosByAlbum, updatePhoto, deletePhoto, checkDuplicates } from '../controllers/photos.js';
 import { verifyToken } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
 
@@ -11,6 +12,7 @@ router.get('/album/:albumId', getPhotosByAlbum);
 
 // Beveiligde routes
 router.post('/', verifyToken, upload.array('photos', 50), uploadPhotos);
+router.post('/check-duplicates', verifyToken, checkDuplicates);
 router.put('/:id', verifyToken, updatePhoto);
 router.delete('/:id', verifyToken, deletePhoto);
 

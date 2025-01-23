@@ -43,6 +43,9 @@ const initDb = async () => {
         description TEXT,
         exif_data JSONB,
         album_id INTEGER REFERENCES albums(id),
+        hash VARCHAR(64),
+        size BIGINT,
+        original_date TIMESTAMP,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);

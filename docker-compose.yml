@@ -1,46 +1,8 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_DB: kopfolio
-      POSTGRES_USER: kopfolio
-      POSTGRES_PASSWORD: kopfolio123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kopfolio"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build: 
-      context: ./server
-      dockerfile: Dockerfile
-    environment:
-      DB_USER: kopfolio
-      DB_HOST: db
-      DB_NAME: kopfolio
-      DB_PASSWORD: kopfolio123
-      DB_PORT: 5432
-      JWT_SECRET: mijn_geheime_jwt_sleutel
-      PORT: 3000
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-      - uploads_data:/app/public/uploads
-    depends_on:
-      db:
-        condition: service_healthy
-
   frontend:
-    build:
+    build: 
       context: ./client
       dockerfile: Dockerfile
     ports:
@@ -53,6 +15,42 @@ services:
     depends_on:
       - backend
 
+  backend:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - ./uploads:/app/public/uploads
+    environment:
+      - DB_USER=kopfolio
+      - DB_PASSWORD=kopfolio123
+      - DB_NAME=kopfolio
+      - DB_HOST=db
+      - JWT_SECRET=your_jwt_secret
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=kopfolio
+      - POSTGRES_PASSWORD=kopfolio123
+      - POSTGRES_DB=kopfolio
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kopfolio"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
-  uploads_data: 
+  uploads: 
