@@ -1,36 +1,40 @@
 import { pool } from '../models/db.js';
 
-// Maak nieuw album
+// Maak nieuw album aan
 export const createAlbum = async (req, res) => {
-  const { title, description, is_home = false } = req.body;
-
+  const client = await pool.connect();
+  
   try {
-    // Als dit een home album moet worden, check eerst of er al een bestaat
+    await client.query('BEGIN');
+    
+    const { title, description, is_home } = req.body;
+
     if (is_home) {
-      const homeAlbumCheck = await pool.query(
-        'SELECT id FROM albums WHERE is_home = true'
+      // Check of er al een home album bestaat met FOR UPDATE om race conditions te voorkomen
+      const homeCheck = await client.query(
+        'SELECT id FROM albums WHERE is_home = true FOR UPDATE'
       );
-      
-      if (homeAlbumCheck.rows.length > 0) {
+      if (homeCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ 
           message: 'Er bestaat al een home album. Bewerk het bestaande home album in plaats van een nieuwe aan te maken.' 
         });
       }
     }
 
-    const result = await pool.query(
-      `INSERT INTO albums (title, description, is_home)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
+    const result = await client.query(
+      'INSERT INTO albums (title, description, is_home) VALUES ($1, $2, $3) RETURNING *',
       [title, description, is_home]
     );
 
-    res.status(201).json({
-      message: 'Album succesvol aangemaakt',
-      album: result.rows[0]
-    });
+    await client.query('COMMIT');
+    res.status(201).json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ message: 'Fout bij aanmaken album', error: error.message });
+    await client.query('ROLLBACK');
+    console.error('Error in createAlbum:', error);
+    res.status(500).json({ message: 'Fout bij aanmaken album' });
+  } finally {
+    client.release();
   }
 };
 
@@ -44,7 +48,9 @@ export const getAlbums = async (req, res) => {
        FROM albums a
        LEFT JOIN photos p ON p.album_id = a.id
        GROUP BY a.id
-       ORDER BY a.created_at DESC`
+       ORDER BY 
+         CASE WHEN a.is_home THEN 0 ELSE 1 END,
+         a.created_at DESC`
     );
     res.json(result.rows);
   } catch (error) {
@@ -89,38 +95,59 @@ export const getAlbum = async (req, res) => {
 
 // Update album
 export const updateAlbum = async (req, res) => {
-  const { id } = req.params;
-  const { title, description, is_home = false } = req.body;
-
+  const client = await pool.connect();
+  
   try {
-    // Als dit een home album wordt, update eerst alle andere albums
-    if (is_home) {
-      await pool.query(
-        'UPDATE albums SET is_home = false WHERE is_home = true AND id != $1',
-        [id]
-      );
-    }
+    await client.query('BEGIN');
+    
+    const { id } = req.params;
+    const { title, description, is_home, cover_photo } = req.body;
 
-    const result = await pool.query(
-      `UPDATE albums 
-       SET title = $1,
-           description = $2,
-           is_home = $3
-       WHERE id = $4
-       RETURNING *`,
-      [title, description, is_home, id]
+    // Haal eerst het huidige album op met FOR UPDATE
+    const currentAlbum = await client.query(
+      'SELECT is_home FROM albums WHERE id = $1 FOR UPDATE',
+      [id]
     );
 
-    if (result.rows.length === 0) {
+    if (currentAlbum.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Album niet gevonden' });
     }
 
-    res.json({
-      message: 'Album succesvol bijgewerkt',
-      album: result.rows[0]
-    });
+    if (is_home && !currentAlbum.rows[0].is_home) {
+      // Als we dit album home willen maken, check dan of er al een ander home album is
+      const homeCheck = await client.query(
+        'SELECT id FROM albums WHERE is_home = true AND id != $1 FOR UPDATE',
+        [id]
+      );
+      if (homeCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          message: 'Er bestaat al een home album. Er kan maar één home album zijn.' 
+        });
+      }
+    }
+
+    const result = await client.query(
+      `UPDATE albums 
+       SET title = COALESCE($1, title),
+           description = COALESCE($2, description),
+           is_home = COALESCE($3, is_home),
+           cover_photo = COALESCE($4, cover_photo),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+       RETURNING *`,
+      [title, description, is_home, cover_photo, id]
+    );
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ message: 'Fout bij updaten album', error: error.message });
+    await client.query('ROLLBACK');
+    console.error('Error in updateAlbum:', error);
+    res.status(500).json({ message: 'Fout bij updaten album' });
+  } finally {
+    client.release();
   }
 };
 

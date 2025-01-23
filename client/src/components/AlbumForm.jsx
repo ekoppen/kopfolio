@@ -50,8 +50,9 @@ const AlbumForm = ({ album = null, onSubmitSuccess }) => {
         await api.put(`/albums/${album.id}`, formData);
         setSuccess('Album succesvol bijgewerkt');
       } else {
-        // Maak nieuw album
-        await api.post('/albums', formData);
+        // Maak nieuw album (zonder is_home optie)
+        const { is_home, ...albumData } = formData;
+        await api.post('/albums', albumData);
         setSuccess('Album succesvol aangemaakt');
         setFormData({ title: '', description: '', is_home: false });
       }
@@ -101,17 +102,20 @@ const AlbumForm = ({ album = null, onSubmitSuccess }) => {
         rows={3}
       />
 
-      <FormControlLabel
-        control={
-          <Switch
-            checked={formData.is_home}
-            onChange={handleChange}
-            name="is_home"
-          />
-        }
-        label="Home Album"
-        sx={{ my: 1 }}
-      />
+      {/* Alleen tonen bij bewerken van bestaand album dat al home is */}
+      {album && album.is_home && (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={formData.is_home}
+              onChange={handleChange}
+              name="is_home"
+            />
+          }
+          label="Home Album"
+          sx={{ my: 1 }}
+        />
+      )}
 
       <Box sx={{ mt: 2 }}>
         <Button

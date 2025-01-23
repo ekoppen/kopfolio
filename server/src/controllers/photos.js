@@ -1,5 +1,5 @@
 import { pool } from '../models/db.js';
-import ExifReader from 'exif-reader';
+import exifReader from 'exif-reader';
 import sharp from 'sharp';
 import fs from 'fs';
 import { promises as fsPromises } from 'fs';
@@ -55,7 +55,6 @@ export const uploadPhotos = async (req, res) => {
           continue;
         }
 
-        // Gebruik de bestandsnaam die Multer heeft gegenereerd
         const filename = file.filename;
         const filepath = file.path;
         const thumbnailPath = path.join(uploadDir, `thumb_${filename}`);
@@ -67,6 +66,93 @@ export const uploadPhotos = async (req, res) => {
         const hash = await calculateHash(filepath);
         console.log('Calculated hash:', hash);
 
+        let exifData = null;
+        let dateOriginal = null;
+
+        try {
+          // Lees metadata met sharp
+          console.log('Reading metadata with sharp...');
+          const metadata = await sharp(filepath).metadata();
+          console.log('Sharp metadata:', metadata);
+          
+          if (metadata.exif) {
+            console.log('EXIF data found in metadata');
+            try {
+              exifData = exifReader(metadata.exif);
+              console.log('Raw EXIF data:', exifData);
+              
+              dateOriginal = exifData?.exif?.DateTimeOriginal?.description;
+              console.log('Original date:', dateOriginal);
+              
+              // Sla alle beschikbare metadata op
+              const processedExif = {
+                // Basis metadata van Sharp
+                width: metadata.width,
+                height: metadata.height,
+                format: metadata.format,
+                space: metadata.space,
+                hasAlpha: metadata.hasAlpha,
+                size: file.size,
+                
+                // Camera informatie
+                make: exifData.Image?.Make,
+                model: exifData.Image?.Model,
+                software: exifData.Image?.Software,
+                
+                // Foto instellingen
+                exposureTime: exifData.Photo?.ExposureTime,
+                fNumber: exifData.Photo?.FNumber,
+                iso: exifData.Photo?.ISOSpeedRatings,
+                focalLength: exifData.Photo?.FocalLength,
+                flash: exifData.Photo?.Flash,
+                
+                // Overige EXIF data
+                orientation: exifData.Image?.Orientation,
+                dateTime: exifData.Photo?.DateTimeOriginal,
+                
+                // Extra EXIF data
+                exposureProgram: exifData.Photo?.ExposureProgram,
+                meteringMode: exifData.Photo?.MeteringMode,
+                whiteBalance: exifData.Photo?.WhiteBalance,
+                focalLengthIn35mm: exifData.Photo?.FocalLengthIn35mmFilm,
+                
+                // Sla ook de ruwe metadata op voor volledigheid
+                rawMetadata: metadata,
+                rawExif: exifData
+              };
+
+              exifData = processedExif;
+              console.log('Processed EXIF data:', exifData);
+            } catch (exifError) {
+              console.error('Error processing EXIF:', exifError);
+              // Als er een fout optreedt bij het verwerken van EXIF, sla dan alleen de basis metadata op
+              exifData = {
+                width: metadata.width,
+                height: metadata.height,
+                format: metadata.format,
+                space: metadata.space,
+                hasAlpha: metadata.hasAlpha,
+                size: file.size,
+                rawMetadata: metadata
+              };
+            }
+          } else {
+            console.log('No EXIF data found in metadata');
+            // Als er geen EXIF data is, sla dan alleen de basis metadata op
+            exifData = {
+              width: metadata.width,
+              height: metadata.height,
+              format: metadata.format,
+              space: metadata.space,
+              hasAlpha: metadata.hasAlpha,
+              size: file.size,
+              rawMetadata: metadata
+            };
+          }
+        } catch (exifError) {
+          console.error('Error reading EXIF:', exifError);
+        }
+
         // Maak thumbnail
         await sharp(filepath)
           .resize(400, 400, {
@@ -75,22 +161,11 @@ export const uploadPhotos = async (req, res) => {
           })
           .toFile(thumbnailPath);
 
-        let exifData = null;
-        let dateOriginal = null;
-
-        try {
-          // Lees EXIF data
-          const buffer = await fsPromises.readFile(filepath);
-          exifData = await ExifReader.load(buffer);
-          dateOriginal = exifData?.exif?.DateTimeOriginal?.description;
-        } catch (exifError) {
-          console.log('No EXIF data found or error reading EXIF:', exifError);
-        }
-
         // Voeg foto toe aan database
+        console.log('Inserting into database with EXIF:', exifData);
         const result = await pool.query(
-          'INSERT INTO photos (filename, original_date, hash, size) VALUES ($1, $2, $3, $4) RETURNING *',
-          [filename, dateOriginal, hash, file.size]
+          'INSERT INTO photos (filename, original_date, hash, size, exif_data) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+          [filename, dateOriginal, hash, file.size, exifData ? JSON.stringify(exifData) : null]
         );
 
         console.log('Photo added to database:', result.rows[0]);
@@ -118,8 +193,23 @@ export const uploadPhotos = async (req, res) => {
 // Haal alle foto's op
 export const getPhotos = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM photos ORDER BY created_at DESC');
-    res.json(result.rows);
+    const result = await pool.query(`
+      SELECT p.*, a.title as album_title 
+      FROM photos p 
+      LEFT JOIN albums a ON p.album_id = a.id 
+      ORDER BY p.created_at DESC
+    `);
+    
+    // Voeg album informatie toe aan elke foto
+    const photos = result.rows.map(photo => ({
+      ...photo,
+      album: photo.album_id ? {
+        id: photo.album_id,
+        title: photo.album_title
+      } : null
+    }));
+
+    res.json(photos);
   } catch (error) {
     console.error('Fout bij ophalen foto\'s:', error);
     res.status(500).json({ message: 'Fout bij ophalen foto\'s' });
