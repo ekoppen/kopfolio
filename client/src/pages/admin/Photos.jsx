@@ -35,8 +35,20 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Menu,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, GridView as GridViewIcon, List as ListViewIcon, ViewList as DetailedListIcon, ZoomIn as ZoomInIcon, Info as InfoIcon, ArrowUpward as ArrowUpIcon, ArrowDownward as ArrowDownIcon } from '@mui/icons-material';
+import { 
+  Delete as DeleteIcon, 
+  Edit as EditIcon, 
+  Add as AddIcon, 
+  GridView as GridViewIcon, 
+  List as ListViewIcon, 
+  ViewList as DetailedListIcon, 
+  ZoomIn as ZoomInIcon, 
+  ArrowUpward as ArrowUpIcon, 
+  ArrowDownward as ArrowDownIcon,
+  Photo as PhotoIcon 
+} from '@mui/icons-material';
 import PhotoUpload from '../../components/PhotoUpload';
 import api from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
@@ -60,203 +72,9 @@ const formatFileSize = (bytes) => {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
 };
 
-// PhotoDetailsDialog component
-const PhotoDetailsDialog = ({ photo, open, onClose }) => {
-  if (!photo) return null;
-
-  const formatExifValue = (value) => {
-    if (value === null || value === undefined) return '-';
-    return value;
-  };
-
-  return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2
-        }
-      }}
-    >
-      <DialogTitle>
-        <Box sx={{ 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          Foto Details
-        </Box>
-      </DialogTitle>
-
-      <Divider />
-      
-      <DialogContent>
-        <Box sx={{ display: 'flex', gap: 3 }}>
-          {/* Foto preview */}
-          <Box
-            sx={{
-              width: 300,
-              height: 300,
-              borderRadius: 2,
-              overflow: 'hidden',
-              flexShrink: 0,
-              bgcolor: 'background.default'
-            }}
-          >
-            <CardMedia
-              component="img"
-              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
-              alt={photo.title || 'Foto'}
-              sx={{ 
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain'
-              }}
-            />
-          </Box>
-
-          {/* Details */}
-          <Box sx={{ flex: 1 }}>
-            <List disablePadding>
-              <ListItem>
-                <ListItemText 
-                  primary="Bestandsnaam" 
-                  secondary={photo.filename} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Titel" 
-                  secondary={photo.title || '-'} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Beschrijving" 
-                  secondary={photo.description || '-'} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Album" 
-                  secondary={photo.album?.title || '-'} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Bestandsgrootte" 
-                  secondary={formatFileSize(photo.size)} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Geüpload op" 
-                  secondary={formatDate(photo.created_at)} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Originele datum" 
-                  secondary={formatDate(photo.original_date)} 
-                />
-              </ListItem>
-            </List>
-
-            {photo.exif_data && (
-              <>
-                <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
-                  Camera Informatie
-                </Typography>
-                <List disablePadding>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Camera" 
-                      secondary={formatExifValue(photo.exif_data.make)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Model" 
-                      secondary={formatExifValue(photo.exif_data.model)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Software" 
-                      secondary={formatExifValue(photo.exif_data.software)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Sluitertijd" 
-                      secondary={formatExifValue(photo.exif_data.exposureTime)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Diafragma" 
-                      secondary={formatExifValue(photo.exif_data.fNumber)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="ISO" 
-                      secondary={formatExifValue(photo.exif_data.iso)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Brandpuntsafstand" 
-                      secondary={formatExifValue(photo.exif_data.focalLength)} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Flash" 
-                      secondary={formatExifValue(photo.exif_data.flash)} 
-                    />
-                  </ListItem>
-                </List>
-
-                <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
-                  Afbeelding Informatie
-                </Typography>
-                <List disablePadding>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Afmetingen" 
-                      secondary={`${photo.exif_data.width} × ${photo.exif_data.height} pixels`} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Formaat" 
-                      secondary={photo.exif_data.format?.toUpperCase()} 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText 
-                      primary="Kleurruimte" 
-                      secondary={photo.exif_data.space} 
-                    />
-                  </ListItem>
-                </List>
-              </>
-            )}
-          </Box>
-        </Box>
-      </DialogContent>
-      
-      <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onClose} variant="outlined">
-          Sluiten
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+const formatExifValue = (value) => {
+  if (value === null || value === undefined) return '-';
+  return value;
 };
 
 const AdminPhotos = () => {
@@ -264,12 +82,10 @@ const AdminPhotos = () => {
   const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [view, setView] = useState(() => {
-    // Haal de opgeslagen weergave op uit localStorage, standaard 'grid'
     return localStorage.getItem('photoView') || 'grid';
   });
-  const [gridSize, setGridSize] = useState(3); // Aantal kolommen: 12 / gridSize
+  const [gridSize, setGridSize] = useState(3);
   const [sortConfig, setSortConfig] = useState({
     key: 'created_at',
     direction: 'desc'
@@ -280,6 +96,8 @@ const AdminPhotos = () => {
   const [albums, setAlbums] = useState([]);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState('');
+  const [albumMenuAnchor, setAlbumMenuAnchor] = useState(null);
+  const [selectedPhotoForAlbum, setSelectedPhotoForAlbum] = useState(null);
 
   const loadPhotos = async () => {
     try {
@@ -434,7 +252,6 @@ const AdminPhotos = () => {
   const handleShowDetails = (photo, event) => {
     event?.stopPropagation();
     setSelectedPhoto(photo);
-    setDetailsDialogOpen(true);
   };
 
   const handleAssignAlbum = async (photoId, albumId) => {
@@ -463,6 +280,24 @@ const AdminPhotos = () => {
     }
   };
 
+  const handleAlbumClick = (event, photo) => {
+    event.stopPropagation();
+    setSelectedPhotoForAlbum(photo);
+    setAlbumMenuAnchor(event.currentTarget);
+  };
+
+  const handleAlbumMenuClose = () => {
+    setAlbumMenuAnchor(null);
+    setSelectedPhotoForAlbum(null);
+  };
+
+  const handleAlbumSelect = async (albumId) => {
+    if (selectedPhotoForAlbum) {
+      await handleAssignAlbum(selectedPhotoForAlbum.id, albumId);
+    }
+    handleAlbumMenuClose();
+  };
+
   const renderGridView = () => (
     <Grid container spacing={2}>
       {photos.map((photo) => (
@@ -473,31 +308,22 @@ const AdminPhotos = () => {
               flexDirection: 'column',
               height: '100%',
               position: 'relative',
+              cursor: 'pointer',
               '&:hover .photo-overlay': {
                 opacity: 1
               }
             }}
+            onClick={() => handleShowDetails(photo)}
           >
-            <Box
-              sx={{
-                position: 'relative',
-                flex: 1,
-                minHeight: 300,
-                display: 'flex'
+            <CardMedia
+              component="img"
+              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
+              alt={photo.title || 'Uploaded photo'}
+              sx={{ 
+                height: 300,
+                objectFit: 'cover'
               }}
-            >
-              <CardMedia
-                component="img"
-                image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
-                alt={photo.title || 'Uploaded photo'}
-                sx={{ 
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  backgroundColor: 'background.default'
-                }}
-              />
-            </Box>
+            />
             <Box
               className="photo-overlay"
               sx={{
@@ -507,31 +333,33 @@ const AdminPhotos = () => {
                 right: 0,
                 bottom: 0,
                 bgcolor: 'rgba(0, 0, 0, 0.5)',
+                opacity: 0,
+                transition: 'opacity 0.2s',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                opacity: 0,
-                transition: 'opacity 0.3s ease-in-out'
+                justifyContent: 'space-between'
               }}
             >
-              <Box p={2}>
-                <Typography variant="subtitle1" color="white">
-                  {photo.title || photo.filename}
-                </Typography>
-                {photo.description && (
-                  <Typography variant="body2" color="white">
-                    {photo.description}
-                  </Typography>
-                )}
-              </Box>
               <Box p={1} display="flex" justifyContent="flex-end">
                 <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
-                  <InputLabel>Album</InputLabel>
+                  <InputLabel sx={{ color: 'white' }}>Album</InputLabel>
                   <Select
                     value={photo.album_id || ''}
                     label="Album"
                     onChange={(e) => handleAssignAlbum(photo.id, e.target.value || null)}
                     onClick={(e) => e.stopPropagation()}
+                    sx={{ 
+                      color: 'white',
+                      '.MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'white',
+                      },
+                      '.MuiSvgIcon-root': {
+                        color: 'white',
+                      }
+                    }}
                   >
                     <MenuItem value="">
                       <em>Geen album</em>
@@ -543,23 +371,16 @@ const AdminPhotos = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <IconButton 
-                  size="small" 
-                  sx={{ color: 'white', mr: 1 }}
-                  onClick={(e) => handleShowDetails(photo, e)}
-                >
-                  <InfoIcon />
-                </IconButton>
-                <IconButton size="small" sx={{ color: 'white', mr: 1 }}>
+                <IconButton size="small" sx={{ mr: 1, color: 'white' }}>
                   <EditIcon />
                 </IconButton>
                 <IconButton 
-                  size="small" 
-                  sx={{ color: 'white' }}
+                  size="small"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteClick(photo);
                   }}
+                  sx={{ color: 'white' }}
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -572,7 +393,14 @@ const AdminPhotos = () => {
   );
 
   const renderListView = () => (
-    <Paper elevation={0}>
+    <Paper 
+      elevation={0}
+      sx={{ 
+        bgcolor: 'background.paper',
+        borderRadius: 2,
+        overflow: 'hidden'
+      }}
+    >
       {photos.map((photo) => (
         <Box
           key={photo.id}
@@ -583,8 +411,13 @@ const AdminPhotos = () => {
             borderBottom: `1px solid ${theme.palette.divider}`,
             '&:last-child': {
               borderBottom: 'none'
+            },
+            cursor: 'pointer',
+            '&:hover': {
+              bgcolor: 'action.hover'
             }
           }}
+          onClick={() => handleShowDetails(photo)}
         >
           <Box
             sx={{
@@ -636,19 +469,15 @@ const AdminPhotos = () => {
                 ))}
               </Select>
             </FormControl>
-            <IconButton 
-              size="small" 
-              sx={{ mr: 1 }}
-              onClick={(e) => handleShowDetails(photo, e)}
-            >
-              <InfoIcon />
-            </IconButton>
             <IconButton size="small" sx={{ mr: 1 }}>
               <EditIcon />
             </IconButton>
             <IconButton 
               size="small"
-              onClick={() => handleDeleteClick(photo)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(photo);
+              }}
             >
               <DeleteIcon />
             </IconButton>
@@ -659,31 +488,15 @@ const AdminPhotos = () => {
   );
 
   const renderDetailedListView = () => (
-    <Paper elevation={0}>
+    <Paper 
+      elevation={0}
+      sx={{ 
+        bgcolor: 'background.paper',
+        borderRadius: 2,
+        overflow: 'hidden'
+      }}
+    >
       <Box sx={{ width: '100%', overflow: 'auto' }}>
-        {selectedPhotos.size > 0 && (
-          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography>
-              {selectedPhotos.size} foto('s) geselecteerd
-            </Typography>
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={() => setBulkDeleteDialogOpen(true)}
-              startIcon={<DeleteIcon />}
-            >
-              Verwijderen
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => setAlbumDialogOpen(true)}
-            >
-              Album toewijzen
-            </Button>
-          </Box>
-        )}
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -697,7 +510,7 @@ const AdminPhotos = () => {
               <TableCell sx={{ width: 100 }}>Thumbnail</TableCell>
               <SortableTableCell field="filename" label="Bestandsnaam" />
               <SortableTableCell field="title" label="Titel" />
-              <SortableTableCell field="description" label="Beschrijving" />
+              <SortableTableCell field="exif_data.model" label="Camera Model" />
               <SortableTableCell field="album_id" label="Album" />
               <SortableTableCell field="size" label="Grootte" width={100} />
               <SortableTableCell field="created_at" label="Geüpload op" width={150} />
@@ -711,7 +524,7 @@ const AdminPhotos = () => {
                 key={photo.id} 
                 hover
                 selected={selectedPhotos.has(photo.id)}
-                onClick={() => handleSelectPhoto(photo.id)}
+                onClick={() => handleShowDetails(photo)}
                 sx={{ cursor: 'pointer' }}
               >
                 <TableCell padding="checkbox">
@@ -758,7 +571,7 @@ const AdminPhotos = () => {
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    {photo.description || '-'}
+                    {photo.exif_data?.model || '-'}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -767,49 +580,35 @@ const AdminPhotos = () => {
                       label={photo.album?.title || `Album ${photo.album_id}`}
                       size="small"
                       variant="outlined"
+                      onClick={(e) => handleAlbumClick(e, photo)}
+                      sx={{ 
+                        cursor: 'pointer',
+                        '&:hover': {
+                          bgcolor: 'action.hover'
+                        }
+                      }}
                     />
-                  ) : '-'}
+                  ) : (
+                    <Button 
+                      size="small" 
+                      variant="text" 
+                      onClick={(e) => handleAlbumClick(e, photo)}
+                      sx={{ 
+                        color: 'text.secondary',
+                        '&:hover': {
+                          bgcolor: 'action.hover'
+                        }
+                      }}
+                    >
+                      Album toewijzen
+                    </Button>
+                  )}
                 </TableCell>
                 <TableCell>{formatFileSize(photo.size)}</TableCell>
                 <TableCell>{formatDate(photo.created_at)}</TableCell>
                 <TableCell>{formatDate(photo.original_date)}</TableCell>
                 <TableCell align="right">
-                  <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
-                    <InputLabel>Album</InputLabel>
-                    <Select
-                      value={photo.album_id || ''}
-                      label="Album"
-                      onChange={(e) => handleAssignAlbum(photo.id, e.target.value || null)}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MenuItem value="">
-                        <em>Geen album</em>
-                      </MenuItem>
-                      {albums.map((album) => (
-                        <MenuItem key={album.id} value={album.id}>
-                          {album.title}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <IconButton 
-                    size="small" 
-                    sx={{ mr: 1 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShowDetails(photo, e);
-                    }}
-                  >
-                    <InfoIcon />
-                  </IconButton>
-                  <IconButton 
-                    size="small" 
-                    sx={{ mr: 1 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // handleEditClick(photo);
-                    }}
-                  >
+                  <IconButton size="small" sx={{ mr: 1 }}>
                     <EditIcon />
                   </IconButton>
                   <IconButton 
@@ -827,6 +626,26 @@ const AdminPhotos = () => {
           </TableBody>
         </Table>
       </Box>
+
+      <Menu
+        anchorEl={albumMenuAnchor}
+        open={Boolean(albumMenuAnchor)}
+        onClose={handleAlbumMenuClose}
+      >
+        <MenuItem onClick={() => handleAlbumSelect(null)}>
+          <em>Geen album</em>
+        </MenuItem>
+        <Divider />
+        {albums.map((album) => (
+          <MenuItem 
+            key={album.id} 
+            onClick={() => handleAlbumSelect(album.id)}
+            selected={selectedPhotoForAlbum?.album_id === album.id}
+          >
+            {album.title}
+          </MenuItem>
+        ))}
+      </Menu>
 
       <Dialog
         open={bulkDeleteDialogOpen}
@@ -889,64 +708,270 @@ const AdminPhotos = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-          Foto's beheren
-        </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        gap: 2 
+      }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <ToggleButtonGroup
+            value={view}
+            exclusive
+            onChange={handleViewChange}
+            size="small"
+          >
+            <ToggleButton value="grid">
+              <Tooltip title="Grid weergave">
+                <GridViewIcon />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="list">
+              <Tooltip title="Lijst weergave">
+                <ListViewIcon />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="detailed">
+              <Tooltip title="Gedetailleerde weergave">
+                <DetailedListIcon />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          {view === 'grid' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 200 }}>
+              <ZoomInIcon sx={{ color: 'text.secondary' }} />
+              <Slider
+                value={gridSize}
+                min={2}
+                max={6}
+                step={1}
+                onChange={handleGridSizeChange}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${12/value} kolommen`}
+              />
+            </Box>
+          )}
+
+          {view === 'detailed' && selectedPhotos.size > 0 && (
+            <>
+              <Divider orientation="vertical" flexItem />
+              <Typography>
+                {selectedPhotos.size} foto('s) geselecteerd
+              </Typography>
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                startIcon={<DeleteIcon />}
+              >
+                Verwijderen
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => setAlbumDialogOpen(true)}
+              >
+                Album toewijzen
+              </Button>
+            </>
+          )}
+        </Box>
+
+        <Tooltip title="Foto's uploaden">
+          <Button
+            variant="contained"
+            onClick={() => document.querySelector('input[type="file"]').click()}
+            sx={{ 
+              minWidth: 0, 
+              width: 40, 
+              height: 40, 
+              p: 0,
+              borderRadius: 2
+            }}
+          >
+            <AddIcon />
+          </Button>
+        </Tooltip>
+      </Box>
+
+      <Box sx={{ display: 'none' }}>
         <PhotoUpload onUploadSuccess={loadPhotos} />
-      </Paper>
+      </Box>
 
-      <Paper 
-        sx={{ 
-          p: 2, 
-          mb: 3, 
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2
-        }}
-      >
-        <ToggleButtonGroup
-          value={view}
-          exclusive
-          onChange={handleViewChange}
-          size="small"
+      <Box sx={{ display: 'flex', gap: 3 }}>
+        {/* Linker kolom met foto's */}
+        <Box sx={{ 
+          flex: 1,
+          bgcolor: 'grey.100',
+          borderRadius: 2,
+          p: 2
+        }}>
+          {view === 'grid' ? renderGridView() : 
+           view === 'list' ? renderListView() : 
+           renderDetailedListView()}
+        </Box>
+
+        {/* Rechter kolom met details */}
+        <Paper 
+          sx={{ 
+            width: 300, 
+            p: 2,
+            alignSelf: 'flex-start',
+            position: 'sticky',
+            top: 24
+          }}
         >
-          <ToggleButton value="grid">
-            <Tooltip title="Grid weergave">
-              <GridViewIcon />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="list">
-            <Tooltip title="Lijst weergave">
-              <ListViewIcon />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="detailed">
-            <Tooltip title="Gedetailleerde weergave">
-              <DetailedListIcon />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
+          {selectedPhoto ? (
+            <>
+              <Box sx={{ mb: 2 }}>
+                <img
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${selectedPhoto.filename}`}
+                  alt={selectedPhoto.title || 'Geselecteerde foto'}
+                  style={{ 
+                    width: '100%',
+                    height: 200,
+                    objectFit: 'cover',
+                    borderRadius: 8
+                  }}
+                />
+              </Box>
 
-        {view === 'grid' && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 200 }}>
-            <ZoomInIcon sx={{ color: 'text.secondary' }} />
-            <Slider
-              value={gridSize}
-              min={2}
-              max={6}
-              step={1}
-              onChange={handleGridSizeChange}
-              valueLabelDisplay="auto"
-              valueLabelFormat={(value) => `${12/value} kolommen`}
-            />
-          </Box>
-        )}
-      </Paper>
+              <List disablePadding>
+                <ListItem>
+                  <ListItemText 
+                    primary="Bestandsnaam" 
+                    secondary={selectedPhoto.filename} 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Titel" 
+                    secondary={selectedPhoto.title || '-'} 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Album" 
+                    secondary={selectedPhoto.album?.title || '-'} 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Bestandsgrootte" 
+                    secondary={formatFileSize(selectedPhoto.size)} 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Geüpload op" 
+                    secondary={formatDate(selectedPhoto.created_at)} 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Originele datum" 
+                    secondary={formatDate(selectedPhoto.original_date)} 
+                  />
+                </ListItem>
+              </List>
 
-      {view === 'grid' ? renderGridView() : 
-       view === 'list' ? renderListView() : 
-       renderDetailedListView()}
+              {selectedPhoto.exif_data && (
+                <>
+                  <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+                    Camera Informatie
+                  </Typography>
+                  <List disablePadding>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Camera" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.make)} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Model" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.model)} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Software" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.software)} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Sluitertijd" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.exposureTime)} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Diafragma" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.fNumber)} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="ISO" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.iso)} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Brandpuntsafstand" 
+                        secondary={formatExifValue(selectedPhoto.exif_data.focalLength)} 
+                      />
+                    </ListItem>
+                  </List>
+
+                  <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+                    Afbeelding Informatie
+                  </Typography>
+                  <List disablePadding>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Afmetingen" 
+                        secondary={`${selectedPhoto.exif_data.width} × ${selectedPhoto.exif_data.height} pixels`} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Formaat" 
+                        secondary={selectedPhoto.exif_data.format?.toUpperCase()} 
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText 
+                        primary="Kleurruimte" 
+                        secondary={selectedPhoto.exif_data.space} 
+                      />
+                    </ListItem>
+                  </List>
+                </>
+              )}
+            </>
+          ) : (
+            <Box sx={{ 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'text.secondary',
+              py: 4
+            }}>
+              <PhotoIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+              <Typography variant="body1" sx={{ textAlign: 'center' }}>
+                Selecteer een foto om de details te bekijken
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      </Box>
 
       <Dialog
         open={deleteDialogOpen}
@@ -966,14 +991,42 @@ const AdminPhotos = () => {
         </DialogActions>
       </Dialog>
 
-      <PhotoDetailsDialog
-        photo={selectedPhoto}
-        open={detailsDialogOpen}
-        onClose={() => {
-          setDetailsDialogOpen(false);
-          setSelectedPhoto(null);
-        }}
-      />
+      <Dialog
+        open={albumDialogOpen}
+        onClose={() => setAlbumDialogOpen(false)}
+      >
+        <DialogTitle>Album toewijzen</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Selecteer een album om toe te wijzen aan {selectedPhotos.size} foto('s)
+          </DialogContentText>
+          <FormControl fullWidth>
+            <InputLabel>Album</InputLabel>
+            <Select
+              value={selectedAlbum}
+              label="Album"
+              onChange={(e) => setSelectedAlbum(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Geen album</em>
+              </MenuItem>
+              {albums.map((album) => (
+                <MenuItem key={album.id} value={album.id}>
+                  {album.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAlbumDialogOpen(false)}>
+            Annuleren
+          </Button>
+          <Button onClick={handleBulkAssignAlbum} variant="contained">
+            Toewijzen
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

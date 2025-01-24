@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Link as RouterLink } from 'react-router-dom';
+import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -27,12 +27,16 @@ const DRAWER_WIDTH = 280;
 
 const AdminLayout = () => {
   const theme = useTheme();
+  const location = useLocation();
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
     { text: 'Albums', icon: <AlbumIcon />, path: '/admin/albums' },
     { text: "Foto's", icon: <PhotoIcon />, path: '/admin/fotos' },
     { text: "Pagina's", icon: <PageIcon />, path: '/admin/paginas' }
   ];
+
+  // Bepaal de actieve pagina
+  const activePage = menuItems.find(item => location.pathname === item.path);
 
   return (
     <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -54,7 +58,7 @@ const AdminLayout = () => {
               color: 'grey.800'
             }}
           >
-            Kopfolio Admin
+            {activePage ? activePage.text : 'Kopfolio Admin'}
           </Typography>
           <Button
             component={RouterLink}
@@ -95,6 +99,7 @@ const AdminLayout = () => {
                 <ListItemButton 
                   component={RouterLink} 
                   to={item.path}
+                  selected={location.pathname === item.path}
                   sx={{
                     borderRadius: 2,
                     color: 'grey.700',
@@ -147,9 +152,9 @@ const AdminLayout = () => {
         }}
       >
         <Toolbar />
-        <Container maxWidth="lg">
+        <Box sx={{ pl: 0, pr: 0 }}>
           <Outlet />
-        </Container>
+        </Box>
       </Box>
     </Box>
   );

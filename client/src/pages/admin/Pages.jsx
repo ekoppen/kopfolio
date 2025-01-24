@@ -17,18 +17,15 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Link as LinkIcon
 } from '@mui/icons-material';
-import PageEditor from '../../components/PageEditor';
 import api from '../../utils/api';
 
 const AdminPages = () => {
   const [pages, setPages] = useState([]);
   const [selectedPage, setSelectedPage] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const loadPages = async () => {
@@ -58,18 +55,6 @@ const AdminPages = () => {
     } catch (error) {
       console.error('Fout bij verwijderen pagina:', error);
     }
-  };
-
-  const handleEditClick = (page) => {
-    setSelectedPage(page);
-    setEditDialogOpen(true);
-  };
-
-  const handleFormSuccess = () => {
-    loadPages();
-    setEditDialogOpen(false);
-    setCreateDialogOpen(false);
-    setSelectedPage(null);
   };
 
   const formatDate = (dateString) => {
@@ -116,14 +101,6 @@ const AdminPages = () => {
                   </IconButton>
                   <IconButton
                     edge="end"
-                    aria-label="bewerk"
-                    onClick={() => handleEditClick(page)}
-                    sx={{ mr: 1 }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    edge="end"
                     aria-label="verwijder"
                     onClick={() => handleDeleteClick(page)}
                   >
@@ -163,22 +140,6 @@ const AdminPages = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Bewerk Dialog */}
-      <Dialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Pagina bewerken</DialogTitle>
-        <DialogContent>
-          <PageEditor
-            page={selectedPage}
-            onSubmitSuccess={handleFormSuccess}
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Nieuwe Pagina Dialog */}
       <Dialog
         open={createDialogOpen}
@@ -188,8 +149,17 @@ const AdminPages = () => {
       >
         <DialogTitle>Nieuwe Pagina</DialogTitle>
         <DialogContent>
-          <PageEditor onSubmitSuccess={handleFormSuccess} />
+          <Box sx={{ p: 2 }}>
+            <Typography>
+              Klik op de link icoon om de pagina te openen en te bewerken.
+            </Typography>
+          </Box>
         </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateDialogOpen(false)}>
+            Sluiten
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

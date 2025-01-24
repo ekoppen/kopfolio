@@ -35,7 +35,7 @@ yarn-error.log*
 # Uploads
 /server/public/uploads/*
 !/server/public/uploads/.gitkeep
-
+uploads/*
 # Misc
 *.log
 .cache/ 
