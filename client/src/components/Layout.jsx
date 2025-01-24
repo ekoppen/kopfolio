@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Container, Box, useTheme } from '@mui/material';
 import Navigation from './Navigation';
+import api from '../utils/api';
 
 const Layout = () => {
   const theme = useTheme();
+  const [siteTitle, setSiteTitle] = useState('Kopfolio');
+  
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await api.get('/settings');
+        if (response.data.site_title) {
+          setSiteTitle(response.data.site_title);
+        }
+      } catch (error) {
+        console.error('Fout bij laden site titel:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
   
   return (
     <Box sx={{ 
@@ -33,7 +50,7 @@ const Layout = () => {
               color: 'grey.800'
             }}
           >
-            Kopfolio
+            {siteTitle}
           </Typography>
           <Navigation />
         </Toolbar>
@@ -70,7 +87,7 @@ const Layout = () => {
             align="center"
             sx={{ fontWeight: 500 }}
           >
-            © {new Date().getFullYear()} Kopfolio
+            © {new Date().getFullYear()} {siteTitle}
           </Typography>
         </Container>
       </Box>

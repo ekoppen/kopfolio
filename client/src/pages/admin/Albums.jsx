@@ -87,170 +87,172 @@ const AdminAlbums = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 3, 
-          mb: 3, 
-          borderRadius: 2,
-          bgcolor: 'grey.50',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <CollectionsIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'medium' }}>
-            Albums Beheren
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        gap: 2 
+      }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            {albums.length} album(s)
           </Typography>
         </Box>
+
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
           sx={{ 
-            borderRadius: 2,
-            px: 3
+            minWidth: 0, 
+            width: 40, 
+            height: 40, 
+            p: 0,
+            borderRadius: 2
           }}
         >
-          Nieuw Album
+          <AddIcon />
         </Button>
-      </Paper>
+      </Box>
 
-      <Grid container spacing={3}>
-        {albums.map((album) => (
-          <Grid item xs={12} sm={6} md={4} key={album.id}>
-            <Card 
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: 2,
-                transition: 'all 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8]
-                }
-              }}
-            >
-              {album.cover_photo ? (
-                <CardMedia
-                  component="img"
-                  height="220"
-                  image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${album.cover_photo}`}
-                  alt={album.title}
+      <Box sx={{ display: 'flex', gap: 3 }}>
+        <Box sx={{ 
+          flex: 1,
+          bgcolor: 'grey.100',
+          borderRadius: 2,
+          p: 2
+        }}>
+          <Grid container spacing={2}>
+            {albums.map((album) => (
+              <Grid item xs={12} sm={6} md={4} key={album.id}>
+                <Card 
+                  elevation={0}
                   sx={{ 
-                    objectFit: 'cover',
-                    borderBottom: `1px solid ${theme.palette.divider}`
-                  }}
-                />
-              ) : (
-                <Box
-                  sx={{
-                    height: 220,
-                    bgcolor: 'grey.100',
+                    height: '100%',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     flexDirection: 'column',
-                    gap: 1
+                    bgcolor: 'background.paper'
                   }}
                 >
-                  <CollectionsIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    Geen foto's
-                  </Typography>
-                </Box>
-              )}
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                  <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'medium' }}>
-                    {album.title}
-                  </Typography>
-                  {album.is_home && (
-                    <Chip 
-                      label="Home" 
-                      color="primary" 
-                      size="small" 
-                      sx={{ ml: 1 }} 
-                    />
-                  )}
-                </Box>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  paragraph
-                  sx={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    minHeight: 40
-                  }}
-                >
-                  {album.description || 'Geen beschrijving'}
-                </Typography>
-                <Box 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    gap: 0.5,
-                    color: 'text.secondary'
-                  }}
-                >
-                  <PhotoIcon sx={{ fontSize: 20 }} />
-                  <Typography variant="body2">
-                    {album.photo_count} foto's
-                  </Typography>
-                </Box>
-              </CardContent>
-              <Divider />
-              <CardActions sx={{ px: 2, py: 1 }}>
-                <Tooltip title="Foto's beheren">
-                  <IconButton
-                    size="small"
-                    onClick={() => handlePhotoManagerClick(album)}
-                    sx={{ 
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.50' }
-                    }}
-                  >
-                    <PhotoIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Album bewerken">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleEditClick(album)}
-                    sx={{ 
-                      color: 'info.main',
-                      '&:hover': { bgcolor: 'info.50' }
-                    }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={album.is_home ? 'Home album kan niet verwijderd worden' : 'Album verwijderen'}>
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteClick(album)}
-                      disabled={album.is_home}
+                  {album.cover_photo ? (
+                    <CardMedia
+                      component="img"
+                      height="220"
+                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${album.cover_photo}`}
+                      alt={album.title}
                       sx={{ 
-                        color: 'error.main',
-                        '&:hover': { bgcolor: 'error.50' }
+                        objectFit: 'cover',
+                        borderBottom: `1px solid ${theme.palette.divider}`
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 220,
+                        bgcolor: 'grey.100',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column',
+                        gap: 1
                       }}
                     >
-                      <DeleteIcon />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </CardActions>
-            </Card>
+                      <CollectionsIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Geen foto's
+                      </Typography>
+                    </Box>
+                  )}
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                      <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'medium' }}>
+                        {album.title}
+                      </Typography>
+                      {album.is_home && (
+                        <Chip 
+                          label="Home" 
+                          color="primary" 
+                          size="small" 
+                          sx={{ ml: 1 }} 
+                        />
+                      )}
+                    </Box>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      paragraph
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        minHeight: 40
+                      }}
+                    >
+                      {album.description || 'Geen beschrijving'}
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: 0.5,
+                        color: 'text.secondary'
+                      }}
+                    >
+                      <PhotoIcon sx={{ fontSize: 20 }} />
+                      <Typography variant="body2">
+                        {album.photo_count} foto's
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                  <Divider />
+                  <CardActions sx={{ px: 2, py: 1 }}>
+                    <Tooltip title="Foto's beheren">
+                      <IconButton
+                        size="small"
+                        onClick={() => handlePhotoManagerClick(album)}
+                        sx={{ 
+                          color: 'primary.main',
+                          '&:hover': { bgcolor: 'primary.50' }
+                        }}
+                      >
+                        <PhotoIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Album bewerken">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditClick(album)}
+                        sx={{ 
+                          color: 'info.main',
+                          '&:hover': { bgcolor: 'info.50' }
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={album.is_home ? 'Home album kan niet verwijderd worden' : 'Album verwijderen'}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(album)}
+                          disabled={album.is_home}
+                          sx={{ 
+                            color: 'error.main',
+                            '&:hover': { bgcolor: 'error.50' }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+        </Box>
+      </Box>
 
       <Dialog
         open={deleteDialogOpen}

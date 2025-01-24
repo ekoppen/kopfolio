@@ -13,27 +13,39 @@ import {
   DialogContent,
   DialogActions,
   Paper,
-  Divider
+  Divider,
+  Chip
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Edit as EditIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
 import api from '../../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminPages = () => {
   const [pages, setPages] = useState([]);
-  const [selectedPage, setSelectedPage] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedPage, setSelectedPage] = useState(null);
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const loadPages = async () => {
     try {
       const response = await api.get('/pages');
-      setPages(response.data);
+      // Zorg ervoor dat de home pagina bovenaan staat
+      const sortedPages = response.data.sort((a, b) => {
+        if (a.slug === 'home') return -1;
+        if (b.slug === 'home') return 1;
+        return 0;
+      });
+      setPages(sortedPages);
     } catch (error) {
-      console.error('Fout bij ophalen pagina\'s:', error);
+      showToast('Fout bij ophalen pagina\'s', 'error');
     }
   };
 
@@ -41,20 +53,30 @@ const AdminPages = () => {
     loadPages();
   }, []);
 
-  const handleDeleteClick = (page) => {
-    setSelectedPage(page);
-    setDeleteDialogOpen(true);
+  const handleEdit = (page) => {
+    navigate(`/admin/paginas/${page.id}`);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDelete = async () => {
+    if (!selectedPage || selectedPage.slug === 'home') return;
+
     try {
       await api.delete(`/pages/${selectedPage.id}`);
-      setPages(pages.filter(p => p.id !== selectedPage.id));
-      setDeleteDialogOpen(false);
-      setSelectedPage(null);
+      showToast('Pagina succesvol verwijderd');
+      loadPages();
     } catch (error) {
-      console.error('Fout bij verwijderen pagina:', error);
+      showToast('Fout bij verwijderen pagina', 'error');
     }
+    setDeleteDialogOpen(false);
+  };
+
+  const confirmDelete = (page) => {
+    if (page.slug === 'home') {
+      showToast('De home pagina kan niet worden verwijderd', 'error');
+      return;
+    }
+    setSelectedPage(page);
+    setDeleteDialogOpen(true);
   };
 
   const formatDate = (dateString) => {
@@ -66,62 +88,115 @@ const AdminPages = () => {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Pagina's Beheren
-        </Typography>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        gap: 2 
+      }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            {pages.length} pagina('s)
+          </Typography>
+        </Box>
+
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
+          onClick={() => navigate('/admin/paginas/nieuw')}
+          sx={{ 
+            minWidth: 0, 
+            width: 40, 
+            height: 40, 
+            p: 0,
+            borderRadius: 2
+          }}
         >
-          Nieuwe Pagina
+          <AddIcon />
         </Button>
       </Box>
 
-      <Paper>
-        <List>
-          {pages.map((page, index) => (
-            <React.Fragment key={page.id}>
-              {index > 0 && <Divider />}
-              <ListItem>
-                <ListItemText
-                  primary={page.title}
-                  secondary={`Laatst bijgewerkt: ${formatDate(page.created_at)}`}
-                />
-                <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    aria-label="bekijk"
-                    onClick={() => window.open(`/pagina/${page.slug}`, '_blank')}
-                    sx={{ mr: 1 }}
-                  >
-                    <LinkIcon />
-                  </IconButton>
-                  <IconButton
-                    edge="end"
-                    aria-label="verwijder"
-                    onClick={() => handleDeleteClick(page)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-            </React.Fragment>
-          ))}
-          {pages.length === 0 && (
-            <ListItem>
-              <ListItemText
-                primary="Geen pagina's gevonden"
-                secondary="Klik op 'Nieuwe Pagina' om je eerste pagina aan te maken"
-              />
-            </ListItem>
-          )}
-        </List>
-      </Paper>
+      <Box sx={{ display: 'flex', gap: 3 }}>
+        {/* Linker kolom met pagina's */}
+        <Box sx={{ 
+          flex: 1,
+          bgcolor: 'grey.100',
+          borderRadius: 2,
+          p: 2
+        }}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              bgcolor: 'background.paper',
+              borderRadius: 2,
+              overflow: 'hidden'
+            }}
+          >
+            <List>
+              {pages.map((page) => (
+                <React.Fragment key={page.id}>
+                  <ListItem>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {page.title}
+                          {page.slug === 'home' && (
+                            <Chip
+                              icon={<HomeIcon />}
+                              label="Home pagina"
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+                      }
+                      secondary={`Laatst bijgewerkt: ${formatDate(page.updated_at || page.created_at)}`}
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        aria-label="bewerken"
+                        onClick={() => handleEdit(page)}
+                        sx={{ mr: 1 }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        edge="end"
+                        aria-label="bekijk"
+                        onClick={() => window.open(`/pagina/${page.slug}`, '_blank')}
+                        sx={{ mr: 1 }}
+                      >
+                        <LinkIcon />
+                      </IconButton>
+                      <IconButton
+                        edge="end"
+                        aria-label="verwijderen"
+                        onClick={() => confirmDelete(page)}
+                        disabled={page.slug === 'home'}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider />
+                </React.Fragment>
+              ))}
+              {pages.length === 0 && (
+                <ListItem>
+                  <ListItemText
+                    primary="Geen pagina's gevonden"
+                    secondary="Klik op het + icoon om je eerste pagina aan te maken"
+                  />
+                </ListItem>
+              )}
+            </List>
+          </Paper>
+        </Box>
+      </Box>
 
-      {/* Verwijder Dialog */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -134,30 +209,8 @@ const AdminPages = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>
             Annuleren
           </Button>
-          <Button onClick={handleDeleteConfirm} color="error">
+          <Button onClick={handleDelete} color="error" variant="contained">
             Verwijderen
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Nieuwe Pagina Dialog */}
-      <Dialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Nieuwe Pagina</DialogTitle>
-        <DialogContent>
-          <Box sx={{ p: 2 }}>
-            <Typography>
-              Klik op de link icoon om de pagina te openen en te bewerken.
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>
-            Sluiten
           </Button>
         </DialogActions>
       </Dialog>

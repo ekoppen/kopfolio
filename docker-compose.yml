@@ -27,7 +27,7 @@ services:
       - ./uploads:/app/public/uploads
     environment:
       - DB_USER=kopfolio
-      - DB_PASSWORD=kopfolio123
+      - DB_PASSWORD=kopfolio
       - DB_NAME=kopfolio
       - DB_HOST=db
       - JWT_SECRET=your_jwt_secret
@@ -36,13 +36,12 @@ services:
         condition: service_healthy
 
   db:
-    image: postgres:16
+    image: postgres:15-alpine
+    container_name: kopfolio-db-1
     environment:
-      - POSTGRES_USER=kopfolio
-      - POSTGRES_PASSWORD=kopfolio123
-      - POSTGRES_DB=kopfolio
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: kopfolio
+      POSTGRES_PASSWORD: kopfolio
+      POSTGRES_DB: kopfolio
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

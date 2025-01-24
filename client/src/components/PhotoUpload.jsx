@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Box, Button, LinearProgress, Typography, Alert } from '@mui/material';
+import { Box, Button, LinearProgress, Typography } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useToast } from '../contexts/ToastContext';
@@ -19,26 +19,24 @@ const PhotoUpload = ({ onUploadSuccess }) => {
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
-    if (files.length === 0) return;
+    
+    // Check bestandsgrootte
+    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      showToast('error', 'Bestanden zijn te groot (max 10MB)');
+      return;
+    }
 
     setUploading(true);
-    setProgress(0);
-
+    
     try {
-      // Bereken hashes voor alle bestanden
-      const fileHashes = await Promise.all(
-        files.map(async (file) => ({
-          file,
-          hash: await calculateHash(file)
-        }))
-      );
-
+      // Bereken hashes voor duplicaat check
+      const hashes = await Promise.all(files.map(calculateHash));
+      
       // Check voor duplicaten
-      const response = await axios.post(
+      const { data: duplicates } = await axios.post(
         `${import.meta.env.VITE_API_URL}/photos/check-duplicates`,
-        {
-          hashes: fileHashes.map(fh => fh.hash)
-        },
+        { hashes },
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -46,37 +44,32 @@ const PhotoUpload = ({ onUploadSuccess }) => {
           }
         }
       );
-
-      const duplicateHashes = new Set(response.data.duplicates);
-      const uniqueFiles = fileHashes.filter(fh => !duplicateHashes.has(fh.hash));
-      const duplicateFiles = fileHashes.filter(fh => duplicateHashes.has(fh.hash));
-
-      if (duplicateFiles.length > 0) {
-        showToast(
-          `${duplicateFiles.length} foto('s) worden overgeslagen omdat ze al bestaan`,
-          'warning'
-        );
+      
+      if (duplicates.length > 0) {
+        showToast('warning', 'Sommige foto\'s zijn al geüpload');
+        // Filter duplicaten uit de lijst
+        const uniqueFiles = files.filter((file, index) => !duplicates.includes(hashes[index]));
+        if (uniqueFiles.length === 0) {
+          setUploading(false);
+          return;
+        }
+        // Ga door met alleen unieke bestanden
+        files = uniqueFiles;
       }
-
-      if (uniqueFiles.length === 0) {
-        showToast('Alle geselecteerde foto\'s bestaan al', 'error');
-        setUploading(false);
-        return;
-      }
-
-      // Upload alleen unieke bestanden
+      
+      // Upload de bestanden
       const formData = new FormData();
-      uniqueFiles.forEach(({ file }) => {
+      files.forEach(file => {
         formData.append('photos', file);
       });
-
+      
       const uploadResponse = await axios.post(
         `${import.meta.env.VITE_API_URL}/photos`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data'
           },
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
@@ -86,21 +79,14 @@ const PhotoUpload = ({ onUploadSuccess }) => {
           }
         }
       );
-
-      showToast(
-        `${uniqueFiles.length} foto('s) succesvol geüpload`,
-        'success'
-      );
       
+      showToast('success', 'Foto\'s succesvol geüpload');
       if (onUploadSuccess) {
         onUploadSuccess();
       }
     } catch (error) {
       console.error('Upload error:', error);
-      showToast(
-        'Er is een fout opgetreden bij het uploaden van de foto\'s',
-        'error'
-      );
+      showToast('error', 'Er is een fout opgetreden bij het uploaden');
     } finally {
       setUploading(false);
       setProgress(0);

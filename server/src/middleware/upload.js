@@ -1,41 +1,41 @@
 import multer from 'multer';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import fs from 'fs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Zorg dat de uploads directory bestaat
+const uploadDir = '/app/public/uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-// Configureer opslag voor geüploade bestanden
+// Configureer multer storage
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, '/app/public/uploads');
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
   },
-  filename: function (req, file, cb) {
-    // Genereer unieke bestandsnaam met timestamp en originele extensie
+  filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-// Filter voor toegestane bestandstypen
+// Filter voor toegestane bestandstypes
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-  
+  const allowedTypes = ['image/jpeg', 'image/png'];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Ongeldig bestandstype. Alleen JPG, PNG en GIF zijn toegestaan.'), false);
+    cb(new Error('Alleen JPG en PNG bestanden zijn toegestaan'));
   }
 };
 
-// Configureer Multer met verhoogde limieten voor multi-upload
+// Multer configuratie
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
-    files: 50 // Maximum 50 bestanden tegelijk
+    files: 50
   }
 });
 

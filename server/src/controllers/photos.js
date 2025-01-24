@@ -34,14 +34,9 @@ export const uploadPhotos = async (req, res) => {
     console.log('Request body:', req.body);
     console.log('Request files:', req.files);
     
-    if (!req.files || req.files.length === 0) {
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
       return res.status(400).json({ error: 'Geen foto\'s geüpload' });
     }
-
-    const { albumId, title, description } = req.body;
-    console.log('Album ID:', albumId);
-    console.log('Title:', title);
-    console.log('Description:', description);
 
     const uploadResults = [];
     const errors = [];
@@ -62,6 +57,12 @@ export const uploadPhotos = async (req, res) => {
         console.log('Original file path:', filepath);
         console.log('Thumbnail path:', thumbnailPath);
 
+        // Controleer of het bestand bestaat
+        if (!fs.existsSync(filepath)) {
+          errors.push(`Bestand ${file.originalname} niet gevonden op schijf`);
+          continue;
+        }
+
         // Bereken de hash van het originele bestand
         const hash = await calculateHash(filepath);
         console.log('Calculated hash:', hash);
@@ -74,7 +75,7 @@ export const uploadPhotos = async (req, res) => {
           console.log('Reading metadata with sharp...');
           const metadata = await sharp(filepath).metadata();
           console.log('Sharp metadata:', metadata);
-          
+
           if (metadata.exif) {
             console.log('EXIF data found in metadata');
             try {
@@ -120,7 +121,7 @@ export const uploadPhotos = async (req, res) => {
                 rawMetadata: metadata,
                 rawExif: exifData
               };
-
+              
               exifData = processedExif;
               console.log('Processed EXIF data:', exifData);
             } catch (exifError) {
@@ -153,13 +154,19 @@ export const uploadPhotos = async (req, res) => {
           console.error('Error reading EXIF:', exifError);
         }
 
-        // Maak thumbnail
-        await sharp(filepath)
-          .resize(400, 400, {
-            fit: 'cover',
-            position: 'centre'
-          })
-          .toFile(thumbnailPath);
+        try {
+          // Maak thumbnail
+          await sharp(filepath)
+            .resize(400, 400, {
+              fit: 'cover',
+              position: 'centre'
+            })
+            .toFile(thumbnailPath);
+        } catch (thumbError) {
+          console.error('Error creating thumbnail:', thumbError);
+          errors.push(`Kon geen thumbnail maken voor ${file.originalname}`);
+          continue;
+        }
 
         // Voeg foto toe aan database
         console.log('Inserting into database with EXIF:', exifData);
@@ -176,7 +183,29 @@ export const uploadPhotos = async (req, res) => {
           filename: file.originalname,
           error: err.message
         });
+        
+        // Probeer bestanden op te ruimen bij een fout
+        try {
+          const filepath = file.path;
+          const thumbnailPath = path.join(uploadDir, `thumb_${file.filename}`);
+          
+          if (fs.existsSync(filepath)) {
+            fs.unlinkSync(filepath);
+          }
+          if (fs.existsSync(thumbnailPath)) {
+            fs.unlinkSync(thumbnailPath);
+          }
+        } catch (cleanupError) {
+          console.error('Error cleaning up files:', cleanupError);
+        }
       }
+    }
+
+    if (uploadResults.length === 0 && errors.length > 0) {
+      return res.status(400).json({
+        error: 'Geen enkele foto kon worden verwerkt',
+        details: errors
+      });
     }
 
     res.json({

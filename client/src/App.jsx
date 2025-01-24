@@ -1,44 +1,61 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import Album from './pages/Album';
-import Page from './pages/Page';
-import Login from './pages/Login';
-import AdminLayout from './components/AdminLayout';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminAlbums from './pages/admin/Albums';
-import AdminPhotos from './pages/admin/Photos';
-import AdminPages from './pages/admin/Pages';
-import ProtectedRoute from './components/ProtectedRoute';
+import React, { useState, useEffect } from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ToastProvider } from './contexts/ToastContext';
+import Routes from './Routes';
+import api from './utils/api';
 
-function App() {
+const App = () => {
+  const [theme, setTheme] = useState(createTheme({
+    palette: {
+      primary: {
+        main: '#2196f3'
+      }
+    },
+    typography: {
+      fontFamily: 'Inter, sans-serif'
+    }
+  }));
+
+  // Laad site instellingen
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await api.get('/settings');
+        const settings = response.data;
+        
+        // Maak een nieuw theme met de instellingen
+        const newTheme = createTheme({
+          palette: {
+            primary: {
+              main: settings.accent_color || '#2196f3'
+            }
+          },
+          typography: {
+            fontFamily: `${settings.font || 'Inter'}, sans-serif`
+          }
+        });
+        
+        setTheme(newTheme);
+        
+        // Update font in document head
+        document.documentElement.style.setProperty('font-family', `${settings.font || 'Inter'}, sans-serif`);
+      } catch (error) {
+        console.error('Fout bij laden site instellingen:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
   return (
-    <Routes>
-      {/* Publieke routes */}
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="album/:id" element={<Album />} />
-        <Route path="pagina/:slug" element={<Page />} />
-        <Route path="login" element={<Login />} />
-      </Route>
-
-      {/* Admin routes */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
-        <Route path="albums" element={<AdminAlbums />} />
-        <Route path="fotos" element={<AdminPhotos />} />
-        <Route path="paginas" element={<AdminPages />} />
-      </Route>
-    </Routes>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <ToastProvider>
+        <Routes />
+      </ToastProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App; 
