@@ -1,21 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastProvider } from './contexts/ToastContext';
 import Routes from './Routes';
 import api from './utils/api';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const App = () => {
-  const [theme, setTheme] = useState(createTheme({
-    palette: {
-      primary: {
-        main: '#2196f3'
-      }
-    },
-    typography: {
-      fontFamily: 'Inter, sans-serif'
-    }
-  }));
+  const [accentColor, setAccentColor] = useState('#2196f3');
+  const [font, setFont] = useState('Inter');
 
   // Laad site instellingen
   useEffect(() => {
@@ -24,19 +17,8 @@ const App = () => {
         const response = await api.get('/settings');
         const settings = response.data;
         
-        // Maak een nieuw theme met de instellingen
-        const newTheme = createTheme({
-          palette: {
-            primary: {
-              main: settings.accent_color || '#2196f3'
-            }
-          },
-          typography: {
-            fontFamily: `${settings.font || 'Inter'}, sans-serif`
-          }
-        });
-        
-        setTheme(newTheme);
+        setAccentColor(settings.accent_color || '#2196f3');
+        setFont(settings.font || 'Inter');
         
         // Update font in document head
         document.documentElement.style.setProperty('font-family', `${settings.font || 'Inter'}, sans-serif`);
@@ -49,12 +31,14 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <ToastProvider>
-        <Routes />
-      </ToastProvider>
-    </ThemeProvider>
+    <Router>
+      <ThemeProvider accentColor={accentColor} font={font}>
+        <CssBaseline />
+        <ToastProvider>
+          <Routes />
+        </ToastProvider>
+      </ThemeProvider>
+    </Router>
   );
 };
 

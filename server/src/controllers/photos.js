@@ -31,37 +31,30 @@ const isValidImageFile = (filename) => {
 // Upload en verwerk meerdere foto's
 export const uploadPhotos = async (req, res) => {
   try {
-    console.log('Request body:', req.body);
     console.log('Request files:', req.files);
     
-    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+    if (!req.files || !req.files.photos) {
       return res.status(400).json({ error: 'Geen foto\'s geüpload' });
     }
 
     const uploadResults = [];
     const errors = [];
+    const photos = Array.isArray(req.files.photos) ? req.files.photos : [req.files.photos];
 
-    for (const file of req.files) {
+    for (const file of photos) {
       try {
-        console.log('Processing file:', file.originalname);
+        console.log('Processing file:', file.name);
         
-        if (!isValidImageFile(file.originalname)) {
-          errors.push(`${file.originalname} is geen geldig afbeeldingsbestand`);
+        if (!isValidImageFile(file.name)) {
+          errors.push(`${file.name} is geen geldig afbeeldingsbestand`);
           continue;
         }
 
-        const filename = file.filename;
-        const filepath = file.path;
-        const thumbnailPath = path.join(uploadDir, `thumb_${filename}`);
+        const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.name);
+        const filepath = path.join(uploadDir, filename);
         
-        console.log('Original file path:', filepath);
-        console.log('Thumbnail path:', thumbnailPath);
-
-        // Controleer of het bestand bestaat
-        if (!fs.existsSync(filepath)) {
-          errors.push(`Bestand ${file.originalname} niet gevonden op schijf`);
-          continue;
-        }
+        console.log('Moving file to:', filepath);
+        await file.mv(filepath);
 
         // Bereken de hash van het originele bestand
         const hash = await calculateHash(filepath);
@@ -156,6 +149,7 @@ export const uploadPhotos = async (req, res) => {
 
         try {
           // Maak thumbnail
+          const thumbnailPath = path.join(uploadDir, `thumb_${filename}`);
           await sharp(filepath)
             .resize(400, 400, {
               fit: 'cover',
@@ -164,7 +158,7 @@ export const uploadPhotos = async (req, res) => {
             .toFile(thumbnailPath);
         } catch (thumbError) {
           console.error('Error creating thumbnail:', thumbError);
-          errors.push(`Kon geen thumbnail maken voor ${file.originalname}`);
+          errors.push(`Kon geen thumbnail maken voor ${file.name}`);
           continue;
         }
 
@@ -178,16 +172,16 @@ export const uploadPhotos = async (req, res) => {
         console.log('Photo added to database:', result.rows[0]);
         uploadResults.push(result.rows[0]);
       } catch (err) {
-        console.error('Error processing file:', file.originalname, err);
+        console.error('Error processing file:', file.name, err);
         errors.push({
-          filename: file.originalname,
+          filename: file.name,
           error: err.message
         });
         
         // Probeer bestanden op te ruimen bij een fout
         try {
-          const filepath = file.path;
-          const thumbnailPath = path.join(uploadDir, `thumb_${file.filename}`);
+          const filepath = path.join(uploadDir, filename);
+          const thumbnailPath = path.join(uploadDir, `thumb_${filename}`);
           
           if (fs.existsSync(filepath)) {
             fs.unlinkSync(filepath);

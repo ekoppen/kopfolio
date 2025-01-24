@@ -18,7 +18,7 @@ const PhotoUpload = ({ onUploadSuccess }) => {
   };
 
   const handleFileChange = async (event) => {
-    const files = Array.from(event.target.files);
+    let files = Array.from(event.target.files);
     
     // Check bestandsgrootte
     const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
@@ -34,7 +34,7 @@ const PhotoUpload = ({ onUploadSuccess }) => {
       const hashes = await Promise.all(files.map(calculateHash));
       
       // Check voor duplicaten
-      const { data: duplicates } = await axios.post(
+      const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/photos/check-duplicates`,
         { hashes },
         {
@@ -45,16 +45,16 @@ const PhotoUpload = ({ onUploadSuccess }) => {
         }
       );
       
-      if (duplicates.length > 0) {
-        showToast('warning', 'Sommige foto\'s zijn al geüpload');
+      if (data.duplicates && data.duplicates.length > 0) {
+        const duplicateCount = data.duplicates.length;
+        const totalCount = files.length;
+        showToast('warning', `${duplicateCount} van de ${totalCount} foto's zijn al geüpload en worden overgeslagen`);
         // Filter duplicaten uit de lijst
-        const uniqueFiles = files.filter((file, index) => !duplicates.includes(hashes[index]));
-        if (uniqueFiles.length === 0) {
+        files = files.filter((file, index) => !data.duplicates.includes(hashes[index]));
+        if (files.length === 0) {
           setUploading(false);
           return;
         }
-        // Ga door met alleen unieke bestanden
-        files = uniqueFiles;
       }
       
       // Upload de bestanden
@@ -80,7 +80,7 @@ const PhotoUpload = ({ onUploadSuccess }) => {
         }
       );
       
-      showToast('success', 'Foto\'s succesvol geüpload');
+      showToast('success', `${files.length} foto${files.length === 1 ? '' : '\'s'} succesvol geüpload`);
       if (onUploadSuccess) {
         onUploadSuccess();
       }

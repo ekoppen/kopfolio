@@ -7,6 +7,7 @@ import pagesRouter from './routes/pages.js';
 import photosRouter from './routes/photos.js';
 import albumsRouter from './routes/albums.js';
 import settingsRouter from './routes/settings.js';
+import { uploadDir } from './middleware/upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,10 +17,20 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(fileUpload());
+app.use(fileUpload({
+  createParentPath: true,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+  abortOnLimit: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/',
+  debug: true,
+  parseNested: true
+}));
 
 // Static files
-app.use('/uploads', express.static(join(__dirname, '../public/uploads')));
+app.use('/uploads', express.static(uploadDir));
 
 // Routes
 app.use('/api/pages', pagesRouter);

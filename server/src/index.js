@@ -19,18 +19,12 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 
-// // Middleware
-// const app = express();
-// app.use(cors());
-// app.use(express.json());
-// app.use('/uploads', express.static('/app/public/uploads'));
-
-// // Routes
-// app.use('/api/auth', authRoutes);
-// app.use('/api/photos', photoRoutes);
-// app.use('/api/albums', albumRoutes);
-// app.use('/api/pages', pageRoutes);
-// app.use('/api/settings', settingsRoutes);
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/photos', photoRoutes);
+app.use('/api/albums', albumRoutes);
+app.use('/api/pages', pageRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Basis route
 app.get('/', (req, res) => {

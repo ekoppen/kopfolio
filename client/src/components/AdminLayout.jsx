@@ -13,6 +13,7 @@ import {
   ListItemText,
   ListItemButton,
   Button,
+  IconButton,
   useTheme
 } from '@mui/material';
 import {
@@ -20,14 +21,19 @@ import {
   Collections as AlbumIcon,
   Article as PageIcon,
   Dashboard as DashboardIcon,
-  ExitToApp as ExitIcon
+  ExitToApp as ExitIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon
 } from '@mui/icons-material';
+import { ThemeContext } from '../contexts/ThemeContext';
 
 const DRAWER_WIDTH = 280;
 
 const AdminLayout = () => {
   const theme = useTheme();
   const location = useLocation();
+  const { isDarkMode, toggleDarkMode } = React.useContext(ThemeContext);
+
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
     { text: 'Albums', icon: <AlbumIcon />, path: '/admin/albums' },
@@ -39,12 +45,16 @@ const AdminLayout = () => {
   const activePage = menuItems.find(item => location.pathname === item.path);
 
   return (
-    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar 
         position="fixed" 
+        elevation={0}
         sx={{ 
           zIndex: (theme) => theme.zIndex.drawer + 1,
           height: 64,
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
         }}
       >
         <Toolbar sx={{ height: '100%' }}>
@@ -55,7 +65,7 @@ const AdminLayout = () => {
               flexGrow: 1,
               fontWeight: 600,
               letterSpacing: '-0.025em',
-              color: 'grey.800'
+              color: 'text.primary'
             }}
           >
             {activePage ? activePage.text : 'Kopfolio Admin'}
@@ -65,10 +75,10 @@ const AdminLayout = () => {
             to="/"
             startIcon={<ExitIcon />}
             sx={{ 
-              color: 'grey.700',
+              color: 'text.secondary',
               '&:hover': {
                 color: 'primary.main',
-                bgcolor: 'primary.50'
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.08)' : 'primary.50'
               }
             }}
           >
@@ -86,13 +96,16 @@ const AdminLayout = () => {
             width: DRAWER_WIDTH,
             boxSizing: 'border-box',
             borderRight: '1px solid',
-            borderColor: 'grey.200',
+            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
             boxShadow: 'none',
-            pt: 8
+            bgcolor: 'background.paper',
+            pt: 8,
+            display: 'flex',
+            flexDirection: 'column'
           }
         }}
       >
-        <Box sx={{ overflow: 'auto', px: 2, py: 3 }}>
+        <Box sx={{ overflow: 'auto', px: 2, py: 3, flex: 1 }}>
           <List sx={{ '& .MuiListItem-root': { mb: 1 } }}>
             {menuItems.map((item) => (
               <ListItem key={item.text} disablePadding>
@@ -102,19 +115,19 @@ const AdminLayout = () => {
                   selected={location.pathname === item.path}
                   sx={{
                     borderRadius: 2,
-                    color: 'grey.700',
+                    color: 'text.secondary',
                     '&:hover': {
-                      bgcolor: 'grey.50',
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.08)' : 'primary.50',
                       color: 'primary.main',
                       '& .MuiListItemIcon-root': {
                         color: 'primary.main',
                       }
                     },
                     '&.Mui-selected': {
-                      bgcolor: 'primary.50',
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.16)' : 'primary.50',
                       color: 'primary.main',
                       '&:hover': {
-                        bgcolor: 'primary.50',
+                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.16)' : 'primary.50',
                       },
                       '& .MuiListItemIcon-root': {
                         color: 'primary.main',
@@ -123,7 +136,7 @@ const AdminLayout = () => {
                   }}
                 >
                   <ListItemIcon sx={{ 
-                    color: 'grey.500',
+                    color: 'text.secondary',
                     minWidth: 40
                   }}>
                     {item.icon}
@@ -139,6 +152,28 @@ const AdminLayout = () => {
               </ListItem>
             ))}
           </List>
+        </Box>
+        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+          <IconButton
+            onClick={toggleDarkMode}
+            size="medium"
+            sx={{
+              width: '100%',
+              color: 'text.secondary',
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.100',
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300',
+              borderRadius: 2,
+              py: 1,
+              '&:hover': {
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.08)' : 'grey.200',
+                borderColor: theme.palette.mode === 'dark' ? 'primary.700' : 'primary.200',
+                color: 'primary.main'
+              }
+            }}
+          >
+            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
         </Box>
       </Drawer>
 

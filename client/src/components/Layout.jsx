@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Container, Box, useTheme } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, Box } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import Navigation from './Navigation';
 import api from '../utils/api';
 
+console.log('Layout.jsx wordt geladen!');
+
 const Layout = () => {
+  console.log('Layout component wordt gerenderd!');
+  
   const theme = useTheme();
   const [siteTitle, setSiteTitle] = useState('Kopfolio');
   
@@ -34,20 +39,24 @@ const Layout = () => {
         position="sticky"
         elevation={0}
         sx={{ 
+          bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'common.white',
           borderBottom: '1px solid',
-          borderColor: 'grey.200',
-          height: 64
+          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
         }}
       >
-        <Toolbar sx={{ height: '100%' }}>
+        <Toolbar sx={{ 
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 2,
+          px: { xs: 2, sm: 3, md: 4 }
+        }}>
           <Typography 
             variant="h6" 
             component="div" 
             sx={{ 
-              flexGrow: 1,
               fontWeight: 600,
               letterSpacing: '-0.025em',
-              color: 'grey.800'
+              color: theme.palette.mode === 'dark' ? 'common.white' : 'grey.800'
             }}
           >
             {siteTitle}
@@ -65,7 +74,8 @@ const Layout = () => {
             xs: 2,
             sm: 3,
             md: 4
-          }
+          },
+          bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'grey.50'
         }}
       >
         <Outlet />
@@ -75,15 +85,15 @@ const Layout = () => {
         component="footer" 
         sx={{ 
           py: 4,
-          bgcolor: 'background.paper',
+          bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'common.white',
           borderTop: '1px solid',
-          borderColor: 'grey.200'
+          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
         }}
       >
         <Container maxWidth="lg">
           <Typography 
             variant="body2" 
-            color="text.secondary" 
+            color={theme.palette.mode === 'dark' ? 'grey.400' : 'text.secondary'}
             align="center"
             sx={{ fontWeight: 500 }}
           >
