@@ -10,6 +10,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminAlbums from './pages/admin/Albums';
 import AdminPhotos from './pages/admin/Photos';
 import AdminPages from './pages/admin/Pages';
+import PageEditor from './pages/admin/PageEditor';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const AppRoutes = () => {
@@ -36,6 +37,8 @@ const AppRoutes = () => {
         <Route path="albums" element={<AdminAlbums />} />
         <Route path="fotos" element={<AdminPhotos />} />
         <Route path="paginas" element={<AdminPages />} />
+        <Route path="paginas/nieuw" element={<PageEditor />} />
+        <Route path="paginas/:id" element={<PageEditor />} />
       </Route>
     </RouterRoutes>
   );

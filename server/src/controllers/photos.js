@@ -31,8 +31,10 @@ const isValidImageFile = (filename) => {
 export const uploadPhotos = async (req, res) => {
   try {
     console.log('Request files:', req.files);
+    console.log('Request body:', req.body);
     
     if (!req.files || !req.files.photos) {
+      console.log('Geen foto\'s gevonden in request:', { files: req.files });
       return res.status(400).json({ error: 'Geen foto\'s geüpload' });
     }
 
@@ -40,17 +42,25 @@ export const uploadPhotos = async (req, res) => {
     const errors = [];
     const photos = Array.isArray(req.files.photos) ? req.files.photos : [req.files.photos];
 
+    console.log('Verwerken van', photos.length, 'foto\'s');
+
     for (const file of photos) {
+      let filename = null;
+      let filepath = null;
+      let thumbnailPath = null;
+
       try {
         console.log('Processing file:', file.name);
         
         if (!isValidImageFile(file.name)) {
+          console.log('Ongeldig bestandsformaat:', file.name);
           errors.push(`${file.name} is geen geldig afbeeldingsbestand`);
           continue;
         }
 
-        const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.name);
-        const filepath = getUploadPath('photos', filename);
+        filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.name);
+        filepath = getUploadPath('photos', filename);
+        thumbnailPath = getUploadPath('thumbs', `thumb_${filename}`);
         
         console.log('Moving file to:', filepath);
         await file.mv(filepath);
@@ -61,12 +71,17 @@ export const uploadPhotos = async (req, res) => {
 
         let exifData = null;
         let dateOriginal = null;
+        let width = null;
+        let height = null;
 
         try {
           // Lees metadata met sharp
           console.log('Reading metadata with sharp...');
           const metadata = await sharp(filepath).metadata();
           console.log('Sharp metadata:', metadata);
+
+          width = metadata.width;
+          height = metadata.height;
 
           if (metadata.exif) {
             console.log('EXIF data found in metadata');
@@ -144,11 +159,25 @@ export const uploadPhotos = async (req, res) => {
           }
         } catch (exifError) {
           console.error('Error reading EXIF:', exifError);
+          // Als er een fout optreedt bij het lezen van metadata, probeer dan de afmetingen direct te krijgen
+          try {
+            const imageInfo = await sharp(filepath).metadata();
+            width = imageInfo.width;
+            height = imageInfo.height;
+          } catch (sharpError) {
+            console.error('Error getting image dimensions:', sharpError);
+            errors.push(`Kon metadata niet lezen voor ${file.name}`);
+            
+            // Ruim bestanden op
+            if (filepath && fs.existsSync(filepath)) {
+              fs.unlinkSync(filepath);
+            }
+            continue;
+          }
         }
 
         try {
           // Maak thumbnail
-          const thumbnailPath = getUploadPath('thumbs', `thumb_${filename}`);
           await sharp(filepath)
             .resize(400, 400, {
               fit: 'cover',
@@ -158,14 +187,42 @@ export const uploadPhotos = async (req, res) => {
         } catch (thumbError) {
           console.error('Error creating thumbnail:', thumbError);
           errors.push(`Kon geen thumbnail maken voor ${file.name}`);
+          
+          // Ruim bestanden op
+          if (filepath && fs.existsSync(filepath)) {
+            fs.unlinkSync(filepath);
+          }
           continue;
         }
 
         // Voeg foto toe aan database
-        console.log('Inserting into database with EXIF:', exifData);
+        console.log('Inserting into database with data:', {
+          filename,
+          dateOriginal,
+          hash,
+          size: file.size,
+          width,
+          height,
+          exifData
+        });
+
         const result = await pool.query(
-          'INSERT INTO photos (filename, original_date, hash, size, exif_data) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-          [filename, dateOriginal, hash, file.size, exifData ? JSON.stringify(exifData) : null]
+          `INSERT INTO photos (
+            filename, taken_at, hash, size, width, height, 
+            make, model, exif_data
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+          RETURNING *`,
+          [
+            filename,
+            dateOriginal,
+            hash,
+            file.size,
+            width,
+            height,
+            exifData?.make || null,
+            exifData?.model || null,
+            exifData ? JSON.stringify(exifData) : null
+          ]
         );
 
         console.log('Photo added to database:', result.rows[0]);
@@ -179,13 +236,10 @@ export const uploadPhotos = async (req, res) => {
         
         // Probeer bestanden op te ruimen bij een fout
         try {
-          const filepath = getUploadPath('photos', filename);
-          const thumbnailPath = getUploadPath('thumbs', `thumb_${filename}`);
-          
-          if (fs.existsSync(filepath)) {
+          if (filepath && fs.existsSync(filepath)) {
             fs.unlinkSync(filepath);
           }
-          if (fs.existsSync(thumbnailPath)) {
+          if (thumbnailPath && fs.existsSync(thumbnailPath)) {
             fs.unlinkSync(thumbnailPath);
           }
         } catch (cleanupError) {
@@ -216,19 +270,22 @@ export const uploadPhotos = async (req, res) => {
 export const getPhotos = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.*, a.title as album_title 
+      SELECT p.*, 
+             array_agg(DISTINCT jsonb_build_object(
+               'id', a.id,
+               'title', a.title
+             )) FILTER (WHERE a.id IS NOT NULL) as albums
       FROM photos p 
-      LEFT JOIN albums a ON p.album_id = a.id 
+      LEFT JOIN photos_albums pa ON p.id = pa.photo_id
+      LEFT JOIN albums a ON pa.album_id = a.id 
+      GROUP BY p.id
       ORDER BY p.created_at DESC
     `);
     
-    // Voeg album informatie toe aan elke foto
+    // Verwerk de resultaten
     const photos = result.rows.map(photo => ({
       ...photo,
-      album: photo.album_id ? {
-        id: photo.album_id,
-        title: photo.album_title
-      } : null
+      albums: photo.albums || []
     }));
 
     res.json(photos);
@@ -242,13 +299,16 @@ export const getPhotos = async (req, res) => {
 export const getPhotosByAlbum = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM photos 
-       WHERE album_id = $1 
-       ORDER BY created_at DESC`,
+      `SELECT p.* 
+       FROM photos p
+       JOIN photos_albums pa ON p.id = pa.photo_id
+       WHERE pa.album_id = $1 
+       ORDER BY pa.position ASC, p.created_at DESC`,
       [req.params.albumId]
     );
     res.json(result.rows);
   } catch (error) {
+    console.error('Fout bij ophalen album foto\'s:', error);
     res.status(500).json({ message: 'Fout bij ophalen album foto\'s', error: error.message });
   }
 };

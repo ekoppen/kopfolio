@@ -41,19 +41,27 @@ export const createAlbum = async (req, res) => {
 // Haal alle albums op
 export const getAlbums = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT a.*, 
-              COUNT(p.id) as photo_count,
-              MIN(p.filename) as cover_photo
-       FROM albums a
-       LEFT JOIN photos p ON p.album_id = a.id
-       GROUP BY a.id
-       ORDER BY 
-         CASE WHEN a.is_home THEN 0 ELSE 1 END,
-         a.created_at DESC`
-    );
+    const result = await pool.query(`
+      SELECT a.*,
+             COUNT(DISTINCT pa.photo_id) as photo_count,
+             (
+               SELECT p.filename
+               FROM photos p
+               JOIN photos_albums pa2 ON p.id = pa2.photo_id
+               WHERE pa2.album_id = a.id
+               ORDER BY p.created_at DESC
+               LIMIT 1
+             ) as cover_photo
+      FROM albums a
+      LEFT JOIN photos_albums pa ON a.id = pa.album_id
+      GROUP BY a.id
+      ORDER BY 
+        CASE WHEN a.is_home THEN 0 ELSE 1 END,
+        a.created_at DESC
+    `);
     res.json(result.rows);
   } catch (error) {
+    console.error('Fout bij ophalen albums:', error);
     res.status(500).json({ message: 'Fout bij ophalen albums', error: error.message });
   }
 };
@@ -64,9 +72,9 @@ export const getAlbum = async (req, res) => {
 
   try {
     const albumResult = await pool.query(
-      `SELECT a.*, COUNT(p.id) as photo_count
+      `SELECT a.*, COUNT(DISTINCT pa.photo_id) as photo_count
        FROM albums a
-       LEFT JOIN photos p ON p.album_id = a.id
+       LEFT JOIN photos_albums pa ON a.id = pa.album_id
        WHERE a.id = $1
        GROUP BY a.id`,
       [id]
@@ -78,9 +86,11 @@ export const getAlbum = async (req, res) => {
 
     // Haal foto's van het album op
     const photosResult = await pool.query(
-      `SELECT * FROM photos 
-       WHERE album_id = $1 
-       ORDER BY created_at DESC`,
+      `SELECT p.* 
+       FROM photos p
+       JOIN photos_albums pa ON p.id = pa.photo_id
+       WHERE pa.album_id = $1 
+       ORDER BY pa.position ASC, p.created_at DESC`,
       [id]
     );
 
@@ -89,6 +99,7 @@ export const getAlbum = async (req, res) => {
 
     res.json(album);
   } catch (error) {
+    console.error('Fout bij ophalen album:', error);
     res.status(500).json({ message: 'Fout bij ophalen album', error: error.message });
   }
 };
@@ -188,17 +199,34 @@ export const addPhotosToAlbum = async (req, res) => {
     return res.status(400).json({ error: 'Geen foto\'s geselecteerd' });
   }
 
-  try {
-    // Update alle geselecteerde foto's
-    await pool.query(
-      'UPDATE photos SET album_id = $1 WHERE id = ANY($2)',
-      [id, photoIds]
-    );
+  const client = await pool.connect();
 
+  try {
+    await client.query('BEGIN');
+
+    // Haal de huidige hoogste positie op
+    const positionResult = await client.query(
+      'SELECT COALESCE(MAX(position), -1) as max_position FROM photos_albums WHERE album_id = $1',
+      [id]
+    );
+    let nextPosition = positionResult.rows[0].max_position + 1;
+
+    // Voeg elke foto toe met een oplopende positie
+    for (const photoId of photoIds) {
+      await client.query(
+        'INSERT INTO photos_albums (photo_id, album_id, position) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+        [photoId, id, nextPosition++]
+      );
+    }
+
+    await client.query('COMMIT');
     res.json({ message: `${photoIds.length} foto's toegevoegd aan het album` });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error adding photos to album:', error);
     res.status(500).json({ error: 'Fout bij toevoegen van foto\'s aan het album' });
+  } finally {
+    client.release();
   }
 };
 
@@ -212,13 +240,13 @@ export const removePhotosFromAlbum = async (req, res) => {
   }
 
   try {
-    // Zet album_id op null voor alle geselecteerde foto's
+    // Verwijder de koppelingen tussen de foto's en het album
     await pool.query(
-      'UPDATE photos SET album_id = NULL WHERE id = ANY($1) AND album_id = $2',
-      [photoIds, id]
+      'DELETE FROM photos_albums WHERE album_id = $1 AND photo_id = ANY($2)',
+      [id, photoIds]
     );
 
-    res.json({ message: `${photoIds.length} foto's verwijderd uit het album` });
+    res.json({ message: `${photoIds.length} foto\'s verwijderd uit het album` });
   } catch (error) {
     console.error('Error removing photos from album:', error);
     res.status(500).json({ error: 'Fout bij verwijderen van foto\'s uit het album' });
