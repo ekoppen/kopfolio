@@ -50,11 +50,11 @@ const PageContent = ({ content = [] }) => {
                   >
                     <Box
                       component="img"
-                      src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${image.filename}`}
+                      src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
                       alt={image.title || 'Afbeelding'}
                       sx={{ 
                         width: '100%',
-                        height: columns === 12 ? 600 : 300,
+                        aspectRatio: '4/3',
                         objectFit: 'cover',
                         borderRadius: 1,
                         boxShadow: 3
@@ -134,7 +134,7 @@ const PageContent = ({ content = [] }) => {
                     >
                       <Box
                         component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${photo.filename}`}
+                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
                         alt={photo.title || `Foto ${photoIndex + 1}`}
                         sx={{ 
                           width: '100%',

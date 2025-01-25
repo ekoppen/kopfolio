@@ -4,7 +4,7 @@ import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useToast } from '../contexts/ToastContext';
 
-const PhotoUpload = ({ onUploadSuccess }) => {
+const PhotoUpload = ({ onUploadComplete }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef(null);
@@ -81,8 +81,8 @@ const PhotoUpload = ({ onUploadSuccess }) => {
       );
       
       showToast('success', `${files.length} foto${files.length === 1 ? '' : '\'s'} succesvol geüpload`);
-      if (onUploadSuccess) {
-        onUploadSuccess();
+      if (onUploadComplete) {
+        onUploadComplete();
       }
     } catch (error) {
       console.error('Upload error:', error);

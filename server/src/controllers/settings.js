@@ -1,6 +1,7 @@
 import { pool } from '../models/db.js';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { uploadDirs, getUploadPath } from '../middleware/upload.js';
 
 // Haal de huidige instellingen op
 const getSettings = async (req, res) => {
@@ -22,23 +23,37 @@ const updateSettings = async (req, res) => {
     // Handle logo upload if present
     if (req.files && req.files.logo) {
       const logoFile = req.files.logo;
-      const fileName = `logo_${Date.now()}${path.extname(logoFile.name)}`;
-      const uploadPath = path.join(__dirname, '../../public/uploads', fileName);
+      
+      // Valideer bestandstype
+      const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif', '.svg'];
+      const fileExt = path.extname(logoFile.name).toLowerCase();
+      if (!allowedTypes.includes(fileExt)) {
+        return res.status(400).json({ error: 'Ongeldig bestandstype. Toegestaan zijn: ' + allowedTypes.join(', ') });
+      }
+
+      const fileName = `logo_${Date.now()}${fileExt}`;
+      const uploadPath = getUploadPath('branding', fileName);
 
       // Remove old logo if exists
       const oldResult = await pool.query('SELECT logo FROM settings LIMIT 1');
       if (oldResult.rows[0].logo) {
-        const oldPath = path.join(__dirname, '../../public/uploads', oldResult.rows[0].logo);
+        const oldPath = getUploadPath('branding', oldResult.rows[0].logo);
         try {
           await fs.unlink(oldPath);
         } catch (err) {
           console.error('Fout bij verwijderen oude logo:', err);
+          // Ga door met de update, ook al is het verwijderen mislukt
         }
       }
 
-      // Save new logo
-      await logoFile.mv(uploadPath);
-      logo = fileName;
+      try {
+        // Save new logo
+        await logoFile.mv(uploadPath);
+        logo = fileName;
+      } catch (error) {
+        console.error('Fout bij opslaan logo:', error);
+        return res.status(500).json({ error: 'Fout bij opslaan logo bestand' });
+      }
     }
 
     // Update settings

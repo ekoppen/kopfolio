@@ -7,11 +7,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import crypto from 'crypto';
+import { uploadDirs, getUploadPath } from '../middleware/upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-const uploadDir = '/app/public/uploads';
 
 const calculateHash = async (filePath) => {
   return new Promise((resolve, reject) => {
@@ -51,7 +50,7 @@ export const uploadPhotos = async (req, res) => {
         }
 
         const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.name);
-        const filepath = path.join(uploadDir, filename);
+        const filepath = getUploadPath('photos', filename);
         
         console.log('Moving file to:', filepath);
         await file.mv(filepath);
@@ -149,7 +148,7 @@ export const uploadPhotos = async (req, res) => {
 
         try {
           // Maak thumbnail
-          const thumbnailPath = path.join(uploadDir, `thumb_${filename}`);
+          const thumbnailPath = getUploadPath('thumbs', `thumb_${filename}`);
           await sharp(filepath)
             .resize(400, 400, {
               fit: 'cover',
@@ -180,8 +179,8 @@ export const uploadPhotos = async (req, res) => {
         
         // Probeer bestanden op te ruimen bij een fout
         try {
-          const filepath = path.join(uploadDir, filename);
-          const thumbnailPath = path.join(uploadDir, `thumb_${filename}`);
+          const filepath = getUploadPath('photos', filename);
+          const thumbnailPath = getUploadPath('thumbs', `thumb_${filename}`);
           
           if (fs.existsSync(filepath)) {
             fs.unlinkSync(filepath);
@@ -296,8 +295,8 @@ export const deletePhoto = async (req, res) => {
     }
 
     const filename = photoResult.rows[0].filename;
-    const filepath = path.join(uploadDir, filename);
-    const thumbPath = path.join(uploadDir, `thumb_${filename}`);
+    const filepath = getUploadPath('photos', filename);
+    const thumbPath = getUploadPath('thumbs', `thumb_${filename}`);
 
     // Verwijder de bestanden als ze bestaan
     try {

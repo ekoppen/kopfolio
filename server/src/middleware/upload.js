@@ -1,10 +1,27 @@
 import path from 'path';
 import fs from 'fs';
 
-// Zorg dat de uploads directory bestaat
-const uploadDir = '/app/public/uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Base upload directory
+const baseUploadDir = '/app/public/uploads';
 
-export { uploadDir }; 
+// Specifieke directories voor verschillende type uploads
+const uploadDirs = {
+  photos: path.join(baseUploadDir, 'photos'),
+  branding: path.join(baseUploadDir, 'branding'),
+  thumbs: path.join(baseUploadDir, 'thumbs')
+};
+
+// Maak alle benodigde directories aan
+Object.values(uploadDirs).forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// Helper functie om het juiste pad te krijgen voor een bestand
+const getUploadPath = (type, filename) => {
+  const dir = uploadDirs[type] || baseUploadDir;
+  return path.join(dir, filename);
+};
+
+export { uploadDirs, getUploadPath }; 

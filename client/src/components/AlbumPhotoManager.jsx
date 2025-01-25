@@ -209,13 +209,13 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
                   >
                     <CardMedia
                       component="img"
-                      height="180"
-                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
-                      alt={photo.title || 'Foto'}
                       sx={{ 
+                        aspectRatio: '4/3',
                         objectFit: 'cover',
                         filter: isSelected ? 'brightness(0.9)' : 'none'
                       }}
+                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumbs/thumb_${photo.filename}`}
+                      alt={photo.title || 'Foto'}
                     />
                     {isSelected && (
                       <CheckCircleIcon

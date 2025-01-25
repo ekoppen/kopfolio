@@ -50,6 +50,7 @@ import api from '../utils/api';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import { useTheme } from '@mui/material/styles';
 
 // Rich text editor configuratie
 const modules = {
@@ -92,6 +93,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
   const [photos, setPhotos] = useState([]);
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [blockPropertiesOpen, setBlockPropertiesOpen] = useState(false);
+  const theme = useTheme();
 
   // Update content wanneer initialContent verandert
   useEffect(() => {
@@ -280,11 +282,11 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                     >
                       <Box
                         component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${image.filename}`}
+                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
                         alt={image.title || 'Afbeelding'}
                         sx={{ 
                           width: '100%',
-                          height: columns === 12 ? 600 : 300,
+                          aspectRatio: '4/3',
                           objectFit: 'cover',
                           borderRadius: 1,
                           boxShadow: 3
@@ -380,7 +382,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                     >
                       <Box
                         component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${photo.filename}`}
+                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
                         alt={photo.title || `Foto ${photoIndex + 1}`}
                         sx={{ 
                           width: '100%',
@@ -470,7 +472,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Box
                         component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${image.filename}`}
+                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
                         alt={image.title || 'Thumbnail'}
                         sx={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 1, mr: 2 }}
                       />
@@ -642,115 +644,133 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
   };
 
   return (
-    <Box>
-      {/* Content Blocks */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="content">
-          {(provided) => (
-            <Box
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-            >
-              {content.map((block, index) => (
-                <Draggable
-                  key={block.id}
-                  draggableId={block.id.toString()}
-                  index={index}
-                >
-                  {(provided) => (
-                    <Box
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      sx={{ 
-                        mb: 4,
-                        position: 'relative',
-                        '&:hover .block-controls': {
-                          opacity: 1
-                        }
-                      }}
-                    >
-                      {/* Block Controls */}
+    <Card
+      elevation={0}
+      sx={{ 
+        aspectRatio: '4/3',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+        borderRadius: 1,
+        overflow: 'hidden'
+      }}
+    >
+      <Box sx={{ 
+        flex: 1, 
+        overflow: 'auto',
+        p: 3
+      }}>
+        {/* Content Blocks */}
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="content">
+            {(provided) => (
+              <Box
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+              >
+                {content.map((block, index) => (
+                  <Draggable
+                    key={block.id}
+                    draggableId={block.id.toString()}
+                    index={index}
+                  >
+                    {(provided) => (
                       <Box
-                        className="block-controls"
-                        sx={{
-                          position: 'absolute',
-                          right: -40,
-                          top: 0,
-                          zIndex: 1,
-                          opacity: 0,
-                          transition: 'opacity 0.2s',
-                          bgcolor: 'background.paper',
-                          borderRadius: 1,
-                          boxShadow: 1,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 0.5,
-                          p: 0.5
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        sx={{ 
+                          mb: 4,
+                          position: 'relative',
+                          '&:hover .block-controls': {
+                            opacity: 1
+                          }
                         }}
                       >
-                        <Tooltip title="Omhoog" placement="left">
-                          <IconButton
-                            size="small"
-                            onClick={() => moveBlock(block.id, 'up')}
-                            disabled={index === 0}
-                          >
-                            <ArrowUpIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Omlaag" placement="left">
-                          <IconButton
-                            size="small"
-                            onClick={() => moveBlock(block.id, 'down')}
-                            disabled={index === content.length - 1}
-                          >
-                            <ArrowDownIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Eigenschappen" placement="left">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedBlock(block);
-                              setBlockPropertiesOpen(true);
-                            }}
-                          >
-                            <SettingsIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Verwijderen" placement="left">
-                          <IconButton
-                            size="small"
-                            onClick={() => deleteBlock(block.id)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Divider flexItem />
+                        {/* Block Controls */}
                         <Box
-                          {...provided.dragHandleProps}
+                          className="block-controls"
                           sx={{
+                            position: 'absolute',
+                            right: -40,
+                            top: 0,
+                            zIndex: 1,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            bgcolor: 'background.paper',
+                            borderRadius: 1,
+                            boxShadow: 1,
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'grab',
-                            '&:active': { cursor: 'grabbing' }
+                            flexDirection: 'column',
+                            gap: 0.5,
+                            p: 0.5
                           }}
                         >
-                          <DragIcon fontSize="small" />
+                          <Tooltip title="Omhoog" placement="left">
+                            <IconButton
+                              size="small"
+                              onClick={() => moveBlock(block.id, 'up')}
+                              disabled={index === 0}
+                            >
+                              <ArrowUpIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Omlaag" placement="left">
+                            <IconButton
+                              size="small"
+                              onClick={() => moveBlock(block.id, 'down')}
+                              disabled={index === content.length - 1}
+                            >
+                              <ArrowDownIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eigenschappen" placement="left">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedBlock(block);
+                                setBlockPropertiesOpen(true);
+                              }}
+                            >
+                              <SettingsIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Verwijderen" placement="left">
+                            <IconButton
+                              size="small"
+                              onClick={() => deleteBlock(block.id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Divider flexItem />
+                          <Box
+                            {...provided.dragHandleProps}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'grab',
+                              '&:active': { cursor: 'grabbing' }
+                            }}
+                          >
+                            <DragIcon fontSize="small" />
+                          </Box>
                         </Box>
-                      </Box>
 
-                      {/* Block Content */}
-                      {renderBlock(block, index)}
-                    </Box>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </Box>
-          )}
-        </Droppable>
-      </DragDropContext>
+                        {/* Block Content */}
+                        {renderBlock(block, index)}
+                      </Box>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </Box>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </Box>
 
       {/* Block Properties Dialog */}
       {renderBlockProperties()}
@@ -794,7 +814,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                     <CardMedia
                       component="img"
                       height="140"
-                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
+                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/thumbs/thumb_${photo.filename}`}
                       alt={photo.title || 'Foto'}
                     />
                     {photo.title && (
@@ -831,7 +851,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
           )}
         </DialogActions>
       </Dialog>
-    </Box>
+    </Card>
   );
 };
 

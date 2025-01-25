@@ -14,7 +14,12 @@ import {
   DialogActions,
   Paper,
   Divider,
-  Chip
+  Chip,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Tooltip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,6 +31,7 @@ import {
 import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
+import { useTheme } from '@mui/material/styles';
 
 const AdminPages = () => {
   const [pages, setPages] = useState([]);
@@ -33,6 +39,7 @@ const AdminPages = () => {
   const [selectedPage, setSelectedPage] = useState(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const theme = useTheme();
 
   const loadPages = async () => {
     try {
@@ -117,85 +124,75 @@ const AdminPages = () => {
         </Button>
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 3 }}>
-        {/* Linker kolom met pagina's */}
-        <Box sx={{ 
-          flex: 1,
-          bgcolor: 'grey.100',
-          borderRadius: 2,
-          p: 2
-        }}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              overflow: 'hidden'
-            }}
-          >
-            <List>
-              {pages.map((page) => (
-                <React.Fragment key={page.id}>
-                  <ListItem>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {page.title}
-                          {page.slug === 'home' && (
-                            <Chip
-                              icon={<HomeIcon />}
-                              label="Home pagina"
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
-                          )}
-                        </Box>
-                      }
-                      secondary={`Laatst bijgewerkt: ${formatDate(page.updated_at || page.created_at)}`}
+      <Grid container spacing={2}>
+        {pages.map((page) => (
+          <Grid item xs={12} sm={6} md={4} key={page.id}>
+            <Card 
+              elevation={0}
+              sx={{ 
+                height: 220,
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+              }}
+            >
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                  <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'medium' }}>
+                    {page.title}
+                  </Typography>
+                  {page.slug === 'home' && (
+                    <Chip 
+                      label="Home" 
+                      color="primary" 
+                      size="small" 
+                      sx={{ ml: 1 }} 
                     />
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        aria-label="bewerken"
-                        onClick={() => handleEdit(page)}
-                        sx={{ mr: 1 }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        edge="end"
-                        aria-label="bekijk"
-                        onClick={() => window.open(`/pagina/${page.slug}`, '_blank')}
-                        sx={{ mr: 1 }}
-                      >
-                        <LinkIcon />
-                      </IconButton>
-                      <IconButton
-                        edge="end"
-                        aria-label="verwijderen"
-                        onClick={() => confirmDelete(page)}
-                        disabled={page.slug === 'home'}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                  <Divider />
-                </React.Fragment>
-              ))}
-              {pages.length === 0 && (
-                <ListItem>
-                  <ListItemText
-                    primary="Geen pagina's gevonden"
-                    secondary="Klik op het + icoon om je eerste pagina aan te maken"
-                  />
-                </ListItem>
-              )}
-            </List>
-          </Paper>
-        </Box>
-      </Box>
+                  )}
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {page.description || 'Geen beschrijving'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Laatst bewerkt: {formatDate(page.updated_at)}
+                </Typography>
+              </CardContent>
+              <Divider />
+              <CardActions sx={{ px: 2, py: 1 }}>
+                <Tooltip title="Pagina bewerken">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleEdit(page)}
+                    sx={{ 
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.50' }
+                    }}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={page.slug === 'home' ? 'Home pagina kan niet verwijderd worden' : 'Pagina verwijderen'}>
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => confirmDelete(page)}
+                      disabled={page.slug === 'home'}
+                      sx={{ 
+                        color: 'error.main',
+                        '&:hover': { bgcolor: 'error.50' }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
       <Dialog
         open={deleteDialogOpen}

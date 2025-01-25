@@ -1,4 +1,5 @@
 import pg from 'pg';
+import bcrypt from 'bcryptjs';
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -20,6 +21,15 @@ const initDb = async () => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Maak standaard admin gebruiker aan als deze nog niet bestaat
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('admin123', salt);
+    await pool.query(`
+      INSERT INTO users (username, password)
+      SELECT 'admin', $1
+      WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
+    `, [hashedPassword]);
 
     // Albums tabel
     await pool.query(`

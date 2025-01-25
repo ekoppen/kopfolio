@@ -300,12 +300,11 @@ const AdminPhotos = () => {
 
   const renderGridView = () => (
     <Grid container spacing={2}>
-      {photos.map((photo) => (
+      {getSortedPhotos().map((photo) => (
         <Grid item xs={12} sm={6} md={12/gridSize} key={photo.id}>
           <Card 
+            elevation={0}
             sx={{ 
-              display: 'flex',
-              flexDirection: 'column',
               height: '100%',
               position: 'relative',
               cursor: 'pointer',
@@ -317,16 +316,17 @@ const AdminPhotos = () => {
           >
             <CardMedia
               component="img"
-              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
+              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
               alt={photo.title || 'Uploaded photo'}
               sx={{ 
-                height: 300,
+                aspectRatio: '4/3',
+                width: '100%',
                 objectFit: 'cover'
               }}
             />
             <Box
               className="photo-overlay"
-              sx={{
+              sx={{ 
                 position: 'absolute',
                 top: 0,
                 left: 0,
@@ -374,7 +374,7 @@ const AdminPhotos = () => {
                 <IconButton size="small" sx={{ mr: 1, color: 'white' }}>
                   <EditIcon />
                 </IconButton>
-                <IconButton 
+                <IconButton
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -431,11 +431,11 @@ const AdminPhotos = () => {
           >
             <CardMedia
               component="img"
-              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
+              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
               alt={photo.title || 'Uploaded photo'}
               sx={{ 
+                aspectRatio: '4/3',
                 width: '100%',
-                height: '100%',
                 objectFit: 'cover'
               }}
             />
@@ -549,11 +549,11 @@ const AdminPhotos = () => {
                   >
                     <CardMedia
                       component="img"
-                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${photo.filename}`}
+                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
                       alt={photo.title || 'Uploaded photo'}
                       sx={{ 
+                        aspectRatio: '4/3',
                         width: '100%',
-                        height: '100%',
                         objectFit: 'cover'
                       }}
                     />
@@ -716,6 +716,9 @@ const AdminPhotos = () => {
         gap: 2 
       }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            {photos.length} foto('s)
+          </Typography>
           <ToggleButtonGroup
             value={view}
             exclusive
@@ -723,25 +726,17 @@ const AdminPhotos = () => {
             size="small"
           >
             <ToggleButton value="grid">
-              <Tooltip title="Grid weergave">
-                <GridViewIcon />
-              </Tooltip>
+              <GridViewIcon />
             </ToggleButton>
             <ToggleButton value="list">
-              <Tooltip title="Lijst weergave">
-                <ListViewIcon />
-              </Tooltip>
+              <ListViewIcon />
             </ToggleButton>
             <ToggleButton value="detailed">
-              <Tooltip title="Gedetailleerde weergave">
-                <DetailedListIcon />
-              </Tooltip>
+              <DetailedListIcon />
             </ToggleButton>
           </ToggleButtonGroup>
-
           {view === 'grid' && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 200 }}>
-              <ZoomInIcon sx={{ color: 'text.secondary' }} />
+            <Box sx={{ width: 120 }}>
               <Slider
                 value={gridSize}
                 min={2}
@@ -749,66 +744,25 @@ const AdminPhotos = () => {
                 step={1}
                 onChange={handleGridSizeChange}
                 valueLabelDisplay="auto"
-                valueLabelFormat={(value) => `${12/value} kolommen`}
+                valueLabelFormat={(value) => {
+                  // Bereken geschatte breedte (1200px is een redelijke schatting voor de container)
+                  const containerWidth = 1200;
+                  const spacing = 16; // MUI's default spacing
+                  const columns = value;
+                  const imageWidth = Math.floor((containerWidth - (spacing * (columns + 1))) / columns);
+                  return `${imageWidth}px`;
+                }}
               />
             </Box>
           )}
-
-          {view === 'detailed' && selectedPhotos.size > 0 && (
-            <>
-              <Divider orientation="vertical" flexItem />
-              <Typography>
-                {selectedPhotos.size} foto('s) geselecteerd
-              </Typography>
-              <Button
-                variant="contained"
-                color="error"
-                size="small"
-                onClick={() => setBulkDeleteDialogOpen(true)}
-                startIcon={<DeleteIcon />}
-              >
-                Verwijderen
-              </Button>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => setAlbumDialogOpen(true)}
-              >
-                Album toewijzen
-              </Button>
-            </>
-          )}
         </Box>
 
-        <Tooltip title="Foto's uploaden">
-          <Button
-            variant="contained"
-            onClick={() => document.querySelector('input[type="file"]').click()}
-            sx={{ 
-              minWidth: 0, 
-              width: 40, 
-              height: 40, 
-              p: 0,
-              borderRadius: 2
-            }}
-          >
-            <AddIcon />
-          </Button>
-        </Tooltip>
-      </Box>
-
-      <Box sx={{ display: 'none' }}>
-        <PhotoUpload onUploadSuccess={loadPhotos} />
+        <PhotoUpload onUploadComplete={loadPhotos} />
       </Box>
 
       <Box sx={{ display: 'flex', gap: 3 }}>
         {/* Linker kolom met foto's */}
-        <Box sx={{ 
-          flex: 1,
-          bgcolor: 'grey.100',
-          borderRadius: 2,
-          p: 2
-        }}>
+        <Box sx={{ flex: 1 }}>
           {view === 'grid' ? renderGridView() : 
            view === 'list' ? renderListView() : 
            renderDetailedListView()}
@@ -816,19 +770,23 @@ const AdminPhotos = () => {
 
         {/* Rechter kolom met details */}
         <Paper 
+          elevation={0}
           sx={{ 
             width: 300, 
             p: 2,
             alignSelf: 'flex-start',
             position: 'sticky',
-            top: 24
+            top: 24,
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
           }}
         >
           {selectedPhoto ? (
             <>
               <Box sx={{ mb: 2 }}>
                 <img
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${selectedPhoto.filename}`}
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${selectedPhoto.filename}`}
                   alt={selectedPhoto.title || 'Geselecteerde foto'}
                   style={{ 
                     width: '100%',

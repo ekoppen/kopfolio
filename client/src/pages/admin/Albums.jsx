@@ -115,219 +115,196 @@ const AdminAlbums = () => {
         </Button>
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 3 }}>
-        <Box sx={{ 
-          flex: 1,
-          bgcolor: 'grey.100',
-          borderRadius: 2,
-          p: 2
-        }}>
-          <Grid container spacing={2}>
-            {albums.map((album) => (
-              <Grid item xs={12} sm={6} md={4} key={album.id}>
-                <Card 
-                  elevation={0}
+      <Grid container spacing={2}>
+        {albums.map((album) => (
+          <Grid item xs={12} sm={6} md={4} key={album.id}>
+            <Card 
+              elevation={0}
+              sx={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+              }}
+            >
+              {album.cover_photo ? (
+                <CardMedia
+                  component="img"
+                  height="220"
+                  image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${album.cover_photo}`}
+                  alt={album.title}
                   sx={{ 
-                    height: '100%',
+                    objectFit: 'cover',
+                    borderBottom: `1px solid ${theme.palette.divider}`
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    height: 220,
+                    bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
                     display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     flexDirection: 'column',
-                    bgcolor: 'background.paper'
+                    gap: 1
                   }}
                 >
-                  {album.cover_photo ? (
-                    <CardMedia
-                      component="img"
-                      height="220"
-                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumb_${album.cover_photo}`}
-                      alt={album.title}
-                      sx={{ 
-                        objectFit: 'cover',
-                        borderBottom: `1px solid ${theme.palette.divider}`
-                      }}
+                  <CollectionsIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Geen foto's
+                  </Typography>
+                </Box>
+              )}
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                  <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'medium' }}>
+                    {album.title}
+                  </Typography>
+                  {album.is_home && (
+                    <Chip 
+                      label="Home" 
+                      color="primary" 
+                      size="small" 
+                      sx={{ ml: 1 }} 
                     />
-                  ) : (
-                    <Box
-                      sx={{
-                        height: 220,
-                        bgcolor: 'grey.100',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        gap: 1
-                      }}
-                    >
-                      <CollectionsIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Geen foto's
-                      </Typography>
-                    </Box>
                   )}
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'medium' }}>
-                        {album.title}
-                      </Typography>
-                      {album.is_home && (
-                        <Chip 
-                          label="Home" 
-                          color="primary" 
-                          size="small" 
-                          sx={{ ml: 1 }} 
-                        />
-                      )}
-                    </Box>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      paragraph
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        minHeight: 40
-                      }}
-                    >
-                      {album.description || 'Geen beschrijving'}
-                    </Typography>
-                    <Box 
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  paragraph
+                  sx={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    minHeight: 40
+                  }}
+                >
+                  {album.description || 'Geen beschrijving'}
+                </Typography>
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: 'text.secondary'
+                  }}
+                >
+                  <PhotoIcon sx={{ fontSize: 20 }} />
+                  <Typography variant="body2">
+                    {album.photo_count} foto's
+                  </Typography>
+                </Box>
+              </CardContent>
+              <Divider />
+              <CardActions sx={{ px: 2, py: 1 }}>
+                <Tooltip title="Foto's beheren">
+                  <IconButton
+                    size="small"
+                    onClick={() => handlePhotoManagerClick(album)}
+                    sx={{ 
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.50' }
+                    }}
+                  >
+                    <PhotoIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Album bewerken">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleEditClick(album)}
+                    sx={{ 
+                      color: 'info.main',
+                      '&:hover': { bgcolor: 'info.50' }
+                    }}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={album.is_home ? 'Home album kan niet verwijderd worden' : 'Album verwijderen'}>
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteClick(album)}
+                      disabled={album.is_home}
                       sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: 0.5,
-                        color: 'text.secondary'
+                        color: 'error.main',
+                        '&:hover': { bgcolor: 'error.50' }
                       }}
                     >
-                      <PhotoIcon sx={{ fontSize: 20 }} />
-                      <Typography variant="body2">
-                        {album.photo_count} foto's
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                  <Divider />
-                  <CardActions sx={{ px: 2, py: 1 }}>
-                    <Tooltip title="Foto's beheren">
-                      <IconButton
-                        size="small"
-                        onClick={() => handlePhotoManagerClick(album)}
-                        sx={{ 
-                          color: 'primary.main',
-                          '&:hover': { bgcolor: 'primary.50' }
-                        }}
-                      >
-                        <PhotoIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Album bewerken">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditClick(album)}
-                        sx={{ 
-                          color: 'info.main',
-                          '&:hover': { bgcolor: 'info.50' }
-                        }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={album.is_home ? 'Home album kan niet verwijderd worden' : 'Album verwijderen'}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteClick(album)}
-                          disabled={album.is_home}
-                          sx={{ 
-                            color: 'error.main',
-                            '&:hover': { bgcolor: 'error.50' }
-                          }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
+                      <DeleteIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </CardActions>
+            </Card>
           </Grid>
-        </Box>
-      </Box>
+        ))}
+      </Grid>
 
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
-      >
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Album verwijderen</DialogTitle>
         <DialogContent>
           <Typography>
             Weet je zeker dat je het album "{selectedAlbum?.title}" wilt verwijderen?
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button 
-            onClick={() => setDeleteDialogOpen(false)}
-            variant="outlined"
-            sx={{ borderRadius: 2 }}
-          >
-            Annuleren
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error"
-            variant="contained"
-            sx={{ borderRadius: 2 }}
-          >
-            Verwijderen
-          </Button>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Annuleren</Button>
+          <Button onClick={handleDeleteConfirm} color="error">Verwijderen</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={editDialogOpen}
+      <Dialog 
+        open={editDialogOpen} 
         onClose={() => setEditDialogOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
       >
         <DialogTitle>Album bewerken</DialogTitle>
         <DialogContent>
-          <AlbumForm
-            album={selectedAlbum}
-            onSubmitSuccess={handleFormSuccess}
+          <AlbumForm 
+            album={selectedAlbum} 
+            onSuccess={handleFormSuccess} 
+            onCancel={() => setEditDialogOpen(false)} 
           />
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={createDialogOpen}
+      <Dialog 
+        open={createDialogOpen} 
         onClose={() => setCreateDialogOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
       >
-        <DialogTitle>Nieuw Album</DialogTitle>
+        <DialogTitle>Nieuw album</DialogTitle>
         <DialogContent>
-          <AlbumForm onSubmitSuccess={handleFormSuccess} />
+          <AlbumForm 
+            onSuccess={handleFormSuccess} 
+            onCancel={() => setCreateDialogOpen(false)} 
+          />
         </DialogContent>
       </Dialog>
 
-      <AlbumPhotoManager
-        open={photoManagerOpen}
-        onClose={() => {
-          setPhotoManagerOpen(false);
-          setSelectedAlbum(null);
-        }}
-        albumId={selectedAlbum?.id}
-        onUpdate={loadAlbums}
-      />
+      <Dialog 
+        open={photoManagerOpen} 
+        onClose={() => setPhotoManagerOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Foto's beheren - {selectedAlbum?.title}</DialogTitle>
+        <DialogContent>
+          <AlbumPhotoManager 
+            album={selectedAlbum} 
+            onClose={() => setPhotoManagerOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

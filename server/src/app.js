@@ -7,7 +7,7 @@ import pagesRouter from './routes/pages.js';
 import photosRouter from './routes/photos.js';
 import albumsRouter from './routes/albums.js';
 import settingsRouter from './routes/settings.js';
-import { uploadDir } from './middleware/upload.js';
+import { uploadDirs } from './middleware/upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,8 +29,9 @@ app.use(fileUpload({
   parseNested: true
 }));
 
-// Static files
-app.use('/uploads', express.static(uploadDir));
+// Static files - serve alle upload directories
+const baseUploadDir = '/app/public/uploads';
+app.use('/uploads', express.static(baseUploadDir));
 
 // Routes
 app.use('/api/pages', pagesRouter);

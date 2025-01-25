@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Container, Box } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Container,
+  Box,
+  useTheme
+} from '@mui/material';
 import Navigation from './Navigation';
 import api from '../utils/api';
 
@@ -12,6 +18,7 @@ const Layout = () => {
   
   const theme = useTheme();
   const [siteTitle, setSiteTitle] = useState('Kopfolio');
+  const [logo, setLogo] = useState(null);
   
   useEffect(() => {
     const loadSettings = async () => {
@@ -20,8 +27,11 @@ const Layout = () => {
         if (response.data.site_title) {
           setSiteTitle(response.data.site_title);
         }
+        if (response.data.logo) {
+          setLogo(response.data.logo);
+        }
       } catch (error) {
-        console.error('Fout bij laden site titel:', error);
+        console.error('Fout bij laden site instellingen:', error);
       }
     };
 
@@ -50,17 +60,32 @@ const Layout = () => {
           gap: 2,
           px: { xs: 2, sm: 3, md: 4 }
         }}>
-          <Typography 
-            variant="h6" 
-            component="div" 
-            sx={{ 
-              fontWeight: 600,
-              letterSpacing: '-0.025em',
-              color: theme.palette.mode === 'dark' ? 'common.white' : 'grey.800'
-            }}
-          >
-            {siteTitle}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {logo ? (
+              <Box
+                component="img"
+                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${logo}`}
+                alt={siteTitle}
+                sx={{ 
+                  height: 40,
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+            ) : (
+              <Typography 
+                variant="h6" 
+                component="div" 
+                sx={{ 
+                  fontWeight: 600,
+                  letterSpacing: '-0.025em',
+                  color: theme.palette.mode === 'dark' ? 'common.white' : 'grey.800'
+                }}
+              >
+                {siteTitle}
+              </Typography>
+            )}
+          </Box>
           <Navigation />
         </Toolbar>
       </AppBar>
