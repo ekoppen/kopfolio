@@ -103,9 +103,21 @@ const Dashboard = () => {
       await api.put('/settings', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      showToast('Instellingen succesvol opgeslagen', 'success');
+
+      // Update document font
+      document.documentElement.style.setProperty('font-family', `${settings.font}, sans-serif`);
+      
+      // Trigger een window event om de App component te informeren
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+        detail: { 
+          accent_color: settings.accentColor,
+          font: settings.font
+        }
+      }));
+
+      showToast('success', 'Instellingen succesvol opgeslagen');
     } catch (error) {
-      showToast('Fout bij opslaan instellingen', 'error');
+      showToast('error', 'Fout bij opslaan instellingen');
     }
   };
 

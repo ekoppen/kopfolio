@@ -130,12 +130,17 @@ const AdminPages = () => {
             <Card 
               elevation={0}
               sx={{ 
-                height: 220,
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                minWidth: 200,
+                maxWidth: 350,
+                width: '100%',
+                mx: 'auto',
+                boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
               }}
             >
               <CardContent sx={{ flexGrow: 1 }}>
@@ -152,7 +157,18 @@ const AdminPages = () => {
                     />
                   )}
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  paragraph
+                  sx={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    minHeight: 40
+                  }}
+                >
                   {page.description || 'Geen beschrijving'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

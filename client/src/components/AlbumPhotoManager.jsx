@@ -51,7 +51,7 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
       ]);
       setPhotos(allPhotosRes.data);
       setAlbumPhotos(albumPhotosRes.data);
-      setSelectedPhotos([]);
+      setSelectedPhotos(albumPhotosRes.data.map(photo => photo.id));
     } catch (err) {
       setError('Fout bij het laden van de foto\'s');
       console.error(err);
@@ -65,11 +65,24 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
   };
 
   const handlePhotoToggle = (photoId) => {
+    const isInAlbum = isPhotoInAlbum(photoId);
+    
     setSelectedPhotos(prev => {
-      if (prev.includes(photoId)) {
-        return prev.filter(id => id !== photoId);
-      } else {
-        return [...prev, photoId];
+      // Als de foto al in het album zit, moet deze geselecteerd worden voor verwijdering
+      if (isInAlbum) {
+        if (prev.includes(photoId)) {
+          return prev.filter(id => id !== photoId);
+        } else {
+          return [...prev, photoId];
+        }
+      } 
+      // Als de foto niet in het album zit, moet deze geselecteerd worden voor toevoeging
+      else {
+        if (prev.includes(photoId)) {
+          return prev.filter(id => id !== photoId);
+        } else {
+          return [...prev, photoId];
+        }
       }
     });
   };
@@ -125,7 +138,8 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
       PaperProps={{
         sx: {
           borderRadius: 2,
-          minHeight: '80vh'
+          minHeight: '80vh',
+          bgcolor: 'background.paper'
         }
       }}
     >
@@ -179,7 +193,7 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
         <Paper 
           elevation={0} 
           sx={{ 
-            bgcolor: 'grey.50',
+            bgcolor: 'transparent',
             borderRadius: 2,
             p: 2
           }}
@@ -203,7 +217,11 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
                       },
                       borderRadius: 2,
                       overflow: 'hidden',
-                      border: isSelected ? `2px solid ${theme.palette.primary.main}` : 'none'
+                      border: isSelected ? `2px solid ${theme.palette.primary.main}` : 'none',
+                      minWidth: 200,
+                      maxWidth: 400,
+                      width: '100%',
+                      mx: 'auto'
                     }}
                     onClick={() => handlePhotoToggle(photo.id)}
                   >
@@ -217,18 +235,26 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
                       image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumbs/thumb_${photo.filename}`}
                       alt={photo.title || 'Foto'}
                     />
-                    {isSelected && (
+                    <Box
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePhotoToggle(photo.id);
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        cursor: 'pointer'
+                      }}
+                    >
                       <CheckCircleIcon
                         sx={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          color: 'primary.main',
+                          color: isSelected ? 'primary.main' : 'action.disabled',
                           bgcolor: 'white',
                           borderRadius: '50%'
                         }}
                       />
-                    )}
+                    </Box>
                     {isInAlbum && (
                       <Box
                         sx={{
@@ -268,26 +294,46 @@ const AlbumPhotoManager = ({ open, onClose, albumId, onUpdate }) => {
         >
           Annuleren
         </Button>
-        <Button 
-          onClick={handleRemovePhotos}
-          color="error"
-          variant="outlined"
-          disabled={loading || selectedPhotos.length === 0}
-          sx={{ borderRadius: 2 }}
-        >
-          Verwijderen uit Album
-        </Button>
         <Button
-          onClick={handleAddPhotos}
+          onClick={async () => {
+            // Bepaal welke foto's toegevoegd/verwijderd moeten worden
+            const photosToAdd = selectedPhotos.filter(id => !isPhotoInAlbum(id));
+            const photosToRemove = albumPhotos
+              .map(photo => photo.id)
+              .filter(id => !selectedPhotos.includes(id));
+
+            setLoading(true);
+            setError('');
+            try {
+              // Voer de nodige acties uit
+              if (photosToAdd.length > 0) {
+                await api.post(`/albums/${albumId}/photos`, {
+                  photoIds: photosToAdd
+                });
+              }
+              if (photosToRemove.length > 0) {
+                await api.delete(`/albums/${albumId}/photos`, {
+                  data: { photoIds: photosToRemove }
+                });
+              }
+              onUpdate?.();
+              onClose();
+            } catch (err) {
+              setError('Fout bij het opslaan van de wijzigingen');
+              console.error(err);
+            } finally {
+              setLoading(false);
+            }
+          }}
           variant="contained"
-          disabled={loading || selectedPhotos.length === 0}
-          startIcon={loading ? <CircularProgress size={20} /> : <AddPhotoIcon />}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : null}
           sx={{ 
             borderRadius: 2,
             px: 3
           }}
         >
-          Toevoegen aan Album
+          Opslaan
         </Button>
       </DialogActions>
     </Dialog>

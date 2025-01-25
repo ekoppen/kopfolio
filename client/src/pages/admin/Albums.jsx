@@ -127,6 +127,11 @@ const AdminAlbums = () => {
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                minWidth: 200,
+                maxWidth: 350,
+                width: '100%',
+                mx: 'auto',
+                boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
               }}
             >
               {album.cover_photo ? (
@@ -298,10 +303,12 @@ const AdminAlbums = () => {
         fullWidth
       >
         <DialogTitle>Foto's beheren - {selectedAlbum?.title}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ bgcolor: 'transparent', p: 0 }}>
           <AlbumPhotoManager 
-            album={selectedAlbum} 
-            onClose={() => setPhotoManagerOpen(false)} 
+            open={photoManagerOpen}
+            onClose={() => setPhotoManagerOpen(false)}
+            albumId={selectedAlbum?.id}
+            onUpdate={loadAlbums}
           />
         </DialogContent>
       </Dialog>

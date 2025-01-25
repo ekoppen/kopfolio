@@ -85,7 +85,9 @@ const AdminPhotos = () => {
   const [view, setView] = useState(() => {
     return localStorage.getItem('photoView') || 'grid';
   });
-  const [gridSize, setGridSize] = useState(3);
+  const [gridSize, setGridSize] = useState(() => {
+    return parseInt(localStorage.getItem('photoGridSize')) || 3;
+  });
   const [sortConfig, setSortConfig] = useState({
     key: 'created_at',
     direction: 'desc'
@@ -148,6 +150,7 @@ const AdminPhotos = () => {
 
   const handleGridSizeChange = (event, newValue) => {
     setGridSize(newValue);
+    localStorage.setItem('photoGridSize', newValue);
   };
 
   const handleSort = (key) => {
@@ -197,6 +200,7 @@ const AdminPhotos = () => {
         width,
         cursor: 'pointer',
         userSelect: 'none',
+        py: 2,
         '&:hover': {
           backgroundColor: 'action.hover'
         }
@@ -310,7 +314,13 @@ const AdminPhotos = () => {
               cursor: 'pointer',
               '&:hover .photo-overlay': {
                 opacity: 1
-              }
+              },
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+              boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 4px 20px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              overflow: 'hidden'
             }}
             onClick={() => handleShowDetails(photo)}
           >
@@ -321,7 +331,8 @@ const AdminPhotos = () => {
               sx={{ 
                 aspectRatio: '4/3',
                 width: '100%',
-                objectFit: 'cover'
+                objectFit: 'cover',
+                boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
               }}
             />
             <Box
@@ -340,8 +351,8 @@ const AdminPhotos = () => {
                 justifyContent: 'space-between'
               }}
             >
-              <Box p={1} display="flex" justifyContent="flex-end">
-                <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
+              <Box p={2} display="flex" justifyContent="flex-end">
+                <FormControl size="small" sx={{ minWidth: 120, mr: 1.5 }}>
                   <InputLabel sx={{ color: 'white' }}>Album</InputLabel>
                   <Select
                     value={photo.album_id || ''}
@@ -398,7 +409,10 @@ const AdminPhotos = () => {
       sx={{ 
         bgcolor: 'background.paper',
         borderRadius: 2,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        border: '1px solid',
+        borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+        boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
       }}
     >
       {photos.map((photo) => (
@@ -493,7 +507,10 @@ const AdminPhotos = () => {
       sx={{ 
         bgcolor: 'background.paper',
         borderRadius: 2,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        border: '1px solid',
+        borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+        boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
       }}
     >
       <Box sx={{ width: '100%', overflow: 'auto' }}>
@@ -740,7 +757,7 @@ const AdminPhotos = () => {
               <Slider
                 value={gridSize}
                 min={2}
-                max={6}
+                max={4}
                 step={1}
                 onChange={handleGridSizeChange}
                 valueLabelDisplay="auto"

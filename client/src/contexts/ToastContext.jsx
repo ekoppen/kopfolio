@@ -34,6 +34,7 @@ export const ToastProvider = ({ children }) => {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{ 
           minWidth: '400px',
+          zIndex: theme.zIndex.modal + 1,
           '& .MuiPaper-root': {
             width: '100%',
             boxShadow: theme.palette.mode === 'dark' 
@@ -65,20 +66,32 @@ export const ToastProvider = ({ children }) => {
               padding: '0 8px'
             },
             '&.MuiAlert-standardSuccess, &.MuiAlert-filledSuccess': {
-              backgroundColor: theme.palette.success.main,
-              color: theme.palette.success.contrastText
+              backgroundColor: `${theme.palette.success.main} !important`,
+              color: theme.palette.success.contrastText,
+              '& .MuiAlert-icon': {
+                color: theme.palette.success.contrastText
+              }
             },
             '&.MuiAlert-standardError, &.MuiAlert-filledError': {
-              backgroundColor: theme.palette.error.main,
-              color: theme.palette.error.contrastText
+              backgroundColor: `${theme.palette.error.main} !important`,
+              color: theme.palette.error.contrastText,
+              '& .MuiAlert-icon': {
+                color: theme.palette.error.contrastText
+              }
             },
             '&.MuiAlert-standardWarning, &.MuiAlert-filledWarning': {
-              backgroundColor: theme.palette.warning.main,
-              color: theme.palette.warning.contrastText
+              backgroundColor: `${theme.palette.warning.main} !important`,
+              color: theme.palette.warning.contrastText,
+              '& .MuiAlert-icon': {
+                color: theme.palette.warning.contrastText
+              }
             },
             '&.MuiAlert-standardInfo, &.MuiAlert-filledInfo': {
-              backgroundColor: theme.palette.info.main,
-              color: theme.palette.info.contrastText
+              backgroundColor: `${theme.palette.info.main} !important`,
+              color: theme.palette.info.contrastText,
+              '& .MuiAlert-icon': {
+                color: theme.palette.info.contrastText
+              }
             }
           }}
         >

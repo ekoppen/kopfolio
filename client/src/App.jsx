@@ -28,6 +28,19 @@ const App = () => {
     };
 
     loadSettings();
+
+    // Luister naar settings updates
+    const handleSettingsUpdate = (event) => {
+      const { accent_color, font } = event.detail;
+      setAccentColor(accent_color);
+      setFont(font);
+    };
+
+    window.addEventListener('settingsUpdated', handleSettingsUpdate);
+
+    return () => {
+      window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+    };
   }, []);
 
   return (
