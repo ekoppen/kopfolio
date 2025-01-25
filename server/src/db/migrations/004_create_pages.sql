@@ -16,13 +16,6 @@ CREATE TRIGGER update_pages_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Insert default about page if not exists
-INSERT INTO pages (title, slug, description, content)
-SELECT 'About', 'about', 'About me', '[]'::jsonb
-WHERE NOT EXISTS (
-    SELECT 1 FROM pages WHERE slug = 'about'
-);
-
 -- Insert default home page if not exists
 INSERT INTO pages (title, slug, description, content)
 SELECT 'Home', 'home', 'Welkom op mijn portfolio', '[]'::jsonb

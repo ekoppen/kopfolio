@@ -167,7 +167,7 @@ const Page = () => {
           <PageContent content={page.content} />
         )}
 
-        {isAdmin && !isEditing && (
+        {isAdmin && !isEditing && page.slug !== 'home' && (
           <Fab 
             color="primary" 
             sx={{ position: 'fixed', bottom: 32, right: 32 }}

@@ -45,10 +45,14 @@ const PageEditor = () => {
 
   const loadPage = async () => {
     try {
-      const response = await api.get(`/pages/${id}`);
-      setPage(response.data);
+      const response = await api.get(`/pages/id/${id}`);
+      setPage({
+        ...response.data,
+        description: response.data.description || ''
+      });
     } catch (error) {
       setError(error.response?.data?.message || 'Fout bij laden pagina');
+      showToast('Fout bij laden pagina', 'error');
     } finally {
       setLoading(false);
     }

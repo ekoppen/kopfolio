@@ -26,22 +26,24 @@ import {
   Select,
   MenuItem,
   FormControlLabel,
-  Switch
+  Switch,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Delete as DeleteIcon,
   Edit as EditIcon,
-  DragIndicator as DragIcon,
-  TextFields as TextIcon,
-  Image as ImageIcon,
-  Collections as SlideshowIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
   Close as CloseIcon,
   Settings as SettingsIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Slideshow as SlideshowIcon,
+  Delete as DeleteIcon,
+  DragIndicator as DragIcon,
+  ArrowUpward as ArrowUpIcon,
+  ArrowDownward as ArrowDownIcon,
+  TextFields as TextFieldsIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ReactQuill from 'react-quill';
@@ -56,6 +58,7 @@ import { useTheme } from '@mui/material/styles';
 const modules = {
   toolbar: [
     [{ 'header': [1, 2, 3, false] }],
+    [{ 'size': ['small', false, 'large', 'huge'] }],
     ['bold', 'italic', 'underline'],
     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
     [{ 'align': [] }],
@@ -66,6 +69,7 @@ const modules = {
 
 const formats = [
   'header',
+  'size',
   'bold', 'italic', 'underline', 'strike',
   'list', 'bullet',
   'align',
@@ -86,13 +90,33 @@ const getSliderSettings = (settings = {}) => ({
   cssEase: settings.transition === 'zoom' ? 'cubic-bezier(0.87, 0, 0.13, 1)' : 'linear',
 });
 
+const getImageWidth = (size) => {
+  switch (size) {
+    case 'small': return '25%';
+    case 'medium': return '50%';
+    case 'large': return '75%';
+    case 'full': return '100%';
+    default: return '50%';
+  }
+};
+
+const getShadowStyle = (showShadow) => showShadow ? {
+  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  transition: 'box-shadow 0.3s ease-in-out',
+  '&:hover': {
+    boxShadow: '0 6px 16px rgba(0,0,0,0.2)'
+  }
+} : {};
+
 const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) => {
   const [content, setContent] = useState(initialContent);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [photoSelectorOpen, setPhotoSelectorOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
+  const [albums, setAlbums] = useState([]);
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [blockPropertiesOpen, setBlockPropertiesOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('photos');
   const theme = useTheme();
 
   // Update content wanneer initialContent verandert
@@ -101,19 +125,31 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
     setContent(initialContent);
   }, [initialContent]);
 
-  // Laad foto's wanneer de foto selector geopend wordt
+  // Laad foto's en albums wanneer de selector geopend wordt
   useEffect(() => {
     if (photoSelectorOpen) {
       loadPhotos();
+      loadAlbums();
     }
   }, [photoSelectorOpen]);
 
   const loadPhotos = async () => {
     try {
       const response = await api.get('/photos');
+      console.log('Geladen foto\'s:', response.data);
       setPhotos(response.data);
     } catch (error) {
       console.error('Fout bij ophalen foto\'s:', error);
+    }
+  };
+
+  const loadAlbums = async () => {
+    try {
+      const response = await api.get('/albums');
+      console.log('Geladen albums:', response.data);
+      setAlbums(response.data);
+    } catch (error) {
+      console.error('Fout bij ophalen albums:', error);
     }
   };
 
@@ -192,6 +228,17 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
     }
   };
 
+  const handleAlbumSelect = (album) => {
+    if (!selectedBlock) return;
+
+    if (selectedBlock.type === 'slideshow') {
+      setSelectedPhotos(album.photos || []);
+      handleSlideshowConfirm();
+    } else if (selectedBlock.type === 'image' && album.photos?.length > 0) {
+      handlePhotoSelect(album.photos[0]);
+    }
+  };
+
   const handleSlideshowConfirm = () => {
     if (selectedBlock && selectedBlock.type === 'slideshow') {
       updateBlock(selectedBlock.id, { content: selectedPhotos });
@@ -209,17 +256,18 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
             position: 'relative',
             '& .quill': {
               '& .ql-toolbar': {
-                position: 'absolute',
-                top: -40,
+                position: 'sticky',
+                top: 0,
                 left: 0,
-                right: 40,
+                right: 0,
                 backgroundColor: 'background.paper',
                 borderColor: 'transparent',
                 borderRadius: 1,
                 opacity: 0,
                 transition: 'opacity 0.2s',
                 boxShadow: 1,
-                zIndex: 1
+                zIndex: 100,
+                marginBottom: 1
               },
               '& .ql-container': {
                 border: 'none',
@@ -265,7 +313,10 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                        imageContent.length === 4 ? 3 : 6;
         
         return (
-          <Box>
+          <Box sx={{ 
+            width: getImageWidth(block.content?.size),
+            mx: 'auto'
+          }}>
             {imageContent.length > 0 ? (
               <Grid container spacing={2}>
                 {imageContent.map((image, photoIndex) => (
@@ -289,7 +340,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                           aspectRatio: '4/3',
                           objectFit: 'cover',
                           borderRadius: 1,
-                          boxShadow: 3
+                          ...getShadowStyle(image.showShadow)
                         }}
                       />
                       {image.showTitle && image.title && (
@@ -341,7 +392,10 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
       
       case 'slideshow':
         return (
-          <Box>
+          <Box sx={{ 
+            width: getImageWidth(block.settings?.size),
+            mx: 'auto'
+          }}>
             {block.content && block.content.length > 0 ? (
               <Box 
                 sx={{ 
@@ -349,7 +403,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                   height: 500,
                   borderRadius: 1,
                   overflow: 'hidden',
-                  boxShadow: 3,
+                  ...getShadowStyle(block.settings?.showShadow),
                   '& .slick-slider': {
                     height: '100%',
                   },
@@ -456,6 +510,11 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
         onClose={() => setBlockPropertiesOpen(false)}
         maxWidth="sm"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            zIndex: 9999
+          }
+        }}
       >
         <DialogTitle>
           {selectedBlock.type === 'image' ? 'Afbeelding Eigenschappen' : 'Slideshow Eigenschappen'}
@@ -505,6 +564,22 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                         />
                       </Box>
                     </Box>
+                    <FormControl fullWidth margin="normal">
+                      <InputLabel>Formaat</InputLabel>
+                      <Select
+                        value={image.size || 'medium'}
+                        onChange={(e) => {
+                          const newContent = [...selectedBlock.content];
+                          newContent[index] = { ...image, size: e.target.value };
+                          updateBlock(selectedBlock.id, { content: newContent });
+                        }}
+                      >
+                        <MenuItem value="small">Klein (25%)</MenuItem>
+                        <MenuItem value="medium">Normaal (50%)</MenuItem>
+                        <MenuItem value="large">Groot (75%)</MenuItem>
+                        <MenuItem value="full">Volledig (100%)</MenuItem>
+                      </Select>
+                    </FormControl>
                     <FormControlLabel
                       control={
                         <Switch
@@ -517,6 +592,19 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                         />
                       }
                       label="Toon titel en beschrijving"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={image.showShadow || false}
+                          onChange={(e) => {
+                            const newContent = [...selectedBlock.content];
+                            newContent[index] = { ...image, showShadow: e.target.checked };
+                            updateBlock(selectedBlock.id, { content: newContent });
+                          }}
+                        />
+                      }
+                      label="Toon schaduw"
                     />
                     <Divider sx={{ mt: 2 }} />
                   </Box>
@@ -549,6 +637,23 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                     multiline
                     rows={3}
                   />
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>Formaat</InputLabel>
+                    <Select
+                      value={selectedBlock.content.size || 'medium'}
+                      onChange={(e) => updateBlock(selectedBlock.id, {
+                        content: {
+                          ...selectedBlock.content,
+                          size: e.target.value
+                        }
+                      })}
+                    >
+                      <MenuItem value="small">Klein (25%)</MenuItem>
+                      <MenuItem value="medium">Normaal (50%)</MenuItem>
+                      <MenuItem value="large">Groot (75%)</MenuItem>
+                      <MenuItem value="full">Volledig (100%)</MenuItem>
+                    </Select>
+                  </FormControl>
                   <FormControlLabel
                     control={
                       <Switch
@@ -563,6 +668,20 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                     }
                     label="Toon titel en beschrijving"
                   />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={selectedBlock.content.showShadow || false}
+                        onChange={(e) => updateBlock(selectedBlock.id, {
+                          content: {
+                            ...selectedBlock.content,
+                            showShadow: e.target.checked
+                          }
+                        })}
+                      />
+                    }
+                    label="Toon schaduw"
+                  />
                 </>
               )}
             </>
@@ -570,6 +689,23 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
 
           {selectedBlock.type === 'slideshow' && (
             <>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Formaat</InputLabel>
+                <Select
+                  value={selectedBlock.settings?.size || 'medium'}
+                  onChange={(e) => updateBlock(selectedBlock.id, {
+                    settings: {
+                      ...selectedBlock.settings,
+                      size: e.target.value
+                    }
+                  })}
+                >
+                  <MenuItem value="small">Klein (25%)</MenuItem>
+                  <MenuItem value="medium">Normaal (50%)</MenuItem>
+                  <MenuItem value="large">Groot (75%)</MenuItem>
+                  <MenuItem value="full">Volledig (100%)</MenuItem>
+                </Select>
+              </FormControl>
               <FormControl fullWidth margin="normal">
                 <InputLabel>Transitie Effect</InputLabel>
                 <Select
@@ -616,6 +752,20 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                 }
                 label="Toon titels en beschrijvingen"
               />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={selectedBlock.settings?.showShadow || false}
+                    onChange={(e) => updateBlock(selectedBlock.id, {
+                      settings: {
+                        ...selectedBlock.settings,
+                        showShadow: e.target.checked
+                      }
+                    })}
+                  />
+                }
+                label="Toon schaduw"
+              />
             </>
           )}
 
@@ -647,20 +797,22 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
     <Card
       elevation={0}
       sx={{ 
-        aspectRatio: '4/3',
         display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.paper',
         border: '1px solid',
         borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
         borderRadius: 1,
+        height: '100%',
+        minHeight: '50vh',
+        maxHeight: 'calc(100vh - 200px)',
         overflow: 'hidden'
       }}
     >
       <Box sx={{ 
         flex: 1, 
         overflow: 'auto',
-        p: 3
+        p: 2
       }}>
         {/* Content Blocks */}
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -669,6 +821,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
               <Box
                 {...provided.droppableProps}
                 ref={provided.innerRef}
+                sx={{ maxWidth: '1200px', mx: 'auto', width: '100%' }}
               >
                 {content.map((block, index) => (
                   <Draggable
@@ -681,7 +834,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         sx={{ 
-                          mb: 4,
+                          mb: 3,
                           position: 'relative',
                           '&:hover .block-controls': {
                             opacity: 1
@@ -693,9 +846,9 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                           className="block-controls"
                           sx={{
                             position: 'absolute',
-                            right: -40,
-                            top: 0,
-                            zIndex: 1,
+                            right: -50,
+                            top: 8,
+                            zIndex: 9999,
                             opacity: 0,
                             transition: 'opacity 0.2s',
                             bgcolor: 'background.paper',
@@ -704,7 +857,9 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 0.5,
-                            p: 0.5
+                            p: 0.5,
+                            transform: 'translateX(-100%)',
+                            ml: -1
                           }}
                         >
                           <Tooltip title="Omhoog" placement="left">
@@ -766,6 +921,55 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                   </Draggable>
                 ))}
                 {provided.placeholder}
+
+                {/* Add Block Button */}
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    border: '2px dashed',
+                    borderColor: 'grey.300',
+                    borderRadius: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    bgcolor: 'grey.50',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'primary.50'
+                    }
+                  }}
+                >
+                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                    Voeg een nieuw blok toe
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<TextFieldsIcon />}
+                      onClick={() => addBlock('text')}
+                    >
+                      Tekst
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ImageIcon />}
+                      onClick={() => addBlock('image')}
+                    >
+                      Afbeelding
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<SlideshowIcon />}
+                      onClick={() => addBlock('slideshow')}
+                    >
+                      Slideshow
+                    </Button>
+                  </Box>
+                </Box>
               </Box>
             )}
           </Droppable>
@@ -790,45 +994,102 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
           {selectedBlock?.type === 'image' ? 'Selecteer een foto' : 'Selecteer foto\'s'}
         </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2}>
-            {photos.map((photo) => {
-              const isSelected = selectedBlock?.type === 'slideshow'
-                ? selectedPhotos.some(p => p.id === photo.id)
-                : false;
+          {selectedBlock?.type === 'slideshow' && (
+            <Tabs
+              value={selectedTab}
+              onChange={(e, newValue) => setSelectedTab(newValue)}
+              sx={{ mb: 2 }}
+            >
+              <Tab label="Foto's" value="photos" />
+              <Tab label="Albums" value="albums" />
+            </Tabs>
+          )}
 
-              return (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={photo.id}>
-                  <Card
-                    onClick={() => handlePhotoSelect(photo)}
-                    sx={{
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      transform: isSelected ? 'scale(0.95)' : 'scale(1)',
-                      border: isSelected ? 2 : 0,
-                      borderColor: 'primary.main',
-                      '&:hover': {
-                        transform: 'scale(1.02)'
-                      }
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height="140"
-                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/thumbs/thumb_${photo.filename}`}
-                      alt={photo.title || 'Foto'}
-                    />
-                    {photo.title && (
+          {(selectedTab === 'photos' || selectedBlock?.type === 'image') ? (
+            <Grid container spacing={2}>
+              {photos.map((photo) => {
+                const isSelected = selectedBlock?.type === 'slideshow'
+                  ? selectedPhotos.some(p => p.id === photo.id)
+                  : false;
+
+                const photoUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
+                console.log('Foto URL:', photoUrl);
+
+                return (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={photo.id}>
+                    <Card
+                      onClick={() => handlePhotoSelect(photo)}
+                      sx={{
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        transform: isSelected ? 'scale(0.95)' : 'scale(1)',
+                        border: isSelected ? 2 : 0,
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                          transform: 'scale(1.02)'
+                        }
+                      }}
+                    >
+                      <CardMedia
+                        component="img"
+                        height={140}
+                        image={photoUrl}
+                        alt={photo.title || 'Foto'}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                      {photo.title && (
+                        <CardContent>
+                          <Typography variant="subtitle2" noWrap>
+                            {photo.title}
+                          </Typography>
+                        </CardContent>
+                      )}
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          ) : (
+            <Grid container spacing={2}>
+              {albums.map((album) => {
+                const albumCoverUrl = album.cover_photo ? 
+                  `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${album.cover_photo.filename}` :
+                  'placeholder-image.jpg';
+                console.log('Album cover URL:', albumCoverUrl);
+
+                return (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={album.id}>
+                    <Card
+                      onClick={() => handleAlbumSelect(album)}
+                      sx={{
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          transform: 'scale(1.02)'
+                        }
+                      }}
+                    >
+                      <CardMedia
+                        component="img"
+                        height={140}
+                        image={albumCoverUrl}
+                        alt={album.title || 'Album'}
+                        sx={{ objectFit: 'cover' }}
+                      />
                       <CardContent>
-                        <Typography variant="subtitle2" noWrap>
-                          {photo.title}
+                        <Typography variant="subtitle1" noWrap>
+                          {album.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {album.photos?.length || 0} foto's
                         </Typography>
                       </CardContent>
-                    )}
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          )}
         </DialogContent>
         <DialogActions>
           <Button
@@ -840,7 +1101,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
           >
             Annuleren
           </Button>
-          {selectedBlock?.type === 'slideshow' && (
+          {selectedBlock?.type === 'slideshow' && selectedTab === 'photos' && (
             <Button
               variant="contained"
               onClick={handleSlideshowConfirm}

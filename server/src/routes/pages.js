@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Publieke routes
 router.get('/', getPages);
+router.get('/id/:id', getPage);
 router.get('/:slug', getPage);
 
 // Beveiligde routes

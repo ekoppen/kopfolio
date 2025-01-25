@@ -29,9 +29,11 @@ import {
 import AlbumForm from '../../components/AlbumForm';
 import AlbumPhotoManager from '../../components/AlbumPhotoManager';
 import api from '../../utils/api';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminAlbums = () => {
   const theme = useTheme();
+  const { showToast } = useToast();
   const [albums, setAlbums] = useState([]);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -63,8 +65,9 @@ const AdminAlbums = () => {
       setAlbums(albums.filter(a => a.id !== selectedAlbum.id));
       setDeleteDialogOpen(false);
       setSelectedAlbum(null);
+      showToast('Album succesvol verwijderd', 'success');
     } catch (error) {
-      console.error('Fout bij verwijderen album:', error);
+      showToast('Fout bij verwijderen album', 'error');
     }
   };
 

@@ -13,7 +13,7 @@ export const ToastProvider = ({ children }) => {
   const [severity, setSeverity] = useState('success');
   const theme = useTheme();
 
-  const showToast = (severity = 'success', message) => {
+  const showToast = (message, severity = 'success') => {
     setMessage(message);
     setSeverity(severity);
     setOpen(true);

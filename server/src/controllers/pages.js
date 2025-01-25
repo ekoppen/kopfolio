@@ -3,7 +3,7 @@ import slugify from 'slugify';
 
 // Maak nieuwe pagina
 export const createPage = async (req, res) => {
-  const { title, content } = req.body;
+  const { title, content, description } = req.body;
 
   try {
     // Genereer slug van titel
@@ -27,10 +27,10 @@ export const createPage = async (req, res) => {
     const jsonContent = Array.isArray(content) ? content : [];
 
     const result = await pool.query(
-      `INSERT INTO pages (title, content, slug)
-       VALUES ($1, $2::jsonb, $3)
+      `INSERT INTO pages (title, content, description, slug)
+       VALUES ($1, $2::jsonb, $3, $4)
        RETURNING *`,
-      [title, JSON.stringify(jsonContent), slug]
+      [title, JSON.stringify(jsonContent), description || '', slug]
     );
 
     // Parse de content terug naar JSON voor de response
@@ -72,13 +72,21 @@ export const getPages = async (req, res) => {
 
 // Haal specifieke pagina op
 export const getPage = async (req, res) => {
-  const { slug } = req.params;
+  const { slug, id } = req.params;
 
   try {
-    const result = await pool.query(
-      'SELECT * FROM pages WHERE slug = $1',
-      [slug]
-    );
+    let query = 'SELECT * FROM pages WHERE ';
+    let params = [];
+
+    if (id) {
+      query += 'id = $1';
+      params = [id];
+    } else {
+      query += 'slug = $1';
+      params = [slug];
+    }
+
+    const result = await pool.query(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Pagina niet gevonden' });
@@ -100,11 +108,12 @@ export const getPage = async (req, res) => {
 // Update pagina
 export const updatePage = async (req, res) => {
   const { id } = req.params;
-  const { title, content } = req.body;
+  const { title, content, description } = req.body;
 
   console.log('Update pagina request:', {
     id,
     title,
+    description,
     content,
     contentType: typeof content,
     isArray: Array.isArray(content)
@@ -136,6 +145,7 @@ export const updatePage = async (req, res) => {
 
     console.log('Uitvoeren van database update met waarden:', {
       title,
+      description,
       jsonContent,
       slug,
       id
@@ -145,11 +155,12 @@ export const updatePage = async (req, res) => {
       `UPDATE pages 
        SET title = COALESCE($1, title),
            content = COALESCE($2::jsonb, content),
-           slug = COALESCE($3, slug),
+           description = COALESCE($3, description),
+           slug = COALESCE($4, slug),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4
+       WHERE id = $5
        RETURNING *`,
-      [title, JSON.stringify(jsonContent), slug, id]
+      [title, JSON.stringify(jsonContent), description, slug, id]
     );
 
     if (result.rows.length === 0) {

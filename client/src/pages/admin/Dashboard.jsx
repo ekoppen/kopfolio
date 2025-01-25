@@ -219,7 +219,15 @@ const Dashboard = () => {
           
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
-              <Card elevation={0} sx={{ bgcolor: 'primary.50' }}>
+              <Card 
+                elevation={0} 
+                sx={{ 
+                  bgcolor: 'primary.50',
+                  border: '1px solid',
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+                }}
+              >
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <PhotoIcon sx={{ color: 'primary.main', fontSize: 32 }} />
@@ -237,7 +245,15 @@ const Dashboard = () => {
             </Grid>
             
             <Grid item xs={12} md={4}>
-              <Card elevation={0} sx={{ bgcolor: 'success.50' }}>
+              <Card 
+                elevation={0} 
+                sx={{ 
+                  bgcolor: 'success.50',
+                  border: '1px solid',
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+                }}
+              >
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <AlbumIcon sx={{ color: 'success.main', fontSize: 32 }} />
@@ -255,7 +271,15 @@ const Dashboard = () => {
             </Grid>
             
             <Grid item xs={12} md={4}>
-              <Card elevation={0} sx={{ bgcolor: 'info.50' }}>
+              <Card 
+                elevation={0} 
+                sx={{ 
+                  bgcolor: 'info.50',
+                  border: '1px solid',
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+                }}
+              >
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <PageIcon sx={{ color: 'info.main', fontSize: 32 }} />
@@ -282,7 +306,8 @@ const Dashboard = () => {
             sx={{ 
               p: 3,
               border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+              boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
             }}
           >
             <Grid container spacing={2}>
