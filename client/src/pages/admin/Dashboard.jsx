@@ -28,6 +28,7 @@ import {
 import api from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -55,6 +56,7 @@ const Dashboard = () => {
     subtitle_margin_left: 0
   });
   const [logoPreview, setLogoPreview] = useState(null);
+  const navigate = useNavigate();
 
   const loadStats = async () => {
     try {
@@ -221,11 +223,18 @@ const Dashboard = () => {
             <Grid item xs={12} md={4}>
               <Card 
                 elevation={0} 
+                onClick={() => navigate('/admin/fotos')}
                 sx={{ 
                   bgcolor: 'primary.50',
                   border: '1px solid',
                   borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                  }
                 }}
               >
                 <CardContent>
@@ -247,11 +256,18 @@ const Dashboard = () => {
             <Grid item xs={12} md={4}>
               <Card 
                 elevation={0} 
+                onClick={() => navigate('/admin/albums')}
                 sx={{ 
                   bgcolor: 'success.50',
                   border: '1px solid',
                   borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                  }
                 }}
               >
                 <CardContent>
@@ -272,12 +288,19 @@ const Dashboard = () => {
             
             <Grid item xs={12} md={4}>
               <Card 
-                elevation={0} 
+                elevation={0}
+                onClick={() => navigate('/admin/paginas')}
                 sx={{ 
                   bgcolor: 'info.50',
                   border: '1px solid',
                   borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                  }
                 }}
               >
                 <CardContent>

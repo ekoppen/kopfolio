@@ -124,9 +124,9 @@ const AdminPages = () => {
         </Button>
       </Box>
 
-      <Grid container spacing={2}>
+      <Grid container spacing={2} sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', pb: 2 }}>
         {pages.map((page) => (
-          <Grid item xs={12} sm={6} md={4} key={page.id}>
+          <Grid item xs="auto" key={page.id}>
             <Card 
               elevation={0}
               sx={{ 
@@ -136,10 +136,8 @@ const AdminPages = () => {
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-                minWidth: 200,
-                maxWidth: 350,
-                width: '100%',
-                mx: 'auto',
+                minWidth: 300,
+                maxWidth: 300,
                 boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
               }}
             >
