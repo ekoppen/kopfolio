@@ -5,6 +5,7 @@ import Routes from './Routes';
 import api from './utils/api';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { GlobalStyles } from '@mui/material';
 
 const App = () => {
   const [accentColor, setAccentColor] = useState('#2196f3');
@@ -47,6 +48,18 @@ const App = () => {
     <Router>
       <ThemeProvider accentColor={accentColor} font={font}>
         <CssBaseline />
+        <GlobalStyles
+          styles={{
+            'body': {
+              backgroundColor: 'transparent !important'
+            },
+            '.MuiAppBar-root': {
+              backgroundColor: 'transparent !important',
+              boxShadow: 'none !important',
+              borderBottom: 'none !important'
+            }
+          }}
+        />
         <ToastProvider>
           <Routes />
         </ToastProvider>

@@ -40,10 +40,19 @@ const Dashboard = () => {
   
   // Initiële state met lege strings en defaults
   const [settings, setSettings] = useState({
-    siteTitle: '',
-    accentColor: '#2196f3',
-    font: 'Inter',
-    logo: null
+    site_title: '',
+    site_subtitle: '',
+    subtitle_font: 'Roboto',
+    subtitle_size: 14,
+    subtitle_color: '#FFFFFF',
+    accent_color: '#000000',
+    font: 'Roboto',
+    logo: null,
+    logo_position: 'left',
+    logo_margin_top: 0,
+    logo_margin_left: 0,
+    subtitle_margin_top: 0,
+    subtitle_margin_left: 0
   });
   const [logoPreview, setLogoPreview] = useState(null);
 
@@ -67,15 +76,23 @@ const Dashboard = () => {
   const loadSettings = async () => {
     try {
       const response = await api.get('/settings');
-      // Zorg ervoor dat we altijd geldige waardes hebben
       setSettings({
-        siteTitle: response.data.site_title || '',
-        accentColor: response.data.accent_color || '#2196f3',
-        font: response.data.font || 'Inter',
-        logo: response.data.logo || null
+        site_title: response.data.site_title || '',
+        site_subtitle: response.data.site_subtitle || '',
+        subtitle_font: response.data.subtitle_font || 'Roboto',
+        subtitle_size: response.data.subtitle_size || 14,
+        subtitle_color: response.data.subtitle_color || '#FFFFFF',
+        accent_color: response.data.accent_color || '#000000',
+        font: response.data.font || 'Roboto',
+        logo: response.data.logo || null,
+        logo_position: response.data.logo_position || 'left',
+        logo_margin_top: response.data.logo_margin_top || 0,
+        logo_margin_left: response.data.logo_margin_left || 0,
+        subtitle_margin_top: response.data.subtitle_margin_top || 0,
+        subtitle_margin_left: response.data.subtitle_margin_left || 0
       });
       if (response.data.logo) {
-        setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${response.data.logo}`);
+        setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${response.data.logo}`);
       }
     } catch (error) {
       showToast('Fout bij ophalen instellingen', 'error');
@@ -98,9 +115,18 @@ const Dashboard = () => {
   const handleSaveSettings = async () => {
     try {
       const formData = new FormData();
-      formData.append('site_title', settings.siteTitle);
-      formData.append('accent_color', settings.accentColor);
+      formData.append('site_title', settings.site_title);
+      formData.append('site_subtitle', settings.site_subtitle);
+      formData.append('subtitle_font', settings.subtitle_font);
+      formData.append('subtitle_size', settings.subtitle_size);
+      formData.append('subtitle_color', settings.subtitle_color);
+      formData.append('accent_color', settings.accent_color);
       formData.append('font', settings.font);
+      formData.append('logo_position', settings.logo_position);
+      formData.append('logo_margin_top', settings.logo_margin_top);
+      formData.append('logo_margin_left', settings.logo_margin_left);
+      formData.append('subtitle_margin_top', settings.subtitle_margin_top);
+      formData.append('subtitle_margin_left', settings.subtitle_margin_left);
       if (settings.logo instanceof File) {
         formData.append('logo', settings.logo);
       }
@@ -115,8 +141,18 @@ const Dashboard = () => {
       // Trigger een window event om de App component te informeren
       window.dispatchEvent(new CustomEvent('settingsUpdated', { 
         detail: { 
-          accent_color: settings.accentColor,
-          font: settings.font
+          accent_color: settings.accent_color,
+          font: settings.font,
+          logo_position: settings.logo_position,
+          site_subtitle: settings.site_subtitle,
+          site_title: settings.site_title,
+          subtitle_font: settings.subtitle_font,
+          subtitle_size: settings.subtitle_size,
+          subtitle_color: settings.subtitle_color,
+          logo_margin_top: settings.logo_margin_top,
+          logo_margin_left: settings.logo_margin_left,
+          subtitle_margin_top: settings.subtitle_margin_top,
+          subtitle_margin_left: settings.subtitle_margin_left
         }
       }));
 
@@ -322,7 +358,7 @@ const Dashboard = () => {
               sx={{ 
                 width: '100%',
                 height: 120,
-                bgcolor: 'grey.100',
+                bgcolor: 'transparent',
                 borderRadius: 2,
                 display: 'flex',
                 alignItems: 'center',
@@ -331,7 +367,9 @@ const Dashboard = () => {
                 backgroundImage: logoPreview ? `url(${logoPreview})` : 'none',
                 backgroundSize: 'contain',
                 backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
+                backgroundRepeat: 'no-repeat',
+                border: '1px dashed',
+                borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300'
               }}
             >
               {!logoPreview && (
@@ -339,8 +377,8 @@ const Dashboard = () => {
                   <IconButton
                     component="label"
                     sx={{ 
-                      bgcolor: 'background.paper',
-                      '&:hover': { bgcolor: 'background.paper' }
+                      bgcolor: 'transparent',
+                      '&:hover': { bgcolor: 'action.hover' }
                     }}
                   >
                     <input
@@ -354,36 +392,153 @@ const Dashboard = () => {
                 </Tooltip>
               )}
             </Box>
-            {logoPreview && (
-              <Button
-                component="label"
-                variant="outlined"
-                size="small"
-                sx={{ mb: 3 }}
-              >
-                Logo wijzigen
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleLogoChange}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              {logoPreview && (
+                <Button
+                  component="label"
+                  variant="outlined"
+                  size="small"
+                >
+                  Logo wijzigen
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                  />
+                </Button>
+              )}
+              <FormControl size="small">
+                <Select
+                  value={settings.logo_position}
+                  onChange={(e) => setSettings(prev => ({ ...prev, logo_position: e.target.value }))}
+                  sx={{ minWidth: 120 }}
+                >
+                  <MenuItem value="left">Links</MenuItem>
+                  <MenuItem value="center">Midden</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Marge boven (px)"
+                  value={settings.logo_margin_top}
+                  onChange={(e) => setSettings(prev => ({ ...prev, logo_margin_top: parseInt(e.target.value) }))}
+                  InputProps={{
+                    inputProps: { min: -50, max: 100 }
+                  }}
                 />
-              </Button>
-            )}
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Marge links (px)"
+                  value={settings.logo_margin_left}
+                  onChange={(e) => setSettings(prev => ({ ...prev, logo_margin_left: parseInt(e.target.value) }))}
+                  InputProps={{
+                    inputProps: { min: -50, max: 100 }
+                  }}
+                />
+              </Grid>
+            </Grid>
           </Box>
 
-          <TextField
-            label="Site titel"
-            value={settings.siteTitle}
-            onChange={(e) => setSettings(prev => ({ ...prev, siteTitle: e.target.value }))}
-            fullWidth
-          />
+          <Typography variant="h6" sx={{ mb: 2 }}>Branding</Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Site titel"
+                value={settings.site_title}
+                onChange={(e) => setSettings({ ...settings, site_title: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Subtitel"
+                value={settings.site_subtitle}
+                onChange={(e) => setSettings({ ...settings, site_subtitle: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth>
+                <InputLabel>Subtitel lettertype</InputLabel>
+                <Select
+                  value={settings.subtitle_font}
+                  onChange={(e) => setSettings({ ...settings, subtitle_font: e.target.value })}
+                  label="Subtitel lettertype"
+                >
+                  <MenuItem value="Roboto">Roboto</MenuItem>
+                  <MenuItem value="Playfair Display">Playfair Display</MenuItem>
+                  <MenuItem value="Montserrat">Montserrat</MenuItem>
+                  <MenuItem value="Open Sans">Open Sans</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Subtitel grootte"
+                value={settings.subtitle_size}
+                onChange={(e) => setSettings({ ...settings, subtitle_size: parseInt(e.target.value) })}
+                InputProps={{
+                  inputProps: { min: 12, max: 48 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label="Subtitel kleur"
+                type="color"
+                value={settings.subtitle_color}
+                onChange={(e) => setSettings({ ...settings, subtitle_color: e.target.value })}
+                sx={{
+                  '& input': {
+                    height: 40,
+                    padding: 1,
+                    width: '100%'
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Subtitel marge boven (px)"
+                value={settings.subtitle_margin_top}
+                onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_top: parseInt(e.target.value) }))}
+                InputProps={{
+                  inputProps: { min: -50, max: 100 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Subtitel marge links (px)"
+                value={settings.subtitle_margin_left}
+                onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_left: parseInt(e.target.value) }))}
+                InputProps={{
+                  inputProps: { min: -50, max: 100 }
+                }}
+              />
+            </Grid>
+          </Grid>
 
           <TextField
             label="Accent kleur"
             type="color"
-            value={settings.accentColor}
-            onChange={(e) => setSettings(prev => ({ ...prev, accentColor: e.target.value }))}
+            value={settings.accent_color}
+            onChange={(e) => setSettings(prev => ({ ...prev, accent_color: e.target.value }))}
             fullWidth
             sx={{ 
               '& input': { 

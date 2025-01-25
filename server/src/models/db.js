@@ -1,5 +1,12 @@
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -11,9 +18,12 @@ const pool = new Pool({
 });
 
 const initDb = async () => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+
     // Users tabel
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
@@ -25,14 +35,14 @@ const initDb = async () => {
     // Maak standaard admin gebruiker aan als deze nog niet bestaat
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('admin123', salt);
-    await pool.query(`
+    await client.query(`
       INSERT INTO users (username, password)
       SELECT 'admin', $1
       WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
     `, [hashedPassword]);
 
     // Albums tabel
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS albums (
         id SERIAL PRIMARY KEY,
         title VARCHAR(100) NOT NULL,
@@ -62,7 +72,7 @@ const initDb = async () => {
     `);
 
     // Photos tabel
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS photos (
         id SERIAL PRIMARY KEY,
         filename VARCHAR(255) NOT NULL,
@@ -80,7 +90,7 @@ const initDb = async () => {
     `);
 
     // Pages tabel
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS pages (
         id SERIAL PRIMARY KEY,
         title VARCHAR(100) NOT NULL,
@@ -91,50 +101,118 @@ const initDb = async () => {
       );
     `);
 
-    // Create settings table
-    await pool.query(`
+    // Create settings table with all columns
+    await client.query(`
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
         site_title VARCHAR(100) NOT NULL DEFAULT 'Kopfolio',
         accent_color VARCHAR(7) NOT NULL DEFAULT '#2196f3',
         font VARCHAR(50) NOT NULL DEFAULT 'Inter',
         logo VARCHAR(255),
+        site_subtitle VARCHAR(255),
+        logo_position VARCHAR(50) DEFAULT 'left',
+        subtitle_font VARCHAR(50),
+        subtitle_size INTEGER,
+        subtitle_color VARCHAR(7),
+        logo_margin_top INTEGER DEFAULT 0,
+        logo_margin_left INTEGER DEFAULT 0,
+        subtitle_margin_top INTEGER DEFAULT 0,
+        subtitle_margin_left INTEGER DEFAULT 0,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Voeg ontbrekende kolommen toe als ze nog niet bestaan
+      DO $$ 
+      BEGIN
+        BEGIN
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS site_subtitle VARCHAR(255);
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS logo_position VARCHAR(50) DEFAULT 'left';
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS subtitle_font VARCHAR(50);
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS subtitle_size INTEGER;
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS subtitle_color VARCHAR(7);
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS logo_margin_top INTEGER DEFAULT 0;
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS logo_margin_left INTEGER DEFAULT 0;
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS subtitle_margin_top INTEGER DEFAULT 0;
+          ALTER TABLE settings ADD COLUMN IF NOT EXISTS subtitle_margin_left INTEGER DEFAULT 0;
+        EXCEPTION WHEN duplicate_column THEN
+          -- Kolom bestaat al, negeer de fout
+        END;
+      END $$;
     `);
 
     // Ken rechten toe aan de kopfolio gebruiker
-    await pool.query(`
+    await client.query(`
       GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO kopfolio;
       GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO kopfolio;
     `);
 
     // Maak standaard home album aan als deze nog niet bestaat
-    await pool.query(`
+    await client.query(`
       INSERT INTO albums (title, description, is_home)
       SELECT 'Home', 'Hoofdpagina album', true
       WHERE NOT EXISTS (SELECT 1 FROM albums WHERE is_home = true);
     `);
 
     // Maak de home pagina aan als deze nog niet bestaat
-    await pool.query(`
+    await client.query(`
       INSERT INTO pages (title, content, slug)
       SELECT 'Home', '[]', 'home'
       WHERE NOT EXISTS (SELECT 1 FROM pages WHERE slug = 'home');
     `);
 
-    // Zorg ervoor dat er altijd settings zijn
-    await pool.query(`
-      INSERT INTO settings (site_title, accent_color, font)
-      SELECT 'Kopfolio', '#2196f3', 'Inter'
+    // Zorg ervoor dat er altijd settings zijn en update ontbrekende waarden
+    await client.query(`
+      INSERT INTO settings (
+        site_title, 
+        accent_color, 
+        font, 
+        site_subtitle, 
+        logo_position, 
+        subtitle_font, 
+        subtitle_size, 
+        subtitle_color,
+        logo_margin_top,
+        logo_margin_left,
+        subtitle_margin_top,
+        subtitle_margin_left
+      )
+      SELECT 
+        'Kopfolio', 
+        '#2196f3', 
+        'Inter', 
+        NULL, 
+        'left', 
+        'Roboto', 
+        14, 
+        '#FFFFFF',
+        0,
+        0,
+        0,
+        0
       WHERE NOT EXISTS (SELECT 1 FROM settings);
+
+      -- Update bestaande settings met standaardwaarden als ze NULL zijn
+      UPDATE settings 
+      SET 
+        subtitle_font = COALESCE(subtitle_font, 'Roboto'),
+        subtitle_size = COALESCE(subtitle_size, 14),
+        subtitle_color = COALESCE(subtitle_color, '#FFFFFF'),
+        logo_margin_top = COALESCE(logo_margin_top, 0),
+        logo_margin_left = COALESCE(logo_margin_left, 0),
+        subtitle_margin_top = COALESCE(subtitle_margin_top, 0),
+        subtitle_margin_left = COALESCE(subtitle_margin_left, 0)
+      WHERE id = 1;
     `);
 
+    await client.query('COMMIT');
     console.log('Database tabellen en initiële data succesvol aangemaakt');
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Fout bij het initialiseren van de database:', error);
     throw error;
+  } finally {
+    client.release();
   }
 };
 

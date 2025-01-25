@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Box, Button, LinearProgress, Typography } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../utils/api';
 import { useToast } from '../contexts/ToastContext';
 
 const PhotoUpload = ({ onUploadComplete }) => {
@@ -34,16 +34,7 @@ const PhotoUpload = ({ onUploadComplete }) => {
       const hashes = await Promise.all(files.map(calculateHash));
       
       // Check voor duplicaten
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/photos/check-duplicates`,
-        { hashes },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const { data } = await api.post('/photos/check-duplicates', { hashes });
       
       if (data.duplicates && data.duplicates.length > 0) {
         const duplicateCount = data.duplicates.length;
@@ -63,22 +54,17 @@ const PhotoUpload = ({ onUploadComplete }) => {
         formData.append('photos', file);
       });
       
-      const uploadResponse = await axios.post(
-        `${import.meta.env.VITE_API_URL}/photos`,
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'multipart/form-data'
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setProgress(percentCompleted);
-          }
+      const uploadResponse = await api.post('/photos', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setProgress(percentCompleted);
         }
-      );
+      });
       
       showToast('success', `${files.length} foto${files.length === 1 ? '' : '\'s'} succesvol geüpload`);
       if (onUploadComplete) {

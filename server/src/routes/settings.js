@@ -1,5 +1,6 @@
 import express from 'express';
 import { getSettings, updateSettings } from '../controllers/settings.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -9,7 +10,10 @@ router.get('/test', (req, res) => {
     console.log('Settings route werkt!');
 });
 
+// Publieke route voor het ophalen van settings
 router.get('/', getSettings);
-router.put('/', updateSettings);
+
+// Beveiligde route voor het updaten van settings
+router.put('/', verifyToken, updateSettings);
 
 export default router;  

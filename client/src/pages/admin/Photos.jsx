@@ -735,45 +735,68 @@ const AdminPhotos = () => {
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Typography variant="body1" color="text.secondary">
             {photos.length} foto('s)
+            {selectedPhotos.size > 0 && ` • ${selectedPhotos.size} geselecteerd`}
           </Typography>
-          <ToggleButtonGroup
-            value={view}
-            exclusive
-            onChange={handleViewChange}
-            size="small"
-          >
-            <ToggleButton value="grid">
-              <GridViewIcon />
-            </ToggleButton>
-            <ToggleButton value="list">
-              <ListViewIcon />
-            </ToggleButton>
-            <ToggleButton value="detailed">
-              <DetailedListIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
-          {view === 'grid' && (
-            <Box sx={{ width: 120 }}>
-              <Slider
-                value={gridSize}
-                min={2}
-                max={4}
-                step={1}
-                onChange={handleGridSizeChange}
-                valueLabelDisplay="auto"
-                valueLabelFormat={(value) => {
-                  // Bereken geschatte breedte (1200px is een redelijke schatting voor de container)
-                  const containerWidth = 1200;
-                  const spacing = 16; // MUI's default spacing
-                  const columns = value;
-                  const imageWidth = Math.floor((containerWidth - (spacing * (columns + 1))) / columns);
-                  return `${imageWidth}px`;
-                }}
-              />
-            </Box>
+          {selectedPhotos.size > 0 ? (
+            <>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setAlbumDialogOpen(true)}
+                sx={{ borderRadius: 2 }}
+              >
+                Album toewijzen
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                sx={{ borderRadius: 2 }}
+              >
+                Verwijderen
+              </Button>
+            </>
+          ) : (
+            <>
+              <ToggleButtonGroup
+                value={view}
+                exclusive
+                onChange={handleViewChange}
+                size="small"
+              >
+                <ToggleButton value="grid">
+                  <GridViewIcon />
+                </ToggleButton>
+                <ToggleButton value="list">
+                  <ListViewIcon />
+                </ToggleButton>
+                <ToggleButton value="detailed">
+                  <DetailedListIcon />
+                </ToggleButton>
+              </ToggleButtonGroup>
+              {view === 'grid' && (
+                <Box sx={{ width: 120 }}>
+                  <Slider
+                    value={gridSize}
+                    min={2}
+                    max={4}
+                    step={1}
+                    onChange={handleGridSizeChange}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => {
+                      const containerWidth = 1200;
+                      const spacing = 16;
+                      const columns = value;
+                      const imageWidth = Math.floor((containerWidth - (spacing * (columns + 1))) / columns);
+                      return `${imageWidth}px`;
+                    }}
+                  />
+                </Box>
+              )}
+            </>
           )}
         </Box>
-
         <PhotoUpload onUploadComplete={loadPhotos} />
       </Box>
 

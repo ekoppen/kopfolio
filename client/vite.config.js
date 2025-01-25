@@ -9,5 +9,11 @@ export default defineConfig({
     watch: {
       usePolling: true
     }
+  },
+  optimizeDeps: {
+    exclude: [
+      'chunk-MX2ZZMPV',
+      'chunk-N4MPQGFL'
+    ]
   }
 }); 
