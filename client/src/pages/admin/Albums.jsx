@@ -275,7 +275,7 @@ const AdminAlbums = () => {
         <DialogContent>
           <AlbumForm 
             album={selectedAlbum} 
-            onSuccess={handleFormSuccess} 
+            onSubmitSuccess={handleFormSuccess}
             onCancel={() => setEditDialogOpen(false)} 
           />
         </DialogContent>
@@ -290,7 +290,7 @@ const AdminAlbums = () => {
         <DialogTitle>Nieuw album</DialogTitle>
         <DialogContent>
           <AlbumForm 
-            onSuccess={handleFormSuccess} 
+            onSubmitSuccess={handleFormSuccess}
             onCancel={() => setCreateDialogOpen(false)} 
           />
         </DialogContent>

@@ -54,7 +54,6 @@ const AlbumForm = ({ album = null, onSubmitSuccess }) => {
         const { is_home, ...albumData } = formData;
         await api.post('/albums', albumData);
         setSuccess('Album succesvol aangemaakt');
-        setFormData({ title: '', description: '', is_home: false });
       }
 
       if (onSubmitSuccess) {

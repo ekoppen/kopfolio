@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Installeer PostgreSQL client tools
+RUN apk add --no-cache postgresql-client
+
 # Kopieer alleen package files voor betere cache benutting
 COPY package*.json ./
 

@@ -7,6 +7,8 @@ import pagesRouter from './routes/pages.js';
 import photosRouter from './routes/photos.js';
 import albumsRouter from './routes/albums.js';
 import settingsRouter from './routes/settings.js';
+import authRouter from './routes/auth.js';
+import backupRouter from './routes/backup.js';
 import { uploadDirs } from './middleware/upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -38,5 +40,7 @@ app.use('/api/pages', pagesRouter);
 app.use('/api/photos', photosRouter);
 app.use('/api/albums', albumsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/backup', backupRouter);
 
 export default app; 

@@ -20,12 +20,17 @@ import {
   Collections as AlbumIcon,
   PhotoLibrary as PhotoIcon,
   Article as PageIcon,
-  Upload as UploadIcon
+  Upload as UploadIcon,
+  Download as DownloadIcon,
+  Backup as BackupIcon,
+  Restore as RestoreIcon
 } from '@mui/icons-material';
 import api from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useTheme } from '@mui/material/styles';
 
 const Dashboard = () => {
+  const theme = useTheme();
   const { showToast } = useToast();
   const [stats, setStats] = useState({
     totalPhotos: 0,
@@ -121,6 +126,52 @@ const Dashboard = () => {
     }
   };
 
+  const handleCreateBackup = async () => {
+    try {
+      const response = await api.get('/backup/export', {
+        responseType: 'blob'
+      });
+      
+      // Creëer een download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      const date = new Date().toISOString().split('T')[0];
+      link.href = url;
+      link.setAttribute('download', `kopfolio_backup_${date}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showToast('success', 'Backup succesvol gedownload');
+    } catch (error) {
+      showToast('error', 'Fout bij maken van backup');
+    }
+  };
+
+  const handleImportBackup = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('backup', file);
+
+      await api.post('/backup/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      showToast('success', 'Backup succesvol geïmporteerd');
+      // Herlaad alle data
+      loadStats();
+      loadSettings();
+    } catch (error) {
+      showToast('error', 'Fout bij importeren van backup');
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', gap: 3 }}>
@@ -185,6 +236,65 @@ const Dashboard = () => {
               </Card>
             </Grid>
           </Grid>
+
+          <Typography variant="h5" sx={{ mt: 4, mb: 3, fontWeight: 500 }}>
+            Beheer
+          </Typography>
+
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3,
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+            }}
+          >
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
+                    Backup maken
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Download een volledige backup van je site, inclusief alle instellingen, database, branding en uploads.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<BackupIcon />}
+                    onClick={handleCreateBackup}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Backup maken
+                  </Button>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
+                    Backup importeren
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Herstel je site vanaf een eerder gemaakte backup. Let op: dit overschrijft alle huidige gegevens.
+                  </Typography>
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={<RestoreIcon />}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Backup importeren
+                    <input
+                      type="file"
+                      hidden
+                      accept=".zip"
+                      onChange={handleImportBackup}
+                    />
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
         </Box>
 
         {/* Rechter kolom met site branding */}
@@ -195,7 +305,9 @@ const Dashboard = () => {
             p: 3,
             display: 'flex',
             flexDirection: 'column',
-            gap: 3
+            gap: 3,
+            border: '1px solid',
+            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
           }}
         >
           <Typography variant="h5" sx={{ fontWeight: 500 }}>
