@@ -7,7 +7,7 @@ import { uploadDirs, getUploadPath } from '../middleware/upload.js';
 const getSettings = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left FROM settings WHERE id = 1'
+      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text FROM settings WHERE id = 1'
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -31,7 +31,8 @@ const updateSettings = async (req, res) => {
       logo_margin_top,
       logo_margin_left,
       subtitle_margin_top,
-      subtitle_margin_left
+      subtitle_margin_left,
+      footer_text
     } = req.body;
 
     let query = `
@@ -47,7 +48,8 @@ const updateSettings = async (req, res) => {
           logo_margin_top = COALESCE($9, logo_margin_top),
           logo_margin_left = COALESCE($10, logo_margin_left),
           subtitle_margin_top = COALESCE($11, subtitle_margin_top),
-          subtitle_margin_left = COALESCE($12, subtitle_margin_left)
+          subtitle_margin_left = COALESCE($12, subtitle_margin_left),
+          footer_text = COALESCE($13, footer_text)
     `;
 
     const values = [
@@ -62,7 +64,8 @@ const updateSettings = async (req, res) => {
       logo_margin_top,
       logo_margin_left,
       subtitle_margin_top,
-      subtitle_margin_left
+      subtitle_margin_left,
+      footer_text
     ];
 
     // Als er een logo is geüpload
@@ -75,7 +78,7 @@ const updateSettings = async (req, res) => {
       await logoFile.mv(filepath);
       
       // Update de query om het nieuwe logo op te slaan
-      query += ', logo = $13';
+      query += ', logo = $14';
       values.push(filename);
     }
 

@@ -18,6 +18,15 @@ const getSliderSettings = (settings = {}) => ({
   autoplaySpeed: settings.speed === 'slow' ? 8000 : settings.speed === 'fast' ? 3000 : 5000,
   fade: settings.transition === 'fade',
   cssEase: settings.transition === 'zoom' ? 'cubic-bezier(0.87, 0, 0.13, 1)' : 'linear',
+  beforeChange: (current, next) => {
+    // Stuur een custom event met de huidige slide en totaal aantal slides
+    window.dispatchEvent(new CustomEvent('slideshowProgress', {
+      detail: {
+        currentSlide: next,
+        totalSlides: block.content.length
+      }
+    }));
+  }
 });
 
 const PageContent = ({ content = [] }) => {
@@ -92,6 +101,19 @@ const PageContent = ({ content = [] }) => {
         );
       
       case 'slideshow':
+        const sliderSettings = {
+          ...getSliderSettings(block.settings),
+          beforeChange: (current, next) => {
+            // Stuur een custom event met de huidige slide en totaal aantal slides
+            window.dispatchEvent(new CustomEvent('slideshowProgress', {
+              detail: {
+                currentSlide: next,
+                totalSlides: block.content.length
+              }
+            }));
+          }
+        };
+
         return (
           <Box sx={{ mb: 4 }}>
             {block.content && block.content.length > 0 && (
@@ -123,7 +145,7 @@ const PageContent = ({ content = [] }) => {
                   },
                 }}
               >
-                <Slider {...getSliderSettings(block.settings)}>
+                <Slider {...sliderSettings}>
                   {block.content.map((photo, photoIndex) => (
                     <Box
                       key={photo.id}

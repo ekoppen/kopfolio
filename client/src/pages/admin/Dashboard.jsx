@@ -53,7 +53,8 @@ const Dashboard = () => {
     logo_margin_top: 0,
     logo_margin_left: 0,
     subtitle_margin_top: 0,
-    subtitle_margin_left: 0
+    subtitle_margin_left: 0,
+    footer_text: ''
   });
   const [logoPreview, setLogoPreview] = useState(null);
   const navigate = useNavigate();
@@ -91,7 +92,8 @@ const Dashboard = () => {
         logo_margin_top: response.data.logo_margin_top || 0,
         logo_margin_left: response.data.logo_margin_left || 0,
         subtitle_margin_top: response.data.subtitle_margin_top || 0,
-        subtitle_margin_left: response.data.subtitle_margin_left || 0
+        subtitle_margin_left: response.data.subtitle_margin_left || 0,
+        footer_text: response.data.footer_text || ''
       });
       if (response.data.logo) {
         setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${response.data.logo}`);
@@ -129,6 +131,7 @@ const Dashboard = () => {
       formData.append('logo_margin_left', settings.logo_margin_left);
       formData.append('subtitle_margin_top', settings.subtitle_margin_top);
       formData.append('subtitle_margin_left', settings.subtitle_margin_left);
+      formData.append('footer_text', settings.footer_text);
       if (settings.logo instanceof File) {
         formData.append('logo', settings.logo);
       }
@@ -154,7 +157,8 @@ const Dashboard = () => {
           logo_margin_top: settings.logo_margin_top,
           logo_margin_left: settings.logo_margin_left,
           subtitle_margin_top: settings.subtitle_margin_top,
-          subtitle_margin_left: settings.subtitle_margin_left
+          subtitle_margin_left: settings.subtitle_margin_left,
+          footer_text: settings.footer_text
         }
       }));
 
@@ -497,6 +501,15 @@ const Dashboard = () => {
 
           <Typography variant="h6" sx={{ mb: 2 }}>Branding</Typography>
           <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Footer tekst"
+                value={settings.footer_text}
+                onChange={(e) => setSettings({ ...settings, footer_text: e.target.value })}
+                placeholder="© 2024 Jouw Site Naam"
+              />
+            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
