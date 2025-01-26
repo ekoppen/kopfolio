@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import {
   Box,
   Button,
@@ -108,6 +108,81 @@ const getShadowStyle = (showShadow) => showShadow ? {
   }
 } : {};
 
+const ImageEditor = forwardRef(({ image, selectedBlock, updateBlock }, ref) => {
+  const [localTitle, setLocalTitle] = useState(image.title || '');
+  const [localDescription, setLocalDescription] = useState(image.description || '');
+  const [localShowTitle, setLocalShowTitle] = useState(image.showTitle || false);
+  const [localShowShadow, setLocalShowShadow] = useState(image.showShadow || false);
+
+  useImperativeHandle(ref, () => ({
+    handleSave: () => {
+      const updatedImage = { 
+        ...image, 
+        title: localTitle,
+        description: localDescription,
+        showTitle: localShowTitle,
+        showShadow: localShowShadow
+      };
+      updateBlock(selectedBlock.id, { 
+        content: selectedBlock.type === 'image' ? updatedImage : selectedBlock.content.map(p => p.id === image.id ? updatedImage : p)
+      });
+    }
+  }));
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+        <Box
+          component="img"
+          src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
+          alt={localTitle || 'Afbeelding'}
+          sx={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 1 }}
+        />
+        <Box sx={{ flexGrow: 1 }}>
+          <TextField
+            fullWidth
+            label="Titel"
+            value={localTitle}
+            onChange={(e) => setLocalTitle(e.target.value)}
+            margin="dense"
+            size="small"
+          />
+          <TextField
+            fullWidth
+            label="Beschrijving"
+            value={localDescription}
+            onChange={(e) => setLocalDescription(e.target.value)}
+            margin="dense"
+            size="small"
+            multiline
+            rows={2}
+          />
+        </Box>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={localShowTitle}
+              onChange={(e) => setLocalShowTitle(e.target.checked)}
+            />
+          }
+          label="Toon titel en beschrijving"
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={localShowShadow}
+              onChange={(e) => setLocalShowShadow(e.target.checked)}
+            />
+          }
+          label="Toon schaduw"
+        />
+      </Box>
+    </Box>
+  );
+});
+
 const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) => {
   const [content, setContent] = useState(initialContent);
   const [selectedBlock, setSelectedBlock] = useState(null);
@@ -118,6 +193,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
   const [blockPropertiesOpen, setBlockPropertiesOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState('photos');
   const theme = useTheme();
+  const imageEditorRefs = useRef({});
 
   // Update content wanneer initialContent verandert
   useEffect(() => {
@@ -181,12 +257,17 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
     }
   };
 
-  const updateBlock = (id, newData) => {
-    const newContent = content.map(block => 
-      block.id === id ? { ...block, ...newData } : block
-    );
-    setContent(newContent);
-    onChange(newContent);
+  const updateBlock = (id, updates) => {
+    const newBlocks = [...content];
+    const blockIndex = newBlocks.findIndex(block => block.id === id);
+    if (blockIndex !== -1) {
+      newBlocks[blockIndex] = {
+        ...newBlocks[blockIndex],
+        ...updates
+      };
+      setContent(newBlocks);
+      onChange(newBlocks);
+    }
   };
 
   const deleteBlock = (id) => {
@@ -306,71 +387,39 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
         );
       
       case 'image':
-        const imageContent = Array.isArray(block.content) ? block.content : block.content ? [block.content] : [];
-        const columns = imageContent.length === 1 ? 12 : 
-                       imageContent.length === 2 ? 6 :
-                       imageContent.length === 3 ? 4 : 
-                       imageContent.length === 4 ? 3 : 6;
-        
         return (
           <Box sx={{ 
-            width: getImageWidth(block.content?.size),
+            width: getImageWidth(block.settings?.size),
             mx: 'auto'
           }}>
-            {imageContent.length > 0 ? (
-              <Grid container spacing={2}>
-                {imageContent.map((image, photoIndex) => (
-                  <Grid item xs={12} sm={columns} key={image.id}>
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        '&:hover': {
-                          '& .image-overlay': {
-                            opacity: 1
-                          }
-                        }
-                      }}
-                    >
-                      <Box
-                        component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
-                        alt={image.title || 'Afbeelding'}
-                        sx={{ 
-                          width: '100%',
-                          aspectRatio: '4/3',
-                          objectFit: 'cover',
-                          borderRadius: 1,
-                          ...getShadowStyle(image.showShadow)
-                        }}
-                      />
-                      {image.showTitle && image.title && (
-                        <Box 
-                          sx={{ 
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                            color: 'white',
-                            p: 2,
-                            borderBottomLeftRadius: 1,
-                            borderBottomRightRadius: 1
-                          }}
-                        >
-                          <Typography variant="subtitle1">
-                            {image.title}
-                          </Typography>
-                          {image.description && (
-                            <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                              {image.description}
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
+            {block.content ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box
+                  component="img"
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${block.content.filename}`}
+                  alt={block.content.title || 'Afbeelding'}
+                  sx={{ 
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: 1,
+                    boxShadow: block.content.showShadow ? 3 : 0
+                  }}
+                />
+                {block.content.showTitle && (
+                  <Box sx={{ textAlign: 'right', mt: 0.5 }}>
+                    {block.content.title && (
+                      <Typography variant="h6" color="text.primary">
+                        {block.content.title}
+                      </Typography>
+                    )}
+                    {block.content.description && (
+                      <Typography variant="body1" color="text.secondary">
+                        {block.content.description}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
             ) : (
               <Box 
                 sx={{ 
@@ -383,7 +432,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
                 }}
               >
                 <Typography color="text.secondary">
-                  Klik op het tandwiel icoon om afbeeldingen te selecteren
+                  Klik op het tandwiel icoon om een afbeelding te selecteren
                 </Typography>
               </Box>
             )}
@@ -397,85 +446,78 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
             mx: 'auto'
           }}>
             {block.content && block.content.length > 0 ? (
-              <Box 
-                sx={{ 
-                  position: 'relative',
-                  height: 500,
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  ...getShadowStyle(block.settings?.showShadow),
-                  '& .slick-slider': {
-                    height: '100%',
-                  },
-                  '& .slick-list, & .slick-track': {
-                    height: '100%',
-                  },
-                  '& .slick-slide > div': {
-                    height: '100%',
-                  },
-                  '& .slick-dots': {
-                    bottom: 16,
-                    '& li button:before': {
-                      color: 'white',
-                      opacity: 0.5,
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box 
+                  sx={{ 
+                    position: 'relative',
+                    height: 500,
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    ...getShadowStyle(block.settings?.showShadow),
+                    '& .slick-slider': {
+                      height: '100%',
                     },
-                    '& li.slick-active button:before': {
-                      opacity: 1,
+                    '& .slick-list, & .slick-track': {
+                      height: '100%',
                     },
-                  },
-                }}
-              >
-                <Slider {...getSliderSettings(block.settings)}>
-                  {block.content.map((photo, photoIndex) => (
-                    <Box
-                      key={photo.id}
-                      sx={{
-                        position: 'relative',
-                        height: '100%',
-                      }}
-                    >
+                    '& .slick-slide > div': {
+                      height: '100%',
+                    },
+                    '& .slick-dots': {
+                      bottom: 16,
+                      '& li button:before': {
+                        color: 'white',
+                        opacity: 0.5,
+                      },
+                      '& li.slick-active button:before': {
+                        opacity: 1,
+                      },
+                    },
+                  }}
+                >
+                  <Slider {...getSliderSettings(block.settings)}>
+                    {block.content.map((photo, photoIndex) => (
                       <Box
-                        component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
-                        alt={photo.title || `Foto ${photoIndex + 1}`}
-                        sx={{ 
-                          width: '100%',
+                        key={photo.id}
+                        sx={{
                           height: '100%',
-                          objectFit: 'cover',
-                          ...(block.settings?.transition === 'zoom' && {
-                            transform: 'scale(1.1)',
-                            transition: 'transform 6s ease-in-out',
-                            '.slick-active &': {
-                              transform: 'scale(1)',
-                            },
-                          }),
                         }}
-                      />
-                      {block.settings?.showTitles && photo.title && (
-                        <Box 
+                      >
+                        <Box
+                          component="img"
+                          src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
+                          alt={photo.title || `Foto ${photoIndex + 1}`}
                           sx={{ 
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                            color: 'white',
-                            p: 2
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            ...(block.settings?.transition === 'zoom' && {
+                              transform: 'scale(1.1)',
+                              transition: 'transform 6s ease-in-out',
+                              '.slick-active &': {
+                                transform: 'scale(1)',
+                              },
+                            }),
                           }}
-                        >
-                          <Typography variant="h6">
-                            {photo.title}
-                          </Typography>
-                          {photo.description && (
-                            <Typography variant="body1" sx={{ opacity: 0.8 }}>
-                              {photo.description}
-                            </Typography>
-                          )}
-                        </Box>
+                        />
+                      </Box>
+                    ))}
+                  </Slider>
+                </Box>
+                {block.settings?.showTitles && block.content.map((photo, index) => (
+                  photo.title && (
+                    <Box key={photo.id} sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" color="text.primary">
+                        {photo.title}
+                      </Typography>
+                      {photo.description && (
+                        <Typography variant="body1" color="text.secondary">
+                          {photo.description}
+                        </Typography>
                       )}
                     </Box>
-                  ))}
-                </Slider>
+                  )
+                ))}
               </Box>
             ) : (
               <Box 
@@ -504,6 +546,14 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
   const renderBlockProperties = () => {
     if (!selectedBlock) return null;
 
+    const imageContent = selectedBlock.type === 'image' 
+      ? (Array.isArray(selectedBlock.content) 
+          ? selectedBlock.content 
+          : selectedBlock.content 
+            ? [selectedBlock.content] 
+            : [])
+      : [];
+
     return (
       <Dialog
         open={blockPropertiesOpen}
@@ -520,170 +570,35 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
           {selectedBlock.type === 'image' ? 'Afbeelding Eigenschappen' : 'Slideshow Eigenschappen'}
         </DialogTitle>
         <DialogContent>
-          {selectedBlock.type === 'image' && selectedBlock.content && (
+          {selectedBlock.type === 'image' && imageContent.length > 0 && (
             <>
-              {Array.isArray(selectedBlock.content) ? (
-                selectedBlock.content.map((image, index) => (
-                  <Box key={image.id} sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Afbeelding {index + 1}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box
-                        component="img"
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
-                        alt={image.title || 'Thumbnail'}
-                        sx={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 1, mr: 2 }}
-                      />
-                      <Box sx={{ flexGrow: 1 }}>
-                        <TextField
-                          fullWidth
-                          label="Titel"
-                          value={image.title || ''}
-                          onChange={(e) => {
-                            const newContent = [...selectedBlock.content];
-                            newContent[index] = { ...image, title: e.target.value };
-                            updateBlock(selectedBlock.id, { content: newContent });
-                          }}
-                          margin="dense"
-                          size="small"
-                        />
-                        <TextField
-                          fullWidth
-                          label="Beschrijving"
-                          value={image.description || ''}
-                          onChange={(e) => {
-                            const newContent = [...selectedBlock.content];
-                            newContent[index] = { ...image, description: e.target.value };
-                            updateBlock(selectedBlock.id, { content: newContent });
-                          }}
-                          margin="dense"
-                          size="small"
-                          multiline
-                          rows={2}
-                        />
-                      </Box>
-                    </Box>
-                    <FormControl fullWidth margin="normal">
-                      <InputLabel>Formaat</InputLabel>
-                      <Select
-                        value={image.size || 'medium'}
-                        onChange={(e) => {
-                          const newContent = [...selectedBlock.content];
-                          newContent[index] = { ...image, size: e.target.value };
-                          updateBlock(selectedBlock.id, { content: newContent });
-                        }}
-                      >
-                        <MenuItem value="small">Klein (25%)</MenuItem>
-                        <MenuItem value="medium">Normaal (50%)</MenuItem>
-                        <MenuItem value="large">Groot (75%)</MenuItem>
-                        <MenuItem value="full">Volledig (100%)</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={image.showTitle || false}
-                          onChange={(e) => {
-                            const newContent = [...selectedBlock.content];
-                            newContent[index] = { ...image, showTitle: e.target.checked };
-                            updateBlock(selectedBlock.id, { content: newContent });
-                          }}
-                        />
-                      }
-                      label="Toon titel en beschrijving"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={image.showShadow || false}
-                          onChange={(e) => {
-                            const newContent = [...selectedBlock.content];
-                            newContent[index] = { ...image, showShadow: e.target.checked };
-                            updateBlock(selectedBlock.id, { content: newContent });
-                          }}
-                        />
-                      }
-                      label="Toon schaduw"
-                    />
-                    <Divider sx={{ mt: 2 }} />
-                  </Box>
-                ))
-              ) : (
-                <>
-                  <TextField
-                    fullWidth
-                    label="Titel"
-                    value={selectedBlock.content.title || ''}
-                    onChange={(e) => updateBlock(selectedBlock.id, {
-                      content: {
-                        ...selectedBlock.content,
-                        title: e.target.value
-                      }
-                    })}
-                    margin="normal"
-                  />
-                  <TextField
-                    fullWidth
-                    label="Beschrijving"
-                    value={selectedBlock.content.description || ''}
-                    onChange={(e) => updateBlock(selectedBlock.id, {
-                      content: {
-                        ...selectedBlock.content,
-                        description: e.target.value
-                      }
-                    })}
-                    margin="normal"
-                    multiline
-                    rows={3}
-                  />
-                  <FormControl fullWidth margin="normal">
-                    <InputLabel>Formaat</InputLabel>
-                    <Select
-                      value={selectedBlock.content.size || 'medium'}
-                      onChange={(e) => updateBlock(selectedBlock.id, {
-                        content: {
-                          ...selectedBlock.content,
-                          size: e.target.value
-                        }
-                      })}
-                    >
-                      <MenuItem value="small">Klein (25%)</MenuItem>
-                      <MenuItem value="medium">Normaal (50%)</MenuItem>
-                      <MenuItem value="large">Groot (75%)</MenuItem>
-                      <MenuItem value="full">Volledig (100%)</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={selectedBlock.content.showTitle || false}
-                        onChange={(e) => updateBlock(selectedBlock.id, {
-                          content: {
-                            ...selectedBlock.content,
-                            showTitle: e.target.checked
-                          }
-                        })}
-                      />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Formaat</InputLabel>
+                <Select
+                  value={selectedBlock.settings?.size || 'medium'}
+                  onChange={(e) => updateBlock(selectedBlock.id, {
+                    settings: {
+                      ...selectedBlock.settings,
+                      size: e.target.value
                     }
-                    label="Toon titel en beschrijving"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={selectedBlock.content.showShadow || false}
-                        onChange={(e) => updateBlock(selectedBlock.id, {
-                          content: {
-                            ...selectedBlock.content,
-                            showShadow: e.target.checked
-                          }
-                        })}
-                      />
-                    }
-                    label="Toon schaduw"
-                  />
-                </>
-              )}
+                  })}
+                >
+                  <MenuItem value="small">Klein (25%)</MenuItem>
+                  <MenuItem value="medium">Normaal (50%)</MenuItem>
+                  <MenuItem value="large">Groot (75%)</MenuItem>
+                  <MenuItem value="full">Volledig (100%)</MenuItem>
+                </Select>
+              </FormControl>
+
+              {imageContent.map((image, index) => (
+                <ImageEditor
+                  key={image.id || index}
+                  ref={ref => imageEditorRefs.current[image.id] = ref}
+                  image={image}
+                  selectedBlock={selectedBlock}
+                  updateBlock={updateBlock}
+                />
+              ))}
             </>
           )}
 
@@ -775,7 +690,7 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
             onClick={() => {
               setPhotoSelectorOpen(true);
               if (selectedBlock.type === 'slideshow' && selectedBlock.content) {
-                setSelectedPhotos(selectedBlock.content);
+                setSelectedPhotos(Array.isArray(selectedBlock.content) ? selectedBlock.content : []);
               }
               setBlockPropertiesOpen(false);
             }}
@@ -785,8 +700,19 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
           </Button>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setBlockPropertiesOpen(false)}>
-            Sluiten
+          <Button onClick={() => setBlockPropertiesOpen(false)}>Annuleren</Button>
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              Object.values(imageEditorRefs.current).forEach(ref => {
+                if (ref) {
+                  ref.handleSave();
+                }
+              });
+              setBlockPropertiesOpen(false);
+            }}
+          >
+            Opslaan
           </Button>
         </DialogActions>
       </Dialog>
@@ -803,15 +729,12 @@ const PageContentEditor = ({ initialContent = [], onChange, onSave, onCancel }) 
         border: '1px solid',
         borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
         borderRadius: 1,
-        height: '100%',
-        minHeight: '50vh',
-        maxHeight: 'calc(100vh - 200px)',
-        overflow: 'hidden'
+        width: '100%',
+        position: 'relative'
       }}
     >
       <Box sx={{ 
-        flex: 1, 
-        overflow: 'auto',
+        width: '100%',
         p: 2
       }}>
         {/* Content Blocks */}

@@ -52,21 +52,38 @@ export const createPage = async (req, res) => {
 // Haal alle pagina's op
 export const getPages = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM pages 
-       ORDER BY created_at DESC`
-    );
+    const result = await pool.query(`
+      SELECT 
+        id, 
+        title, 
+        slug, 
+        description, 
+        content,
+        settings,
+        created_at,
+        updated_at
+      FROM pages 
+      ORDER BY 
+        CASE WHEN slug = 'home' THEN 1 ELSE 2 END,
+        created_at DESC
+    `);
 
     // Parse de content voor alle pagina's
     const pages = result.rows.map(page => ({
       ...page,
-      content: page.content ? page.content : []
+      content: page.content || [],
+      settings: page.settings || {},
+      is_published: true, // Standaard waarde voor bestaande pagina's
+      is_home: page.slug === 'home' // Bepaal is_home op basis van slug
     }));
 
     res.json(pages);
   } catch (error) {
-    console.error('Fout bij ophalen pagina\'s:', error);
-    res.status(500).json({ message: 'Fout bij ophalen pagina\'s', error: error.message });
+    console.error('Error in getPages:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Fout bij ophalen pagina\'s' 
+    });
   }
 };
 
@@ -202,5 +219,49 @@ export const deletePage = async (req, res) => {
     res.json({ message: 'Pagina succesvol verwijderd' });
   } catch (error) {
     res.status(500).json({ message: 'Fout bij verwijderen pagina', error: error.message });
+  }
+};
+
+// Update slideshow settings
+export const updateSlideShowSettings = async (req, res) => {
+  const { id } = req.params;
+  const { interval, transition, autoPlay } = req.body;
+
+  try {
+    // Controleer of het de home pagina is
+    const page = await pool.query(
+      'SELECT * FROM pages WHERE id = $1',
+      [id]
+    );
+
+    if (!page.rows[0] || page.rows[0].slug !== 'home') {
+      return res.status(400).json({
+        success: false,
+        message: 'Slideshow instellingen kunnen alleen voor de home pagina worden aangepast'
+      });
+    }
+
+    // Update de instellingen
+    await pool.query(
+      `UPDATE pages 
+       SET settings = jsonb_set(
+         COALESCE(settings, '{}'::jsonb),
+         '{slideshow}',
+         $1::jsonb
+       )
+       WHERE id = $2`,
+      [JSON.stringify({ interval, transition, autoPlay }), id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Slideshow instellingen bijgewerkt'
+    });
+  } catch (error) {
+    console.error('Error updating slideshow settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fout bij bijwerken slideshow instellingen'
+    });
   }
 }; 

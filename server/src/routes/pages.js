@@ -1,5 +1,12 @@
 import express from 'express';
-import { createPage, getPages, getPage, updatePage, deletePage } from '../controllers/pages.js';
+import { 
+  createPage, 
+  getPages, 
+  getPage, 
+  updatePage, 
+  deletePage,
+  updateSlideShowSettings 
+} from '../controllers/pages.js';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -12,6 +19,7 @@ router.get('/:slug', getPage);
 // Beveiligde routes
 router.post('/', verifyToken, createPage);
 router.put('/:id', verifyToken, updatePage);
+router.put('/:id/slideshow', verifyToken, updateSlideShowSettings);
 router.delete('/:id', verifyToken, deletePage);
 
 export default router; 

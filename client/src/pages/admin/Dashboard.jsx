@@ -170,9 +170,9 @@ const Dashboard = () => {
         }
       }));
 
-      showToast('success', 'Instellingen succesvol opgeslagen');
+      showToast('Instellingen succesvol opgeslagen', 'success');
     } catch (error) {
-      showToast('error', 'Fout bij opslaan instellingen');
+      showToast('Fout bij opslaan instellingen', 'error');
     }
   };
 

@@ -1,3 +1,4 @@
 - [] foto eigenschappen aan kunnen passen met edit knop en in de detail sectie
-- [] home pagina edit mogelijk maken, maar dan niet zoals de andere pagina's maar met de slideshow opties. Overgang een duration in kunnen stellen.
-- [] backup export en import repareren
+- [*] home pagina edit mogelijk maken, maar dan niet zoals de andere pagina's maar met de slideshow opties. Overgang een duration in kunnen stellen.
+- [*] backup export en import repareren
+- [] pagina opmaak op scherm aanmaken. Over het thuis scherm heen. Wit of zwarte achtergrond. Gecentreerd, halve breedte van de viewport tot schaling. Dus met een min-width.

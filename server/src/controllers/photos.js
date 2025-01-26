@@ -321,17 +321,22 @@ export const getPhotosByAlbum = async (req, res) => {
 // Update foto informatie
 export const updatePhoto = async (req, res) => {
   const { id } = req.params;
-  const { title, description, album_id } = req.body;
+  const { title, description } = req.body;
 
   try {
+    // Valideer de input
+    if (title === undefined && description === undefined) {
+      return res.status(400).json({ message: 'Titel of beschrijving is verplicht' });
+    }
+
     const result = await pool.query(
       `UPDATE photos 
        SET title = COALESCE($1, title),
            description = COALESCE($2, description),
-           album_id = COALESCE($3, album_id)
-       WHERE id = $4
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
        RETURNING *`,
-      [title, description, album_id, id]
+      [title, description, id]
     );
 
     if (result.rows.length === 0) {
@@ -340,6 +345,7 @@ export const updatePhoto = async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (error) {
+    console.error('Error updating photo:', error);
     res.status(500).json({ message: 'Fout bij updaten foto', error: error.message });
   }
 };

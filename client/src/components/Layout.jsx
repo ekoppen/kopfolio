@@ -226,15 +226,15 @@ const Layout = () => {
       <Box 
         component="footer" 
         sx={{ 
-          height: '24px',
+          height: '32px',
           display: 'flex',
           alignItems: 'center',
-          bgcolor: theme.palette.mode === 'dark' 
-            ? 'rgba(18, 18, 18, 0.1)'
-            : 'rgba(255, 255, 255, 0.1)',
+          justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
+          bgcolor: 'transparent',
           position: 'relative',
           zIndex: 1300,
           overflow: 'hidden',
+          px: 3,
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -248,34 +248,37 @@ const Layout = () => {
           '&::after': {
             content: '""',
             position: 'absolute',
-            top: 0,
+            bottom: 0,
             left: 0,
             height: '100%',
-            width: `${(currentSlide / totalSlides) * 100}%`,
-            backdropFilter: 'blur(8px)',
-            transition: 'width 0.3s ease-out'
+            width: `${((currentSlide) / (totalSlides || 1)) * 100}%`,
+            background: `linear-gradient(90deg, 
+              ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'} 0%, 
+              ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'} 100%)`,
+            transition: 'width 0.3s ease-out',
+            backdropFilter: 'blur(8px)'
           }
         }}
       >
-        <Box sx={{ 
-          position: 'absolute',
-          right: 8,
-          zIndex: 2
-        }}>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              fontWeight: 500,
-              letterSpacing: '0.02em',
-              color: settings.accent_color || (theme.palette.mode === 'dark' ? '#fff' : '#000'),
-              textShadow: theme.palette.mode === 'dark' 
-                ? '0 0 4px rgba(255,255,255,0.3)'
-                : '0 0 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            {settings.footer_text || `© ${new Date().getFullYear()} ${settings.site_title}`}
-          </Typography>
-        </Box>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            letterSpacing: '0.02em',
+            textAlign: settings.logo_position === 'center' ? 'center' : 'right',
+            position: 'relative',
+            zIndex: 1,
+            textShadow: theme.palette.mode === 'dark'
+              ? '0 1px 2px rgba(0,0,0,0.5), 0 1px 8px rgba(0,0,0,0.25)'
+              : '0 1px 2px rgba(255,255,255,0.5), 0 1px 8px rgba(255,255,255,0.25)',
+            mixBlendMode: theme.palette.mode === 'dark' ? 'lighten' : 'darken',
+            width: settings.logo_position === 'center' ? '100%' : 'auto'
+          }}
+        >
+          {settings.footer_text}
+        </Typography>
       </Box>
     </Box>
   );

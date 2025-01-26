@@ -14,10 +14,11 @@ const getSliderSettings = (settings = {}) => ({
   speed: settings.speed === 'slow' ? 1000 : settings.speed === 'fast' ? 300 : 500,
   slidesToShow: 1,
   slidesToScroll: 1,
-  autoplay: true,
-  autoplaySpeed: settings.speed === 'slow' ? 8000 : settings.speed === 'fast' ? 3000 : 5000,
+  autoplay: settings.autoPlay !== false,
+  autoplaySpeed: settings.interval || 5000,
   fade: settings.transition === 'fade',
-  cssEase: settings.transition === 'zoom' ? 'cubic-bezier(0.87, 0, 0.13, 1)' : 'linear',
+  cssEase: 'ease-out',
+  slide: settings.transition !== 'fade',
   beforeChange: (current, next) => {
     // Stuur een custom event met de huidige slide en totaal aantal slides
     window.dispatchEvent(new CustomEvent('slideshowProgress', {
@@ -66,17 +67,9 @@ const PageContent = ({ content = [] }) => {
                 <Grid item xs={12} sm={columns} key={image.id}>
                   <Box
                     sx={{
-                      position: 'relative',
-                      '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'transparent',
-                        pointerEvents: 'none'
-                      }
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center'
                     }}
                   >
                     <Box
@@ -90,7 +83,7 @@ const PageContent = ({ content = [] }) => {
                         aspectRatio: '4/3',
                         objectFit: 'cover',
                         borderRadius: 1,
-                        boxShadow: 3,
+                        boxShadow: image.showShadow ? 3 : 0,
                         userSelect: 'none',
                         WebkitUserSelect: 'none',
                         pointerEvents: 'none'
@@ -99,22 +92,16 @@ const PageContent = ({ content = [] }) => {
                     {image.showTitle && image.title && (
                       <Box 
                         sx={{ 
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                          color: 'white',
-                          p: 2,
-                          borderBottomLeftRadius: 1,
-                          borderBottomRightRadius: 1
+                          mt: 1.5,
+                          textAlign: 'center',
+                          width: '100%'
                         }}
                       >
-                        <Typography variant="subtitle1">
+                        <Typography variant="subtitle1" color="text.primary">
                           {image.title}
                         </Typography>
                         {image.description && (
-                          <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                          <Typography variant="body2" color="text.secondary">
                             {image.description}
                           </Typography>
                         )}
@@ -128,19 +115,6 @@ const PageContent = ({ content = [] }) => {
         );
       
       case 'slideshow':
-        const sliderSettings = {
-          ...getSliderSettings(block.settings),
-          beforeChange: (current, next) => {
-            // Stuur een custom event met de huidige slide en totaal aantal slides
-            window.dispatchEvent(new CustomEvent('slideshowProgress', {
-              detail: {
-                currentSlide: next,
-                totalSlides: block.content.length
-              }
-            }));
-          }
-        };
-
         return (
           <Box sx={{ mb: 4 }}>
             {block.content && block.content.length > 0 && (
@@ -170,9 +144,27 @@ const PageContent = ({ content = [] }) => {
                       opacity: 1,
                     },
                   },
+                  ...(block.settings?.transition === 'slide' && {
+                    '& .slick-slide': {
+                      transform: 'scale(1.1)',
+                      transition: 'transform 0.5s ease-out',
+                    },
+                    '& .slick-active': {
+                      transform: 'scale(1)',
+                    },
+                  }),
+                  ...(block.settings?.transition === 'zoom' && {
+                    '& .slick-slide': {
+                      transform: 'scale(1.2)',
+                      transition: 'transform 6s ease-out',
+                    },
+                    '& .slick-active': {
+                      transform: 'scale(1)',
+                    },
+                  }),
                 }}
               >
-                <Slider {...sliderSettings}>
+                <Slider {...getSliderSettings(block.settings)}>
                   {block.content.map((photo, photoIndex) => (
                     <Box
                       key={photo.id}
@@ -194,13 +186,6 @@ const PageContent = ({ content = [] }) => {
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                           pointerEvents: 'none',
-                          ...(block.settings?.transition === 'zoom' && {
-                            transform: 'scale(1.1)',
-                            transition: 'transform 6s ease-in-out',
-                            '.slick-active &': {
-                              transform: 'scale(1)',
-                            },
-                          }),
                         }}
                       />
                       {block.settings?.showTitles && photo.title && (

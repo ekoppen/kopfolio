@@ -193,7 +193,15 @@ const AdminAlbums = () => {
               <CardActions sx={{ justifyContent: 'flex-end', p: 2, pt: 0 }}>
                 <IconButton
                   size="small"
+                  onClick={() => handlePhotoManagerClick(album)}
+                  sx={{ mr: 1 }}
+                >
+                  <PhotoIcon />
+                </IconButton>
+                <IconButton
+                  size="small"
                   onClick={() => handleEditClick(album)}
+                  sx={{ mr: 1 }}
                 >
                   <EditIcon />
                 </IconButton>

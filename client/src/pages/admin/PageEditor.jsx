@@ -20,12 +20,14 @@ import {
 import api from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 import PageContentEditor from '../../components/PageContentEditor';
+import { useTheme } from '@mui/material/styles';
 
 const PageEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const isNew = !id;
+  const theme = useTheme();
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -105,36 +107,52 @@ const PageEditor = () => {
   }
 
   return (
-    <Box>
-      <AppBar 
-        position="sticky" 
-        color="default" 
-        elevation={1}
-        sx={{ top: 64 }}
+    <Box sx={{ 
+      height: '100vh',
+      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      pt: 3
+    }}>
+      <Box
+        sx={{
+          height: '64px',
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+          boxShadow: 1,
+          p: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 1000,
+          mx: 3
+        }}
       >
-        <Toolbar variant="dense">
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/admin/paginas')}
-            sx={{ mr: 2 }}
-          >
-            Terug
-          </Button>
-          <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-            {isNew ? 'Nieuwe pagina' : 'Pagina bewerken'}
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? 'Opslaan...' : 'Opslaan'}
-          </Button>
-        </Toolbar>
-      </AppBar>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/admin/paginas')}
+        >
+          Terug
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Opslaan...' : 'Opslaan'}
+        </Button>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ 
+        flex: 1,
+        overflowY: 'auto',
+        pt: 3,
+        px: 3,
+        pb: 3
+      }}>
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
@@ -184,7 +202,7 @@ const PageEditor = () => {
             onChange={handleContentChange}
           />
         </Paper>
-      </Container>
+      </Box>
     </Box>
   );
 };

@@ -40,7 +40,6 @@ import {
 } from '@mui/material';
 import { 
   Delete as DeleteIcon, 
-  Edit as EditIcon, 
   Add as AddIcon, 
   GridView as GridViewIcon, 
   List as ListViewIcon, 
@@ -48,7 +47,8 @@ import {
   ZoomIn as ZoomInIcon, 
   ArrowUpward as ArrowUpIcon, 
   ArrowDownward as ArrowDownIcon,
-  Photo as PhotoIcon 
+  Photo as PhotoIcon,
+  Save as SaveIcon 
 } from '@mui/icons-material';
 import PhotoUpload from '../../components/PhotoUpload';
 import api from '../../utils/api';
@@ -436,9 +436,6 @@ const AdminPhotos = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <IconButton size="small" sx={{ mr: 1, color: 'white' }}>
-                  <EditIcon />
-                </IconButton>
                 <IconButton
                   size="small"
                   onClick={(e) => {
@@ -537,9 +534,6 @@ const AdminPhotos = () => {
                 ))}
               </Select>
             </FormControl>
-            <IconButton size="small" sx={{ mr: 1 }}>
-              <EditIcon />
-            </IconButton>
             <IconButton 
               size="small"
               onClick={(e) => {
@@ -684,9 +678,6 @@ const AdminPhotos = () => {
                 <TableCell>{formatDate(photo.created_at)}</TableCell>
                 <TableCell>{formatDate(photo.original_date)}</TableCell>
                 <TableCell align="right">
-                  <IconButton size="small" sx={{ mr: 1 }}>
-                    <EditIcon />
-                  </IconButton>
                   <IconButton 
                     size="small"
                     onClick={(e) => {
@@ -937,40 +928,125 @@ const AdminPhotos = () => {
 
               <List disablePadding>
                 <ListItem>
-                  <ListItemText 
-                    primary="Bestandsnaam" 
-                    secondary={selectedPhoto.filename} 
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Bestandsnaam
+                    </Typography>
+                    <ListItemText 
+                      primary={selectedPhoto.filename} 
+                    />
+                  </Box>
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="Titel" 
-                    secondary={selectedPhoto.title || '-'} 
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Titel
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TextField
+                        size="small"
+                        value={selectedPhoto.title || ''}
+                        onChange={(e) => {
+                          const newTitle = e.target.value;
+                          setSelectedPhoto(prev => ({ ...prev, title: newTitle }));
+                        }}
+                        placeholder="Voeg een titel toe"
+                        sx={{ flex: 1 }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={async () => {
+                          try {
+                            await api.put(`/photos/${selectedPhoto.id}`, { 
+                              title: selectedPhoto.title 
+                            });
+                            showToast('Titel succesvol opgeslagen', 'success');
+                            setPhotos(prev => prev.map(p => 
+                              p.id === selectedPhoto.id 
+                                ? { ...p, title: selectedPhoto.title }
+                                : p
+                            ));
+                          } catch (error) {
+                            console.error('Error saving title:', error);
+                            showToast('Fout bij opslaan titel', 'error');
+                          }
+                        }}
+                        color="primary"
+                      >
+                        <SaveIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="Album" 
-                    secondary={selectedPhoto.album?.title || '-'} 
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Album
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {selectedPhoto.albums?.length > 0 ? (
+                        selectedPhoto.albums.map(album => (
+                          <Chip 
+                            key={album.id}
+                            label={album.title}
+                            size="small"
+                            variant="outlined"
+                            onClick={(e) => handleAlbumClick(e, selectedPhoto)}
+                            sx={{ 
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: 'action.hover'
+                              }
+                            }}
+                          />
+                        ))
+                      ) : (
+                        <Button 
+                          size="small" 
+                          variant="text" 
+                          onClick={(e) => handleAlbumClick(e, selectedPhoto)}
+                          sx={{ 
+                            color: 'text.secondary',
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            }
+                          }}
+                        >
+                          Album toewijzen
+                        </Button>
+                      )}
+                    </Box>
+                  </Box>
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="Bestandsgrootte" 
-                    secondary={formatFileSize(selectedPhoto.size)} 
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Bestandsgrootte
+                    </Typography>
+                    <ListItemText 
+                      primary={formatFileSize(selectedPhoto.size)} 
+                    />
+                  </Box>
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="Geüpload op" 
-                    secondary={formatDate(selectedPhoto.created_at)} 
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Geüpload op
+                    </Typography>
+                    <ListItemText 
+                      primary={formatDate(selectedPhoto.created_at)} 
+                    />
+                  </Box>
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="Originele datum" 
-                    secondary={formatDate(selectedPhoto.original_date)} 
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Originele datum
+                    </Typography>
+                    <ListItemText 
+                      primary={formatDate(selectedPhoto.original_date)} 
+                    />
+                  </Box>
                 </ListItem>
               </List>
 
@@ -981,46 +1057,74 @@ const AdminPhotos = () => {
                   </Typography>
                   <List disablePadding>
                     <ListItem>
-                      <ListItemText 
-                        primary="Camera" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.make)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Camera
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.make)} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Model" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.model)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Model
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.model)} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Software" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.software)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Software
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.software)} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Sluitertijd" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.exposureTime)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Sluitertijd
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.exposureTime)} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Diafragma" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.fNumber)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Diafragma
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.fNumber)} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="ISO" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.iso)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          ISO
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.iso)} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Brandpuntsafstand" 
-                        secondary={formatExifValue(selectedPhoto.exif_data.focalLength)} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Brandpuntsafstand
+                        </Typography>
+                        <ListItemText 
+                          primary={formatExifValue(selectedPhoto.exif_data.focalLength)} 
+                        />
+                      </Box>
                     </ListItem>
                   </List>
 
@@ -1029,22 +1133,34 @@ const AdminPhotos = () => {
                   </Typography>
                   <List disablePadding>
                     <ListItem>
-                      <ListItemText 
-                        primary="Afmetingen" 
-                        secondary={`${selectedPhoto.exif_data.width} × ${selectedPhoto.exif_data.height} pixels`} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Afmetingen
+                        </Typography>
+                        <ListItemText 
+                          primary={`${selectedPhoto.exif_data.width} × ${selectedPhoto.exif_data.height} pixels`} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Formaat" 
-                        secondary={selectedPhoto.exif_data.format?.toUpperCase()} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Formaat
+                        </Typography>
+                        <ListItemText 
+                          primary={selectedPhoto.exif_data.format?.toUpperCase()} 
+                        />
+                      </Box>
                     </ListItem>
                     <ListItem>
-                      <ListItemText 
-                        primary="Kleurruimte" 
-                        secondary={selectedPhoto.exif_data.space} 
-                      />
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Kleurruimte
+                        </Typography>
+                        <ListItemText 
+                          primary={selectedPhoto.exif_data.space} 
+                        />
+                      </Box>
                     </ListItem>
                   </List>
                 </>
