@@ -2,39 +2,51 @@ import { pool } from '../models/db.js';
 
 // Maak nieuw album aan
 export const createAlbum = async (req, res) => {
-  const client = await pool.connect();
-  
+  const { title } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Titel is verplicht' 
+    });
+  }
+
   try {
-    await client.query('BEGIN');
-    
-    const { title, description, is_home } = req.body;
+    // Genereer een slug op basis van de titel
+    let slug = title.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
-    if (is_home) {
-      // Check of er al een home album bestaat met FOR UPDATE om race conditions te voorkomen
-      const homeCheck = await client.query(
-        'SELECT id FROM albums WHERE is_home = true FOR UPDATE'
-      );
-      if (homeCheck.rows.length > 0) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ 
-          message: 'Er bestaat al een home album. Bewerk het bestaande home album in plaats van een nieuwe aan te maken.' 
-        });
-      }
-    }
-
-    const result = await client.query(
-      'INSERT INTO albums (title, description, is_home) VALUES ($1, $2, $3) RETURNING *',
-      [title, description, is_home]
+    // Check of de slug al bestaat
+    const existingAlbum = await pool.query(
+      'SELECT id FROM albums WHERE slug = $1',
+      [slug]
     );
 
-    await client.query('COMMIT');
-    res.status(201).json(result.rows[0]);
+    // Als de slug al bestaat, voeg een nummer toe
+    if (existingAlbum.rows.length > 0) {
+      const count = await pool.query(
+        'SELECT COUNT(*) FROM albums WHERE slug LIKE $1',
+        [`${slug}%`]
+      );
+      slug = `${slug}-${count.rows[0].count + 1}`;
+    }
+
+    const result = await pool.query(
+      'INSERT INTO albums (title, slug) VALUES ($1, $2) RETURNING *',
+      [title, slug]
+    );
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Error in createAlbum:', error);
-    res.status(500).json({ message: 'Fout bij aanmaken album' });
-  } finally {
-    client.release();
+    res.status(500).json({ 
+      success: false,
+      message: 'Fout bij aanmaken album'
+    });
   }
 };
 

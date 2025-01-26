@@ -27,8 +27,23 @@ const isValidImageFile = (filename) => {
   return ['.jpg', '.jpeg', '.png'].includes(ext);
 };
 
+const cleanupFiles = async (filepath, thumbnailPath) => {
+  try {
+    if (filepath && fs.existsSync(filepath)) {
+      await fsPromises.unlink(filepath);
+    }
+    if (thumbnailPath && fs.existsSync(thumbnailPath)) {
+      await fsPromises.unlink(thumbnailPath);
+    }
+  } catch (error) {
+    console.error('Error cleaning up files:', error);
+  }
+};
+
 // Upload en verwerk meerdere foto's
 export const uploadPhotos = async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     console.log('Request files:', req.files);
     console.log('Request body:', req.body);
@@ -41,8 +56,11 @@ export const uploadPhotos = async (req, res) => {
     const uploadResults = [];
     const errors = [];
     const photos = Array.isArray(req.files.photos) ? req.files.photos : [req.files.photos];
+    const filesCreated = [];
 
     console.log('Verwerken van', photos.length, 'foto\'s');
+
+    await client.query('BEGIN');
 
     for (const file of photos) {
       let filename = null;
@@ -58,82 +76,75 @@ export const uploadPhotos = async (req, res) => {
           continue;
         }
 
+        // Genereer unieke bestandsnaam
         filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.name);
         filepath = getUploadPath('photos', filename);
         thumbnailPath = getUploadPath('thumbs', `thumb_${filename}`);
         
+        // Verplaats bestand
         console.log('Moving file to:', filepath);
         await file.mv(filepath);
+        filesCreated.push({ filepath, thumbnailPath });
 
-        // Bereken de hash van het originele bestand
+        // Bereken hash
         const hash = await calculateHash(filepath);
         console.log('Calculated hash:', hash);
 
+        // Check voor duplicaten
+        const duplicateCheck = await client.query(
+          'SELECT id FROM photos WHERE hash = $1',
+          [hash]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+          await cleanupFiles(filepath, thumbnailPath);
+          filesCreated.pop();
+          errors.push(`${file.name} is een duplicaat van een bestaande foto`);
+          continue;
+        }
+
+        // Verwerk metadata en EXIF
         let exifData = null;
         let dateOriginal = null;
         let width = null;
         let height = null;
 
         try {
-          // Lees metadata met sharp
-          console.log('Reading metadata with sharp...');
           const metadata = await sharp(filepath).metadata();
-          console.log('Sharp metadata:', metadata);
-
           width = metadata.width;
           height = metadata.height;
 
           if (metadata.exif) {
-            console.log('EXIF data found in metadata');
             try {
               exifData = exifReader(metadata.exif);
-              console.log('Raw EXIF data:', exifData);
-              
               dateOriginal = exifData?.exif?.DateTimeOriginal?.description;
-              console.log('Original date:', dateOriginal);
               
-              // Sla alle beschikbare metadata op
-              const processedExif = {
-                // Basis metadata van Sharp
+              exifData = {
                 width: metadata.width,
                 height: metadata.height,
                 format: metadata.format,
                 space: metadata.space,
                 hasAlpha: metadata.hasAlpha,
                 size: file.size,
-                
-                // Camera informatie
                 make: exifData.Image?.Make,
                 model: exifData.Image?.Model,
                 software: exifData.Image?.Software,
-                
-                // Foto instellingen
                 exposureTime: exifData.Photo?.ExposureTime,
                 fNumber: exifData.Photo?.FNumber,
                 iso: exifData.Photo?.ISOSpeedRatings,
                 focalLength: exifData.Photo?.FocalLength,
                 flash: exifData.Photo?.Flash,
-                
-                // Overige EXIF data
                 orientation: exifData.Image?.Orientation,
                 dateTime: exifData.Photo?.DateTimeOriginal,
-                
-                // Extra EXIF data
                 exposureProgram: exifData.Photo?.ExposureProgram,
                 meteringMode: exifData.Photo?.MeteringMode,
                 whiteBalance: exifData.Photo?.WhiteBalance,
                 focalLengthIn35mm: exifData.Photo?.FocalLengthIn35mmFilm,
-                
-                // Sla ook de ruwe metadata op voor volledigheid
                 rawMetadata: metadata,
                 rawExif: exifData
               };
-              
-              exifData = processedExif;
-              console.log('Processed EXIF data:', exifData);
             } catch (exifError) {
               console.error('Error processing EXIF:', exifError);
-              // Als er een fout optreedt bij het verwerken van EXIF, sla dan alleen de basis metadata op
               exifData = {
                 width: metadata.width,
                 height: metadata.height,
@@ -145,8 +156,6 @@ export const uploadPhotos = async (req, res) => {
               };
             }
           } else {
-            console.log('No EXIF data found in metadata');
-            // Als er geen EXIF data is, sla dan alleen de basis metadata op
             exifData = {
               width: metadata.width,
               height: metadata.height,
@@ -157,56 +166,32 @@ export const uploadPhotos = async (req, res) => {
               rawMetadata: metadata
             };
           }
-        } catch (exifError) {
-          console.error('Error reading EXIF:', exifError);
-          // Als er een fout optreedt bij het lezen van metadata, probeer dan de afmetingen direct te krijgen
-          try {
-            const imageInfo = await sharp(filepath).metadata();
-            width = imageInfo.width;
-            height = imageInfo.height;
-          } catch (sharpError) {
-            console.error('Error getting image dimensions:', sharpError);
-            errors.push(`Kon metadata niet lezen voor ${file.name}`);
-            
-            // Ruim bestanden op
-            if (filepath && fs.existsSync(filepath)) {
-              fs.unlinkSync(filepath);
-            }
-            continue;
-          }
+        } catch (error) {
+          console.error('Error reading metadata:', error);
+          await cleanupFiles(filepath, thumbnailPath);
+          filesCreated.pop();
+          errors.push(`Kon metadata niet lezen voor ${file.name}`);
+          continue;
         }
 
+        // Maak thumbnail
         try {
-          // Maak thumbnail
           await sharp(filepath)
             .resize(400, 400, {
               fit: 'cover',
               position: 'centre'
             })
             .toFile(thumbnailPath);
-        } catch (thumbError) {
-          console.error('Error creating thumbnail:', thumbError);
+        } catch (error) {
+          console.error('Error creating thumbnail:', error);
+          await cleanupFiles(filepath, thumbnailPath);
+          filesCreated.pop();
           errors.push(`Kon geen thumbnail maken voor ${file.name}`);
-          
-          // Ruim bestanden op
-          if (filepath && fs.existsSync(filepath)) {
-            fs.unlinkSync(filepath);
-          }
           continue;
         }
 
-        // Voeg foto toe aan database
-        console.log('Inserting into database with data:', {
-          filename,
-          dateOriginal,
-          hash,
-          size: file.size,
-          width,
-          height,
-          exifData
-        });
-
-        const result = await pool.query(
+        // Voeg toe aan database
+        const result = await client.query(
           `INSERT INTO photos (
             filename, taken_at, hash, size, width, height, 
             make, model, exif_data
@@ -234,35 +219,55 @@ export const uploadPhotos = async (req, res) => {
           error: err.message
         });
         
-        // Probeer bestanden op te ruimen bij een fout
-        try {
-          if (filepath && fs.existsSync(filepath)) {
-            fs.unlinkSync(filepath);
-          }
-          if (thumbnailPath && fs.existsSync(thumbnailPath)) {
-            fs.unlinkSync(thumbnailPath);
-          }
-        } catch (cleanupError) {
-          console.error('Error cleaning up files:', cleanupError);
-        }
+        await cleanupFiles(filepath, thumbnailPath);
+        filesCreated.pop();
       }
     }
 
     if (uploadResults.length === 0 && errors.length > 0) {
+      await client.query('ROLLBACK');
+      // Cleanup alle bestanden bij volledige fout
+      for (const files of filesCreated) {
+        await cleanupFiles(files.filepath, files.thumbnailPath);
+      }
       return res.status(400).json({
-        error: 'Geen enkele foto kon worden verwerkt',
+        success: false,
+        message: errors.length === 1 
+          ? errors[0]
+          : `${errors.length} foto's konden niet worden verwerkt`,
         details: errors
       });
     }
 
+    await client.query('COMMIT');
+    
+    // Bouw een duidelijk succesbericht
+    const successMessage = uploadResults.length === 1
+      ? 'Foto succesvol geüpload'
+      : `${uploadResults.length} foto's succesvol geüpload`;
+      
+    // Als er ook errors zijn, voeg die toe aan het bericht
+    const warningMessage = errors.length > 0
+      ? `${errors.length} foto's overgeslagen (${errors.map(e => typeof e === 'string' ? e : e.error).join(', ')})`
+      : null;
+
     res.json({
-      message: 'Foto\'s verwerkt',
-      success: uploadResults,
+      success: true,
+      message: successMessage,
+      warning: warningMessage,
+      data: uploadResults,
       errors: errors
     });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error in uploadPhotos:', error);
-    res.status(500).json({ error: 'Server error bij uploaden foto\'s' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Er is een fout opgetreden bij het uploaden van de foto\'s',
+      error: error.message 
+    });
+  } finally {
+    client.release();
   }
 };
 

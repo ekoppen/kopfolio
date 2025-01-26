@@ -14,7 +14,8 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip
+  Tooltip,
+  LinearProgress
 } from '@mui/material';
 import {
   Collections as AlbumIcon,
@@ -57,6 +58,13 @@ const Dashboard = () => {
     footer_text: ''
   });
   const [logoPreview, setLogoPreview] = useState(null);
+  const [importStatus, setImportStatus] = useState({
+    isImporting: false,
+    currentStep: '',
+    progress: 0,
+    error: null
+  });
+  const [importStatusInterval, setImportStatusInterval] = useState(null);
   const navigate = useNavigate();
 
   const loadStats = async () => {
@@ -196,6 +204,45 @@ const Dashboard = () => {
     if (!file) return;
 
     try {
+      setImportStatus({ isImporting: true, currentStep: 'Start import...', progress: 0, error: null });
+      
+      // Start polling voor status updates
+      const interval = setInterval(async () => {
+        try {
+          const response = await api.get('/backup/import/status');
+          setImportStatus(response.data);
+          
+          // Stop polling als import klaar is of mislukt
+          if (!response.data.isImporting) {
+            clearInterval(interval);
+            setImportStatusInterval(null);
+            
+            // Herlaad data als import succesvol was
+            if (!response.data.error) {
+              showToast('success', 'Backup succesvol geïmporteerd');
+              // Wacht even voordat we de pagina herladen (server moet ook herstarten)
+              setTimeout(() => {
+                window.location.reload();
+              }, 3000);
+            } else {
+              showToast('error', `Fout bij importeren: ${response.data.error}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking import status:', error);
+          if (error.response?.status === 502 || error.response?.status === 503) {
+            // Server is aan het herstarten, wacht even en herlaad de pagina
+            clearInterval(interval);
+            setImportStatusInterval(null);
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          }
+        }
+      }, 1000);
+      
+      setImportStatusInterval(interval);
+
       const formData = new FormData();
       formData.append('backup', file);
 
@@ -205,14 +252,24 @@ const Dashboard = () => {
         }
       });
 
-      showToast('success', 'Backup succesvol geïmporteerd');
-      // Herlaad alle data
-      loadStats();
-      loadSettings();
     } catch (error) {
+      setImportStatus(prev => ({ 
+        ...prev, 
+        isImporting: false, 
+        error: error.response?.data?.error || 'Onbekende fout'
+      }));
       showToast('error', 'Fout bij importeren van backup');
     }
   };
+
+  // Cleanup interval bij unmount
+  useEffect(() => {
+    return () => {
+      if (importStatusInterval) {
+        clearInterval(importStatusInterval);
+      }
+    };
+  }, [importStatusInterval]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -365,18 +422,36 @@ const Dashboard = () => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     Herstel je site vanaf een eerder gemaakte backup. Let op: dit overschrijft alle huidige gegevens.
                   </Typography>
+                  {importStatus.isImporting ? (
+                    <Box sx={{ width: '100%', mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {importStatus.currentStep}
+                      </Typography>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={importStatus.progress} 
+                        sx={{ 
+                          height: 8,
+                          borderRadius: 4,
+                          bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+                        }}
+                      />
+                    </Box>
+                  ) : null}
                   <Button
                     component="label"
                     variant="outlined"
                     startIcon={<RestoreIcon />}
                     sx={{ borderRadius: 2 }}
+                    disabled={importStatus.isImporting}
                   >
-                    Backup importeren
+                    {importStatus.isImporting ? 'Bezig met importeren...' : 'Backup importeren'}
                     <input
                       type="file"
                       hidden
                       accept=".zip"
                       onChange={handleImportBackup}
+                      disabled={importStatus.isImporting}
                     />
                   </Button>
                 </Box>

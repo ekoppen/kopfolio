@@ -1,0 +1,3 @@
+- [] foto eigenschappen aan kunnen passen met edit knop en in de detail sectie
+- [] home pagina edit mogelijk maken, maar dan niet zoals de andere pagina's maar met de slideshow opties. Overgang een duration in kunnen stellen.
+- [] backup export en import repareren

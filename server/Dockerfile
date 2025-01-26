@@ -11,8 +11,9 @@ COPY package*.json ./
 # Installeer dependencies
 RUN npm ci && npm install slugify
 
-# Maak uploads directory en zet de juiste permissies
-RUN mkdir -p /app/public/uploads && chmod 777 /app/public/uploads
+# Maak uploads en temp directories en zet de juiste permissies
+RUN mkdir -p /app/public/uploads /app/temp && \
+    chmod 777 /app/public/uploads /app/temp
 
 # Kopieer de rest van de applicatie
 COPY . .

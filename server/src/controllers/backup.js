@@ -8,24 +8,75 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { verifyToken } from '../middleware/auth.js';
 import express from 'express';
+import bcrypt from 'bcryptjs';
+import pg from 'pg';
 
 const router = express.Router();
 const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Status object voor import voortgang
+const importStatus = {
+  isImporting: false,
+  currentStep: '',
+  progress: 0,
+  error: null
+};
+
+// Functie om de status bij te werken
+const updateStatus = (step, progress = null, error = null) => {
+  importStatus.currentStep = step;
+  if (progress !== null) importStatus.progress = progress;
+  if (error !== null) importStatus.error = error;
+  console.log('Import status:', importStatus);
+};
+
+// Endpoint om de status op te vragen
+router.get('/import/status', verifyToken, (req, res) => {
+  res.json(importStatus);
+});
+
+// Functie om het admin account te resetten
+async function resetAdminAccount() {
+  const client = await pool.connect();
+  try {
+    const hashedPassword = await bcrypt.hash('admin', 10);
+    await client.query(`
+      INSERT INTO users (username, password)
+      VALUES ('admin', $1)
+      ON CONFLICT (username) 
+      DO UPDATE SET password = $1
+    `, [hashedPassword]);
+    console.log('Admin account reset to default credentials');
+  } catch (error) {
+    console.error('Error resetting admin account:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 // Functie om een backup te maken van alle data
 const exportBackup = async (req, res) => {
+  const tempDir = path.join(__dirname, '../../temp');
+  const backupPath = path.join(tempDir, 'backup.zip');
+  const dumpFile = path.join(tempDir, 'database.sql');
+
   try {
-    // Maak een tijdelijke map voor de backup in de Docker container
-    const tempDir = '/app/temp';
+    // Maak een tijdelijke map voor de backup als deze niet bestaat
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
-      // Zet de juiste permissies
-      fs.chmodSync(tempDir, '777');
     }
 
-    const backupPath = path.join(tempDir, 'backup.zip');
+    // Verwijder oude backup bestanden als deze bestaan
+    if (fs.existsSync(backupPath)) {
+      fs.unlinkSync(backupPath);
+    }
+    if (fs.existsSync(dumpFile)) {
+      fs.unlinkSync(dumpFile);
+    }
+
     const output = fs.createWriteStream(backupPath);
     const archive = archiver('zip', {
       zlib: { level: 9 } // Maximum compressie
@@ -38,11 +89,12 @@ const exportBackup = async (req, res) => {
         if (err) {
           console.error('Error sending backup:', err);
         }
-        // Verwijder het tijdelijke bestand na download
+        // Verwijder de tijdelijke bestanden na download
         try {
-          fs.unlinkSync(backupPath);
+          if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+          if (fs.existsSync(dumpFile)) fs.unlinkSync(dumpFile);
         } catch (unlinkError) {
-          console.error('Error removing temp file:', unlinkError);
+          console.error('Error removing temp files:', unlinkError);
         }
       });
     });
@@ -54,86 +106,325 @@ const exportBackup = async (req, res) => {
     // Pipe het archief naar het output bestand
     archive.pipe(output);
 
-    // Maak een PostgreSQL dump
-    const dumpFile = path.join(tempDir, 'database.sql');
-    await execAsync(`PGPASSWORD=${process.env.DB_PASSWORD} pg_dump -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${dumpFile}`);
+    try {
+      // Maak een PostgreSQL dump
+      await execAsync(`PGPASSWORD=${process.env.DB_PASSWORD} pg_dump -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${dumpFile}`);
+    } catch (dumpError) {
+      console.error('Error creating database dump:', dumpError);
+      throw new Error('Database backup failed');
+    }
 
     // Voeg de database dump toe aan de backup
-    archive.file(dumpFile, { name: 'database.sql' });
+    if (fs.existsSync(dumpFile)) {
+      archive.file(dumpFile, { name: 'database.sql' });
+    } else {
+      throw new Error('Database dump file not created');
+    }
 
     // Voeg de uploads mappen toe
-    const uploadsDir = '/app/public/uploads';
+    const uploadsDir = path.join(__dirname, '../../public/uploads');
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
     } else {
       console.warn('Uploads directory does not exist:', uploadsDir);
+      // Maak een lege uploads map aan
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      archive.directory(uploadsDir, 'uploads');
     }
 
     // Sluit het archief
     await archive.finalize();
 
-    // Verwijder de tijdelijke database dump
-    try {
-      fs.unlinkSync(dumpFile);
-    } catch (unlinkError) {
-      console.error('Error removing dump file:', unlinkError);
-    }
-
   } catch (error) {
     console.error('Error creating backup:', error);
+    // Cleanup tijdelijke bestanden bij error
+    try {
+      if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+      if (fs.existsSync(dumpFile)) fs.unlinkSync(dumpFile);
+    } catch (cleanupError) {
+      console.error('Error cleaning up temp files:', cleanupError);
+    }
     res.status(500).json({ error: 'Er is een fout opgetreden bij het maken van de backup' });
   }
 };
 
 // Functie om een backup te importeren
 const importBackup = async (req, res) => {
+  if (importStatus.isImporting) {
+    return res.status(400).json({ error: 'Er is al een import bezig' });
+  }
+
+  importStatus.isImporting = true;
+  importStatus.error = null;
+  importStatus.progress = 0;
+  updateStatus('Import gestart');
+  
   if (!req.files || !req.files.backup) {
+    importStatus.isImporting = false;
+    updateStatus('Fout', 0, 'Geen backup bestand ontvangen');
     return res.status(400).json({ error: 'Geen backup bestand ontvangen' });
   }
 
-  try {
-    const backupFile = req.files.backup;
-    const tempDir = path.join(__dirname, '../../temp');
-    const extractDir = path.join(tempDir, 'extract');
+  const tempDir = path.join(__dirname, '../../temp');
+  const extractDir = path.join(tempDir, 'extract');
+  const backupPath = path.join(tempDir, 'backup.zip');
+  const tempDumpFile = path.join(tempDir, 'temp_database.sql');
+  let client = null;
+  let currentAdminPassword = null;
 
+  try {
     // Maak tijdelijke mappen aan
+    updateStatus('Voorbereiden van tijdelijke mappen', 5);
     if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir);
+      fs.mkdirSync(tempDir, { recursive: true });
     }
     if (fs.existsSync(extractDir)) {
-      fs.rmSync(extractDir, { recursive: true });
+      try {
+        fs.rmSync(extractDir, { recursive: true, force: true });
+      } catch (rmError) {
+        console.error('Error removing extract directory:', rmError);
+        const files = fs.readdirSync(extractDir);
+        for (const file of files) {
+          try {
+            fs.rmSync(path.join(extractDir, file), { recursive: true, force: true });
+          } catch (e) {
+            console.error(`Failed to remove ${file}:`, e);
+          }
+        }
+      }
     }
     fs.mkdirSync(extractDir);
 
-    // Verplaats het geüploade bestand naar temp directory
-    const backupPath = path.join(tempDir, 'backup.zip');
-    await backupFile.mv(backupPath);
+    // Verplaats het geüploade bestand
+    updateStatus('Backup bestand verplaatsen', 10);
+    await req.files.backup.mv(backupPath);
 
     // Pak het bestand uit
-    await fs.createReadStream(backupPath)
-      .pipe(unzipper.Extract({ path: extractDir }))
-      .promise();
+    updateStatus('Backup bestand uitpakken', 20);
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(backupPath)
+        .pipe(unzipper.Extract({ path: extractDir }))
+        .on('close', () => resolve())
+        .on('error', (err) => reject(err));
+    });
 
-    // Herstel de database van de dump
+    // Controleer de bestanden
+    updateStatus('Backup bestanden controleren', 30);
     const dumpFile = path.join(extractDir, 'database.sql');
-    await execAsync(`psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${dumpFile}`);
-
-    // Vervang de uploads map
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
-    if (fs.existsSync(uploadsDir)) {
-      fs.rmSync(uploadsDir, { recursive: true });
+    if (!fs.existsSync(dumpFile)) {
+      throw new Error('Invalid backup: missing database.sql');
     }
-    fs.renameSync(path.join(extractDir, 'uploads'), uploadsDir);
 
-    // Ruim tijdelijke bestanden op
-    fs.unlinkSync(backupPath);
-    fs.rmSync(extractDir, { recursive: true });
+    try {
+      // Sla het huidige admin wachtwoord op
+      updateStatus('Admin account backup maken', 40);
+      client = await pool.connect();
+      try {
+        const adminResult = await client.query(
+          'SELECT password FROM users WHERE username = $1',
+          ['admin']
+        );
+        currentAdminPassword = adminResult.rows[0]?.password;
+      } catch (pwError) {
+        console.error('Error getting admin password:', pwError);
+      } finally {
+        if (client) {
+          await client.release();
+          client = null;
+        }
+      }
 
+      // Verwijder de transaction_timeout parameter uit het dump bestand
+      updateStatus('Database dump voorbereiden', 45);
+      const dumpContent = fs.readFileSync(dumpFile, 'utf8');
+      const modifiedDump = dumpContent.replace(/SET transaction_timeout = \d+;/g, '');
+      fs.writeFileSync(tempDumpFile, modifiedDump);
+
+      // Drop alle tabellen
+      updateStatus('Database voorbereiden', 50);
+      const dropCommand = `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`;
+      await execAsync(dropCommand);
+      
+      // Wacht even om er zeker van te zijn dat alle connecties weg zijn
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Herstel database
+      updateStatus('Database herstellen', 60);
+      const restoreCommand = `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${tempDumpFile}`;
+      const { stdout, stderr } = await execAsync(restoreCommand);
+      if (stderr) console.log('Database restore stderr:', stderr);
+
+      // Wacht even om de database tijd te geven om te herstellen
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Herstel admin account
+      updateStatus('Admin account herstellen', 70);
+      client = await pool.connect();
+      try {
+        if (currentAdminPassword) {
+          await client.query(`
+            UPDATE users 
+            SET password = $1 
+            WHERE username = 'admin'`,
+            [currentAdminPassword]
+          );
+        } else {
+          const hashedPassword = await bcrypt.hash('admin123', 10);
+          await client.query(`
+            INSERT INTO users (username, password)
+            VALUES ('admin', $1)
+            ON CONFLICT (username) 
+            DO UPDATE SET password = $1`,
+            [hashedPassword]
+          );
+        }
+      } catch (adminError) {
+        console.error('Error restoring admin account:', adminError);
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        await client.query(`
+          INSERT INTO users (username, password)
+          VALUES ('admin', $1)
+          ON CONFLICT (username) 
+          DO UPDATE SET password = $1`,
+          [hashedPassword]
+        );
+      } finally {
+        if (client) {
+          await client.release();
+          client = null;
+        }
+      }
+      
+    } catch (restoreError) {
+      console.error('Error restoring database:', restoreError);
+      throw new Error('Database restore failed: ' + restoreError.message);
+    }
+
+    // Vervang uploads map
+    updateStatus('Uploads herstellen', 80);
+    const uploadsDir = path.join(__dirname, '../../public/uploads');
+    const backupUploadsDir = path.join(extractDir, 'uploads');
+    
+    if (fs.existsSync(uploadsDir)) {
+      try {
+        const files = fs.readdirSync(uploadsDir);
+        for (const file of files) {
+          const curPath = path.join(uploadsDir, file);
+          try {
+            if (fs.lstatSync(curPath).isDirectory()) {
+              fs.rmSync(curPath, { recursive: true, force: true });
+            } else {
+              fs.unlinkSync(curPath);
+            }
+          } catch (err) {
+            console.error(`Error removing ${curPath}:`, err);
+          }
+        }
+      } catch (readError) {
+        console.error('Error reading uploads directory:', readError);
+      }
+    } else {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    if (fs.existsSync(backupUploadsDir)) {
+      try {
+        const files = fs.readdirSync(backupUploadsDir);
+        for (const file of files) {
+          const srcPath = path.join(backupUploadsDir, file);
+          const destPath = path.join(uploadsDir, file);
+          try {
+            if (fs.lstatSync(srcPath).isDirectory()) {
+              fs.cpSync(srcPath, destPath, { recursive: true, force: true });
+            } else {
+              fs.copyFileSync(srcPath, destPath);
+            }
+          } catch (err) {
+            console.error(`Error copying ${srcPath} to ${destPath}:`, err);
+          }
+        }
+      } catch (readError) {
+        console.error('Error reading backup uploads directory:', readError);
+      }
+    }
+
+    // Ruim op
+    updateStatus('Tijdelijke bestanden opruimen', 90);
+    try {
+      if (fs.existsSync(backupPath)) {
+        try {
+          fs.unlinkSync(backupPath);
+        } catch (e) {
+          console.error('Error removing backup file:', e);
+        }
+      }
+      if (fs.existsSync(extractDir)) {
+        try {
+          fs.rmSync(extractDir, { recursive: true, force: true });
+        } catch (e) {
+          console.error('Error removing extract directory:', e);
+        }
+      }
+      if (fs.existsSync(tempDumpFile)) {
+        try {
+          fs.unlinkSync(tempDumpFile);
+        } catch (e) {
+          console.error('Error removing temp dump file:', e);
+        }
+      }
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+
+    updateStatus('Import voltooid', 100);
+    importStatus.isImporting = false;
     res.json({ message: 'Backup succesvol geïmporteerd' });
+
+    // Server moet opnieuw opstarten om de nieuwe database te laden
+    process.exit(0);
 
   } catch (error) {
     console.error('Error importing backup:', error);
-    res.status(500).json({ error: 'Er is een fout opgetreden bij het importeren van de backup' });
+    updateStatus('Fout', 0, error.message);
+    
+    // Cleanup
+    try {
+      if (fs.existsSync(backupPath)) {
+        try {
+          fs.unlinkSync(backupPath);
+        } catch (e) {
+          console.error('Error removing backup file:', e);
+        }
+      }
+      if (fs.existsSync(extractDir)) {
+        try {
+          fs.rmSync(extractDir, { recursive: true, force: true });
+        } catch (e) {
+          console.error('Error removing extract directory:', e);
+        }
+      }
+      if (fs.existsSync(tempDumpFile)) {
+        try {
+          fs.unlinkSync(tempDumpFile);
+        } catch (e) {
+          console.error('Error removing temp dump file:', e);
+        }
+      }
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+
+    // Release de client connectie als die nog bestaat
+    if (client) {
+      try {
+        await client.release();
+      } catch (releaseError) {
+        console.error('Error releasing client:', releaseError);
+      }
+    }
+
+    importStatus.isImporting = false;
+    res.status(500).json({ error: `Er is een fout opgetreden bij het importeren van de backup: ${error.message}` });
   }
 };
 

@@ -23,7 +23,7 @@ const PhotoUpload = ({ onUploadComplete }) => {
     // Check bestandsgrootte
     const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
-      showToast('error', 'Bestanden zijn te groot (max 10MB)');
+      showToast('Bestanden zijn te groot (max 10MB)', 'error');
       return;
     }
 
@@ -39,7 +39,7 @@ const PhotoUpload = ({ onUploadComplete }) => {
       if (data.duplicates && data.duplicates.length > 0) {
         const duplicateCount = data.duplicates.length;
         const totalCount = files.length;
-        showToast('warning', `${duplicateCount} van de ${totalCount} foto's zijn al geüpload en worden overgeslagen`);
+        showToast(`${duplicateCount} van de ${totalCount} foto's zijn al geüpload en worden overgeslagen`, 'warning');
         // Filter duplicaten uit de lijst
         files = files.filter((file, index) => !data.duplicates.includes(hashes[index]));
         if (files.length === 0) {
@@ -54,7 +54,7 @@ const PhotoUpload = ({ onUploadComplete }) => {
         formData.append('photos', file);
       });
       
-      const uploadResponse = await api.post('/photos', formData, {
+      const response = await api.post('/photos', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -65,14 +65,27 @@ const PhotoUpload = ({ onUploadComplete }) => {
           setProgress(percentCompleted);
         }
       });
-      
-      showToast('success', `${files.length} foto${files.length === 1 ? '' : '\'s'} succesvol geüpload`);
+
+      // Toon success bericht
+      if (response.data.success) {
+        showToast(response.data.message, 'success');
+        
+        // Als er ook warnings zijn, toon die als aparte toast
+        if (response.data.warning) {
+          showToast(response.data.warning, 'warning');
+        }
+      } else {
+        // Als er een error is
+        showToast(response.data.message || 'Er is een fout opgetreden', 'error');
+      }
+
       if (onUploadComplete) {
         onUploadComplete();
       }
     } catch (error) {
       console.error('Upload error:', error);
-      showToast('error', 'Er is een fout opgetreden bij het uploaden');
+      const errorMessage = error.response?.data?.message || 'Er is een fout opgetreden bij het uploaden';
+      showToast(errorMessage, 'error');
     } finally {
       setUploading(false);
       setProgress(0);

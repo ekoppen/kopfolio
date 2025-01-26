@@ -30,6 +30,18 @@ const getSliderSettings = (settings = {}) => ({
 });
 
 const PageContent = ({ content = [] }) => {
+  // Voorkom rechtermuisklik op afbeeldingen
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
+  // Voorkom drag & drop van afbeeldingen
+  const handleDragStart = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
   const renderBlock = (block) => {
     switch (block.type) {
       case 'text':
@@ -54,19 +66,34 @@ const PageContent = ({ content = [] }) => {
                 <Grid item xs={12} sm={columns} key={image.id}>
                   <Box
                     sx={{
-                      position: 'relative'
+                      position: 'relative',
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'transparent',
+                        pointerEvents: 'none'
+                      }
                     }}
                   >
                     <Box
                       component="img"
                       src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
                       alt={image.title || 'Afbeelding'}
+                      onContextMenu={handleContextMenu}
+                      onDragStart={handleDragStart}
                       sx={{ 
                         width: '100%',
                         aspectRatio: '4/3',
                         objectFit: 'cover',
                         borderRadius: 1,
-                        boxShadow: 3
+                        boxShadow: 3,
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        pointerEvents: 'none'
                       }}
                     />
                     {image.showTitle && image.title && (
@@ -158,10 +185,15 @@ const PageContent = ({ content = [] }) => {
                         component="img"
                         src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
                         alt={photo.title || `Foto ${photoIndex + 1}`}
+                        onContextMenu={handleContextMenu}
+                        onDragStart={handleDragStart}
                         sx={{ 
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                          pointerEvents: 'none',
                           ...(block.settings?.transition === 'zoom' && {
                             transform: 'scale(1.1)',
                             transition: 'transform 6s ease-in-out',
@@ -207,7 +239,17 @@ const PageContent = ({ content = [] }) => {
   };
 
   return (
-    <Box>
+    <Box 
+      onContextMenu={handleContextMenu}
+      sx={{ 
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        KhtmlUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+        userSelect: 'none'
+      }}
+    >
       {content.map((block) => (
         <Box key={block.id}>
           {renderBlock(block)}

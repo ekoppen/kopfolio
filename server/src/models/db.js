@@ -39,15 +39,15 @@ export async function initDb() {
       await client.query(migrationSql);
     }
 
-    // Maak een standaard gebruiker aan als deze nog niet bestaat
-    const hashedPassword = await bcrypt.hash('admin', 10);
+    // Verwijder bestaande admin gebruiker
+    await client.query('DELETE FROM users WHERE username = $1', ['admin']);
+
+    // Maak een nieuw admin account aan
+    const hashedPassword = await bcrypt.hash('admin123', 10);
     await client.query(`
       INSERT INTO users (username, password)
-      SELECT 'admin', $1
-      WHERE NOT EXISTS (
-        SELECT 1 FROM users WHERE username = 'admin'
-      )
-    `, [hashedPassword]);
+      VALUES ($1, $2)
+    `, ['admin', hashedPassword]);
 
     await client.query('COMMIT');
     console.log('Database tabellen en initiële data succesvol aangemaakt');

@@ -36,6 +36,7 @@ import {
   FormControl,
   InputLabel,
   Menu,
+  TextField,
 } from '@mui/material';
 import { 
   Delete as DeleteIcon, 
@@ -100,10 +101,12 @@ const AdminPhotos = () => {
   const [selectedAlbum, setSelectedAlbum] = useState('');
   const [albumMenuAnchor, setAlbumMenuAnchor] = useState(null);
   const [selectedPhotoForAlbum, setSelectedPhotoForAlbum] = useState(null);
+  const [newAlbumDialogOpen, setNewAlbumDialogOpen] = useState(false);
+  const [newAlbumTitle, setNewAlbumTitle] = useState('');
 
   const loadPhotos = async () => {
     try {
-      const response = await api.get('/photos');
+      const response = await api.get('/photos?include=albums');
       setPhotos(response.data);
     } catch (error) {
       showToast('Fout bij ophalen foto\'s', 'error');
@@ -260,26 +263,64 @@ const AdminPhotos = () => {
 
   const handleAssignAlbum = async (photoId, albumId) => {
     try {
-      await api.put(`/photos/${photoId}`, { album_id: albumId });
-      await loadPhotos(); // Herlaad foto's om de wijziging te tonen
+      if (albumId) {
+        // Voeg foto toe aan album
+        await api.post(`/albums/${albumId}/photos`, {
+          photoIds: [photoId]
+        });
+      } else {
+        // Verwijder foto uit alle albums
+        const photoAlbums = photos.find(p => p.id === photoId)?.albums || [];
+        await Promise.all(
+          photoAlbums.map(album => 
+            api.delete(`/albums/${album.id}/photos`, {
+              data: { photoIds: [photoId] }
+            })
+          )
+        );
+      }
+      
+      // Herlaad beide states
+      await Promise.all([loadPhotos(), loadAlbums()]);
       showToast('Album succesvol toegewezen', 'success');
     } catch (error) {
+      console.error('Error assigning album:', error);
       showToast('Fout bij toewijzen album', 'error');
     }
   };
 
   const handleBulkAssignAlbum = async () => {
     try {
-      await Promise.all(
-        Array.from(selectedPhotos).map(photoId =>
-          api.put(`/photos/${photoId}`, { album_id: selectedAlbum || null })
-        )
-      );
-      await loadPhotos();
+      if (selectedAlbum) {
+        // Voeg foto's toe aan album
+        await api.post(`/albums/${selectedAlbum}/photos`, {
+          photoIds: Array.from(selectedPhotos)
+        });
+      } else {
+        // Verwijder geselecteerde foto's uit alle albums
+        const selectedPhotosList = Array.from(selectedPhotos);
+        const uniqueAlbums = new Set();
+        selectedPhotosList.forEach(photoId => {
+          const photo = photos.find(p => p.id === photoId);
+          photo?.albums?.forEach(album => uniqueAlbums.add(album.id));
+        });
+
+        await Promise.all(
+          Array.from(uniqueAlbums).map(albumId =>
+            api.delete(`/albums/${albumId}/photos`, {
+              data: { photoIds: selectedPhotosList }
+            })
+          )
+        );
+      }
+
+      // Herlaad beide states
+      await Promise.all([loadPhotos(), loadAlbums()]);
       setAlbumDialogOpen(false);
       setSelectedAlbum('');
       showToast(`Album succesvol toegewezen aan ${selectedPhotos.size} foto('s)`, 'success');
     } catch (error) {
+      console.error('Error bulk assigning album:', error);
       showToast('Fout bij toewijzen album', 'error');
     }
   };
@@ -300,6 +341,19 @@ const AdminPhotos = () => {
       await handleAssignAlbum(selectedPhotoForAlbum.id, albumId);
     }
     handleAlbumMenuClose();
+  };
+
+  const handleCreateAlbum = async () => {
+    try {
+      await api.post('/albums', { title: newAlbumTitle });
+      await loadAlbums();
+      setNewAlbumDialogOpen(false);
+      setNewAlbumTitle('');
+      showToast('Album succesvol aangemaakt', 'success');
+    } catch (error) {
+      console.error('Error creating album:', error);
+      showToast('Fout bij aanmaken album', 'error');
+    }
   };
 
   const renderGridView = () => (
@@ -355,7 +409,7 @@ const AdminPhotos = () => {
                 <FormControl size="small" sx={{ minWidth: 120, mr: 1.5 }}>
                   <InputLabel sx={{ color: 'white' }}>Album</InputLabel>
                   <Select
-                    value={photo.album_id || ''}
+                    value={photo.albums?.[0]?.id || ''}
                     label="Album"
                     onChange={(e) => handleAssignAlbum(photo.id, e.target.value || null)}
                     onClick={(e) => e.stopPropagation()}
@@ -468,7 +522,7 @@ const AdminPhotos = () => {
             <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
               <InputLabel>Album</InputLabel>
               <Select
-                value={photo.album_id || ''}
+                value={photo.albums?.[0]?.id || ''}
                 label="Album"
                 onChange={(e) => handleAssignAlbum(photo.id, e.target.value || null)}
                 onClick={(e) => e.stopPropagation()}
@@ -592,19 +646,24 @@ const AdminPhotos = () => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  {photo.album_id ? (
-                    <Chip 
-                      label={photo.album?.title || `Album ${photo.album_id}`}
-                      size="small"
-                      variant="outlined"
-                      onClick={(e) => handleAlbumClick(e, photo)}
-                      sx={{ 
-                        cursor: 'pointer',
-                        '&:hover': {
-                          bgcolor: 'action.hover'
-                        }
-                      }}
-                    />
+                  {photo.albums?.length > 0 ? (
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {photo.albums.map(album => (
+                        <Chip 
+                          key={album.id}
+                          label={album.title}
+                          size="small"
+                          variant="outlined"
+                          onClick={(e) => handleAlbumClick(e, photo)}
+                          sx={{ 
+                            cursor: 'pointer',
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            }
+                          }}
+                        />
+                      ))}
+                    </Box>
                   ) : (
                     <Button 
                       size="small" 
@@ -710,6 +769,14 @@ const AdminPhotos = () => {
               ))}
             </Select>
           </FormControl>
+          <Button
+            onClick={() => setNewAlbumDialogOpen(true)}
+            startIcon={<AddIcon />}
+            sx={{ mt: 2 }}
+            fullWidth
+          >
+            Nieuw album
+          </Button>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAlbumDialogOpen(false)}>
@@ -717,6 +784,37 @@ const AdminPhotos = () => {
           </Button>
           <Button onClick={handleBulkAssignAlbum} variant="contained">
             Toewijzen
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={newAlbumDialogOpen}
+        onClose={() => setNewAlbumDialogOpen(false)}
+      >
+        <DialogTitle>Nieuw album</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Voer een titel in voor het nieuwe album
+          </DialogContentText>
+          <TextField
+            autoFocus
+            label="Titel"
+            fullWidth
+            value={newAlbumTitle}
+            onChange={(e) => setNewAlbumTitle(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewAlbumDialogOpen(false)}>
+            Annuleren
+          </Button>
+          <Button 
+            onClick={handleCreateAlbum} 
+            variant="contained"
+            disabled={!newAlbumTitle.trim()}
+          >
+            Aanmaken
           </Button>
         </DialogActions>
       </Dialog>
@@ -985,43 +1083,6 @@ const AdminPhotos = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Annuleren</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Verwijderen
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={albumDialogOpen}
-        onClose={() => setAlbumDialogOpen(false)}
-      >
-        <DialogTitle>Album toewijzen</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Selecteer een album om toe te wijzen aan {selectedPhotos.size} foto('s)
-          </DialogContentText>
-          <FormControl fullWidth>
-            <InputLabel>Album</InputLabel>
-            <Select
-              value={selectedAlbum}
-              label="Album"
-              onChange={(e) => setSelectedAlbum(e.target.value)}
-            >
-              <MenuItem value="">
-                <em>Geen album</em>
-              </MenuItem>
-              {albums.map((album) => (
-                <MenuItem key={album.id} value={album.id}>
-                  {album.title}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAlbumDialogOpen(false)}>
-            Annuleren
-          </Button>
-          <Button onClick={handleBulkAssignAlbum} variant="contained">
-            Toewijzen
           </Button>
         </DialogActions>
       </Dialog>

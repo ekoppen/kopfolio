@@ -45,30 +45,43 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   const { username, password } = req.body;
+  console.log('Login attempt for user:', username);
 
   try {
     // Gebruiker zoeken
+    console.log('Looking up user in database...');
     const result = await pool.query(
       'SELECT * FROM users WHERE username = $1',
       [username]
     );
+    console.log('Database query result:', {
+      found: result.rows.length > 0,
+      username: result.rows[0]?.username
+    });
 
     if (result.rows.length === 0) {
+      console.log('User not found');
       return res.status(401).json({ message: 'Ongeldige inloggegevens' });
     }
 
     // Wachtwoord verifiëren
+    console.log('Verifying password...');
     const validPassword = await bcrypt.compare(password, result.rows[0].password);
+    console.log('Password verification result:', validPassword);
+    
     if (!validPassword) {
+      console.log('Invalid password');
       return res.status(401).json({ message: 'Ongeldige inloggegevens' });
     }
 
     // JWT token genereren
+    console.log('Generating JWT token...');
     const token = jwt.sign(
       { id: result.rows[0].id, username: result.rows[0].username },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
+    console.log('JWT token generated successfully');
 
     res.json({
       message: 'Succesvol ingelogd',
@@ -76,6 +89,7 @@ export const login = async (req, res) => {
       user: { id: result.rows[0].id, username: result.rows[0].username }
     });
   } catch (error) {
+    console.error('Error in login:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 }; 
