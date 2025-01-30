@@ -61,10 +61,17 @@ export const getPages = async (req, res) => {
         content,
         settings,
         created_at,
-        updated_at
+        updated_at,
+        is_in_menu,
+        menu_order
       FROM pages 
       ORDER BY 
-        CASE WHEN slug = 'home' THEN 1 ELSE 2 END,
+        CASE 
+          WHEN slug = 'home' THEN 0 
+          WHEN is_in_menu THEN 1
+          ELSE 2 
+        END,
+        menu_order NULLS LAST,
         created_at DESC
     `);
 
@@ -122,20 +129,43 @@ export const getPage = async (req, res) => {
   }
 };
 
+// Update menu order
+export const updateMenuOrder = async (req, res) => {
+  const { pages } = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Update elke pagina's menu status en volgorde
+    for (const { id, is_in_menu, menu_order } of pages) {
+      await client.query(
+        `UPDATE pages 
+         SET is_in_menu = $1, 
+             menu_order = $2
+         WHERE id = $3`,
+        [is_in_menu, menu_order, id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Menu volgorde succesvol bijgewerkt' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating menu order:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Fout bij bijwerken menu volgorde' 
+    });
+  } finally {
+    client.release();
+  }
+};
+
 // Update pagina
 export const updatePage = async (req, res) => {
   const { id } = req.params;
-  const { title, content, description, settings } = req.body;
-
-  console.log('Update pagina request:', {
-    id,
-    title,
-    description,
-    content,
-    settings,
-    contentType: typeof content,
-    isArray: Array.isArray(content)
-  });
+  const { title, content, description, settings, is_in_menu, menu_order } = req.body;
 
   try {
     // Als de titel verandert, update ook de slug
@@ -161,15 +191,6 @@ export const updatePage = async (req, res) => {
     // Zorg ervoor dat content als JSON wordt opgeslagen
     const jsonContent = Array.isArray(content) ? content : [];
 
-    console.log('Uitvoeren van database update met waarden:', {
-      title,
-      description,
-      jsonContent,
-      settings,
-      slug,
-      id
-    });
-
     const result = await pool.query(
       `UPDATE pages 
        SET title = COALESCE($1, title),
@@ -177,10 +198,12 @@ export const updatePage = async (req, res) => {
            description = COALESCE($3, description),
            slug = COALESCE($4, slug),
            settings = COALESCE($5::jsonb, settings),
+           is_in_menu = COALESCE($6, is_in_menu),
+           menu_order = COALESCE($7, menu_order),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $6
+       WHERE id = $8
        RETURNING *`,
-      [title, JSON.stringify(jsonContent), description, slug, JSON.stringify(settings), id]
+      [title, JSON.stringify(jsonContent), description, slug, JSON.stringify(settings), is_in_menu, menu_order, id]
     );
 
     if (result.rows.length === 0) {
@@ -192,8 +215,6 @@ export const updatePage = async (req, res) => {
       ...result.rows[0],
       content: result.rows[0].content ? result.rows[0].content : []
     };
-
-    console.log('Database update resultaat:', page);
 
     res.json({
       message: 'Pagina succesvol bijgewerkt',

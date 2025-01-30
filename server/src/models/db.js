@@ -33,7 +33,8 @@ export async function initDb() {
       '006_create_photos.sql',
       '007_create_photos_albums.sql',
       '008_create_home_album.sql',
-      '009_create_sample_photos.sql'
+      '009_create_sample_photos.sql',
+      '010_add_menu_fields.sql'
     ];
 
     for (const migration of migrations) {

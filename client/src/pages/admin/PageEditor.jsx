@@ -112,39 +112,33 @@ const PageEditor = () => {
       bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden',
-      pt: 3
+      overflow: 'hidden'
     }}>
-      <Box
-        sx={{
-          height: '64px',
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-          boxShadow: 1,
-          p: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          zIndex: 1000,
-          mx: 3
-        }}
-      >
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/admin/paginas')}
-        >
-          Terug
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? 'Opslaan...' : 'Opslaan'}
-        </Button>
-      </Box>
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar sx={{ gap: 1 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/admin/paginas')}
+          >
+            Terug
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            onClick={() => navigate('/admin/paginas')}
+            sx={{ mr: 1 }}
+          >
+            Annuleren
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? 'Opslaan...' : 'Opslaan'}
+          </Button>
+        </Toolbar>
+      </AppBar>
 
       <Box sx={{ 
         flex: 1,

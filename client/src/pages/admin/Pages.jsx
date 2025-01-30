@@ -29,12 +29,12 @@ import {
   Switch
 } from '@mui/material';
 import {
+  Save as SaveIcon,
   Add as AddIcon,
-  Delete as DeleteIcon,
-  Link as LinkIcon,
   Edit as EditIcon,
-  Home as HomeIcon,
-  ArrowBack as ArrowBackIcon
+  Delete as DeleteIcon,
+  Menu as MenuIcon,
+  DragIndicator as DragIcon
 } from '@mui/icons-material';
 import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +42,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useTheme } from '@mui/material/styles';
 import PageForm from './PageForm';
 import ImageEditor from './ImageEditor';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const AdminPages = () => {
   const [pages, setPages] = useState([]);
@@ -67,6 +68,7 @@ const AdminPages = () => {
     showShadow: false
   });
   const imageEditorRefs = useRef({});
+  const [menuPages, setMenuPages] = useState([]);
 
   const loadPages = async () => {
     try {
@@ -94,6 +96,14 @@ const AdminPages = () => {
       setLocalSlideShowSettings(settings);
     }
   }, [selectedPage]);
+
+  useEffect(() => {
+    // Update menuPages wanneer pages verandert
+    const sortedMenuPages = pages
+      .filter(page => page.is_in_menu)
+      .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0));
+    setMenuPages(sortedMenuPages);
+  }, [pages]);
 
   const handleEditClick = (page) => {
     setSelectedPage(page);
@@ -185,6 +195,48 @@ const AdminPages = () => {
     } catch (error) {
       console.error('Error saving slideshow settings:', error);
       showToast('Fout bij opslaan instellingen', 'error');
+    }
+  };
+
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(menuPages);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update lokale state
+    setMenuPages(items);
+
+    // Update menu order in de database
+    const updatedPages = items.map((page, index) => ({
+      id: page.id,
+      is_in_menu: true,
+      menu_order: index
+    }));
+
+    try {
+      await api.put('/pages/menu/order', { pages: updatedPages });
+      showToast('Menu volgorde bijgewerkt');
+      loadPages();
+    } catch (error) {
+      showToast('Fout bij bijwerken menu volgorde', 'error');
+    }
+  };
+
+  const toggleMenuStatus = async (page) => {
+    try {
+      const updatedPage = {
+        ...page,
+        is_in_menu: !page.is_in_menu,
+        menu_order: !page.is_in_menu ? (menuPages.length) : null
+      };
+
+      await api.put(`/pages/${page.id}`, updatedPage);
+      showToast(`Pagina ${!page.is_in_menu ? 'toegevoegd aan' : 'verwijderd uit'} menu`);
+      loadPages();
+    } catch (error) {
+      showToast('Fout bij bijwerken menu status', 'error');
     }
   };
 
@@ -308,6 +360,19 @@ const AdminPages = () => {
                         <DeleteIcon />
                       </IconButton>
                     </span>
+                  </Tooltip>
+                  <Box sx={{ flex: 1 }} />
+                  <Tooltip title={page.is_in_menu ? 'Verwijder uit menu' : 'Voeg toe aan menu'}>
+                    <IconButton
+                      size="small"
+                      onClick={() => toggleMenuStatus(page)}
+                      sx={{ 
+                        color: page.is_in_menu ? 'success.main' : 'text.secondary',
+                        '&:hover': { bgcolor: page.is_in_menu ? 'success.50' : 'action.hover' }
+                      }}
+                    >
+                      <MenuIcon />
+                    </IconButton>
                   </Tooltip>
                 </CardActions>
               </Card>
@@ -478,6 +543,62 @@ const AdminPages = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Menu
+          </Typography>
+          <Card 
+            elevation={0}
+            sx={{ 
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+              boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 12px rgba(0,0,0,0.1)'
+            }}
+          >
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="menu">
+                {(provided) => (
+                  <List {...provided.droppableProps} ref={provided.innerRef}>
+                    {menuPages.map((page, index) => (
+                      <Draggable key={page.id} draggableId={page.id.toString()} index={index}>
+                        {(provided) => (
+                          <ListItem
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            sx={{
+                              borderBottom: '1px solid',
+                              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                              '&:last-child': {
+                                borderBottom: 'none'
+                              }
+                            }}
+                          >
+                            <Box {...provided.dragHandleProps} sx={{ mr: 2 }}>
+                              <DragIcon />
+                            </Box>
+                            <ListItemText 
+                              primary={page.title}
+                              secondary={page.slug}
+                            />
+                            <IconButton
+                              size="small"
+                              onClick={() => toggleMenuStatus(page)}
+                            >
+                              <MenuIcon />
+                            </IconButton>
+                          </ListItem>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </List>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </Card>
+        </Box>
       </Box>
     </Box>
   );

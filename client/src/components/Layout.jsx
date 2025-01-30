@@ -6,8 +6,15 @@ import {
   Typography,
   Container,
   Box,
-  useTheme
+  useTheme,
+  Button,
+  IconButton
 } from '@mui/material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  ArrowForwardIos as ArrowForwardIosIcon
+} from '@mui/icons-material';
 import Navigation from './Navigation';
 import api from '../utils/api';
 
@@ -35,6 +42,8 @@ const Layout = () => {
   });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [menuPages, setMenuPages] = useState([]);
   
   useEffect(() => {
     const loadSettings = async () => {
@@ -114,6 +123,23 @@ const Layout = () => {
     window.addEventListener('slideshowProgress', handleSlideChange);
     return () => window.removeEventListener('slideshowProgress', handleSlideChange);
   }, []);
+
+  // Load menu pages
+  useEffect(() => {
+    const loadMenuPages = async () => {
+      try {
+        const response = await api.get('/pages');
+        const sortedMenuPages = response.data
+          .filter(page => page.is_in_menu)
+          .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0));
+        setMenuPages(sortedMenuPages);
+      } catch (error) {
+        console.error('Fout bij laden menu pagina\'s:', error);
+      }
+    };
+
+    loadMenuPages();
+  }, []);
   
   return (
     <Box sx={{ 
@@ -130,6 +156,7 @@ const Layout = () => {
           bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'common.white',
           borderBottom: '1px solid',
           borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+          zIndex: 1100
         }}
       >
         <Toolbar sx={{ 
@@ -140,49 +167,53 @@ const Layout = () => {
           position: 'relative',
           height: 64
         }}>
-          <Box 
-            sx={{ 
-              position: 'absolute',
-              top: -1,
-              left: 0,
-              right: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: settings.logo_position === 'center' ? 'center' : 'flex-start',
-              zIndex: 1200,
-              mt: 0,
-              ml: settings.logo_position === 'left' ? `${settings.logo_margin_left}px` : 'auto',
-              mr: settings.logo_position === 'center' ? 'auto' : undefined
-            }}
-          >
-            {settings.logo && (
-              <Box
-                sx={{
-                  bgcolor: theme.palette.mode === 'dark' 
-                    ? 'rgba(30,30,30,0.9)'
-                    : 'rgba(60,60,60,0.9)',
-                  borderRadius: '0 0 16px 16px',
-                  p: 2,
-                  boxShadow: theme.palette.mode === 'dark' 
-                    ? '0 4px 20px rgba(0,0,0,0.5)' 
-                    : '0 4px 20px rgba(0,0,0,0.1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  transform: 'translateY(-1px)'
-                }}
-              >
+          {/* Logo en Menu Box als eerste */}
+          {settings.logo && (
+            <Box
+              sx={{
+                bgcolor: theme.palette.mode === 'dark' 
+                  ? 'rgba(30,30,30,0.9)'
+                  : 'rgba(60,60,60,0.9)',
+                borderRadius: isExpanded ? '0 0 16px 16px' : 0,
+                p: 2,
+                boxShadow: theme.palette.mode === 'dark' 
+                  ? '0 4px 20px rgba(0,0,0,0.5)' 
+                  : '0 4px 20px rgba(0,0,0,0.1)',
+                display: 'flex',
+                gap: 4,
+                alignItems: 'center',
+                transform: 'translateY(-1px)',
+                width: isExpanded ? 'auto' : '100vw',
+                minWidth: isExpanded ? 'fit-content' : '100vw',
+                height: isExpanded ? 'auto' : '65px',
+                transition: 'all 0.3s ease-in-out',
+                position: 'absolute',
+                left: isExpanded ? 24 : 0,
+                top: -1,
+                zIndex: 1200,
+                pr: isExpanded ? 6 : 2
+              }}
+            >
+              {/* Logo en Subtitle */}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: isExpanded ? 'column' : 'row',
+                alignItems: 'center',
+                gap: isExpanded ? 0 : 4,
+                zIndex: 1300
+              }}>
                 <Box
                   component="img"
                   src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
                   alt="Logo"
                   sx={{
-                    height: 120,
+                    height: isExpanded ? 120 : 60,
                     width: 'auto',
-                    objectFit: 'contain'
+                    objectFit: 'contain',
+                    transition: 'height 0.3s ease-in-out'
                   }}
                 />
-                {settings.site_subtitle && (
+                {settings.site_subtitle && isExpanded && (
                   <Typography
                     variant="subtitle1"
                     sx={{
@@ -199,10 +230,66 @@ const Layout = () => {
                   </Typography>
                 )}
               </Box>
-            )}
-          </Box>
+
+              {/* Menu Items */}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: isExpanded ? 'column' : 'row',
+                gap: isExpanded ? 1 : 3,
+                pt: isExpanded ? 3 : 0,
+                pl: isExpanded ? 3 : 0,
+                ml: isExpanded ? -5 : -2,
+                mt: isExpanded ? -3 : 0,
+                alignItems: isExpanded ? 'flex-start' : 'center',
+                alignSelf: isExpanded ? 'flex-start' : 'center',
+                flex: 1,
+                zIndex: 1400
+              }}>
+                {menuPages.map((page) => (
+                  <Button
+                    key={page.id}
+                    component={RouterLink}
+                    to={`/${page.slug}`}
+                    startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
+                    sx={{ 
+                      color: settings.subtitle_color,
+                      textAlign: 'left',
+                      justifyContent: 'flex-start',
+                      fontFamily: settings.subtitle_font,
+                      fontSize: settings.subtitle_size,
+                      textTransform: 'none',
+                      whiteSpace: 'nowrap',
+                      '&:hover': {
+                        color: 'primary.main',
+                        bgcolor: 'rgba(255,255,255,0.1)'
+                      }
+                    }}
+                  >
+                    {page.title}
+                  </Button>
+                ))}
+              </Box>
+
+              {/* Navigation - alleen tonen in ingeklapte weergave */}
+              {!isExpanded && (
+                <Box sx={{ 
+                  ml: 'auto', 
+                  mr: 2,
+                  zIndex: 1500
+                }}>
+                  <Navigation isExpanded={isExpanded} onToggleExpand={() => setIsExpanded(!isExpanded)} />
+                </Box>
+              )}
+            </Box>
+          )}
+          
+          {/* Spacer en Navigation - alleen tonen in uitgeklapte weergave */}
           <Box sx={{ flex: 1 }} />
-          <Navigation />
+          {isExpanded && (
+            <Box sx={{ zIndex: 1500 }}>
+              <Navigation isExpanded={isExpanded} onToggleExpand={() => setIsExpanded(!isExpanded)} />
+            </Box>
+          )}
         </Toolbar>
       </AppBar>
 

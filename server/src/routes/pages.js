@@ -5,7 +5,8 @@ import {
   getPage, 
   updatePage, 
   deletePage,
-  updateSlideShowSettings 
+  updateSlideShowSettings,
+  updateMenuOrder
 } from '../controllers/pages.js';
 import { verifyToken } from '../middleware/auth.js';
 
@@ -20,6 +21,7 @@ router.get('/:slug', getPage);
 router.post('/', verifyToken, createPage);
 router.put('/:id', verifyToken, updatePage);
 router.put('/:id/slideshow', verifyToken, updateSlideShowSettings);
+router.put('/menu/order', verifyToken, updateMenuOrder);
 router.delete('/:id', verifyToken, deletePage);
 
 export default router; 
