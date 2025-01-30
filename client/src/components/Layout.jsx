@@ -182,25 +182,27 @@ const Layout = () => {
                 display: 'flex',
                 gap: 4,
                 alignItems: 'center',
-                transform: 'translateY(-1px)',
                 width: isExpanded ? 'auto' : '100vw',
                 minWidth: isExpanded ? 'fit-content' : '100vw',
                 height: isExpanded ? 'auto' : '65px',
-                transition: 'all 0.3s ease-in-out',
                 position: 'absolute',
-                left: isExpanded ? 24 : 0,
+                left: isExpanded ? (settings.logo_position === 'center' ? '50%' : 24) : 0,
                 top: -1,
                 zIndex: 1200,
-                pr: isExpanded ? 6 : 2
-              }}
-            >
+                pr: isExpanded ? 6 : 2,
+                transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isExpanded && settings.logo_position === 'center' 
+                  ? 'translate(-50%, -1px)' 
+                  : 'translateY(-1px)'
+              }}>
               {/* Logo en Subtitle */}
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: isExpanded ? 'column' : 'row',
                 alignItems: 'center',
                 gap: isExpanded ? 0 : 4,
-                zIndex: 1300
+                zIndex: 1300,
+                transition: 'flex-direction 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}>
                 <Box
                   component="img"
@@ -210,7 +212,7 @@ const Layout = () => {
                     height: isExpanded ? 120 : 60,
                     width: 'auto',
                     objectFit: 'contain',
-                    transition: 'height 0.3s ease-in-out'
+                    transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 />
                 {settings.site_subtitle && isExpanded && (
@@ -243,7 +245,8 @@ const Layout = () => {
                 alignItems: isExpanded ? 'flex-start' : 'center',
                 alignSelf: isExpanded ? 'flex-start' : 'center',
                 flex: 1,
-                zIndex: 1400
+                zIndex: 1400,
+                transition: 'flex-direction 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}>
                 {menuPages.map((page) => (
                   <Button

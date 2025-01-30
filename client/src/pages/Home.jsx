@@ -36,6 +36,16 @@ const sliderStyles = `
   .slick-track {
     display: flex !important;
   }
+  .slick-slide {
+    opacity: 0;
+    transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  .slick-active {
+    opacity: 1 !important;
+  }
+  .slick-current {
+    z-index: 1;
+  }
 `;
 
 const Home = () => {
@@ -135,7 +145,7 @@ const Home = () => {
     autoplay: pageSettings?.autoPlay !== false,
     autoplaySpeed: pageSettings?.interval || 5000,
     fade: pageSettings?.transition === 'fade',
-    cssEase: pageSettings?.transition === 'slide' ? 'cubic-bezier(0.4, 0, 0.2, 1)' : 'linear',
+    cssEase: 'cubic-bezier(0.4, 0, 0.2, 1)',
     slide: pageSettings?.transition !== 'fade',
     arrows: false,
     pauseOnHover: false,
@@ -170,24 +180,6 @@ const Home = () => {
         overflow: 'hidden',
         m: '0 !important',
         p: '0 !important',
-        '& .slick-slide': {
-          ...(pageSettings?.transition === 'slide' && {
-            opacity: 0,
-            transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
-          }),
-          ...(pageSettings?.transition === 'zoom' && {
-            transform: 'scale(1.1)',
-            transition: 'transform 6s ease-out',
-          })
-        },
-        '& .slick-active': {
-          ...(pageSettings?.transition === 'slide' && {
-            opacity: 1
-          }),
-          ...(pageSettings?.transition === 'zoom' && {
-            transform: 'scale(1)'
-          })
-        },
       }}>
         {photos.length > 0 && (
           <Slider {...settings}>
@@ -206,7 +198,7 @@ const Home = () => {
                     m: '0 !important',
                     p: '0 !important',
                     opacity: loadedImages.has(imageUrl) ? 1 : 0,
-                    transition: 'opacity 0.5s ease-in-out'
+                    transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 />
               );
