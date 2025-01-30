@@ -90,15 +90,8 @@ const AdminPages = () => {
   useEffect(() => {
     if (selectedPage?.settings?.slideshow) {
       const settings = selectedPage.settings.slideshow;
-      const newSettings = {
-        interval: settings.interval || 5000,
-        transition: settings.transition || 'fade',
-        autoPlay: settings.autoPlay ?? true,
-        showTitles: settings.showTitles ?? false,
-        showShadow: settings.showShadow ?? false
-      };
-      setSlideShowSettings(newSettings);
-      setLocalSlideShowSettings(newSettings);
+      setSlideShowSettings(settings);
+      setLocalSlideShowSettings(settings);
     }
   }, [selectedPage]);
 
@@ -107,15 +100,8 @@ const AdminPages = () => {
     if (page.is_home) {
       // Laad bestaande slideshow instellingen
       const settings = page.settings?.slideshow || {};
-      const newSettings = {
-        interval: settings.interval || 5000,
-        transition: settings.transition || 'fade',
-        autoPlay: settings.autoPlay ?? true,
-        showTitles: settings.showTitles ?? false,
-        showShadow: settings.showShadow ?? false
-      };
-      setSlideShowSettings(newSettings);
-      setLocalSlideShowSettings(newSettings);
+      setSlideShowSettings(settings);
+      setLocalSlideShowSettings(settings);
       setSlideShowSettingsOpen(true);
     } else {
       // Voor andere pagina's, navigeer naar de editor
@@ -160,27 +146,38 @@ const AdminPages = () => {
 
   const handleSaveSlideShowSettings = async () => {
     try {
-      // Sla eerst alle afbeeldingsinstellingen op
-      Object.values(imageEditorRefs.current).forEach(ref => {
-        if (ref) {
-          ref.handleSave();
-        }
-      });
-
+      console.log('Huidige instellingen:', selectedPage?.settings);
+      console.log('Nieuwe instellingen:', localSlideShowSettings);
+      
       // Update de pagina met de nieuwe slideshow instellingen
       const updatedPage = {
         ...selectedPage,
         settings: {
           ...selectedPage.settings,
           slideshow: {
-            ...localSlideShowSettings,
-            content: selectedPage.content
+            interval: localSlideShowSettings.interval,
+            transition: localSlideShowSettings.transition,
+            autoPlay: localSlideShowSettings.autoPlay,
+            showTitles: localSlideShowSettings.showTitles,
+            showShadow: localSlideShowSettings.showShadow
           }
         }
       };
       
+      console.log('Versturen naar server:', updatedPage);
+      
       // Sla de volledige pagina op met de nieuwe instellingen
-      await api.put(`/pages/${selectedPage.id}`, updatedPage);
+      const response = await api.put(`/pages/${selectedPage.id}`, updatedPage);
+      
+      console.log('Response van server:', response.data);
+      
+      // Update de lokale state met de response data
+      setSelectedPage(response.data);
+      setSlideShowSettings(response.data.settings?.slideshow || localSlideShowSettings);
+      setLocalSlideShowSettings(response.data.settings?.slideshow || localSlideShowSettings);
+      
+      // Stuur een event om de Home component te informeren
+      window.dispatchEvent(new CustomEvent('slideshowSettingsUpdated'));
       
       showToast('Slideshow instellingen opgeslagen', 'success');
       setSlideShowSettingsOpen(false);

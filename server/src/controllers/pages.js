@@ -125,13 +125,14 @@ export const getPage = async (req, res) => {
 // Update pagina
 export const updatePage = async (req, res) => {
   const { id } = req.params;
-  const { title, content, description } = req.body;
+  const { title, content, description, settings } = req.body;
 
   console.log('Update pagina request:', {
     id,
     title,
     description,
     content,
+    settings,
     contentType: typeof content,
     isArray: Array.isArray(content)
   });
@@ -164,6 +165,7 @@ export const updatePage = async (req, res) => {
       title,
       description,
       jsonContent,
+      settings,
       slug,
       id
     });
@@ -174,10 +176,11 @@ export const updatePage = async (req, res) => {
            content = COALESCE($2::jsonb, content),
            description = COALESCE($3, description),
            slug = COALESCE($4, slug),
+           settings = COALESCE($5::jsonb, settings),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5
+       WHERE id = $6
        RETURNING *`,
-      [title, JSON.stringify(jsonContent), description, slug, id]
+      [title, JSON.stringify(jsonContent), description, slug, JSON.stringify(settings), id]
     );
 
     if (result.rows.length === 0) {

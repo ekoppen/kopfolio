@@ -56,7 +56,8 @@ const PhotoUpload = ({ onUploadComplete }) => {
       
       const response = await api.post('/photos', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
         },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(

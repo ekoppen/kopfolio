@@ -2,3 +2,7 @@
 - [*] home pagina edit mogelijk maken, maar dan niet zoals de andere pagina's maar met de slideshow opties. Overgang een duration in kunnen stellen.
 - [*] backup export en import repareren
 - [] pagina opmaak op scherm aanmaken. Over het thuis scherm heen. Wit of zwarte achtergrond. Gecentreerd, halve breedte van de viewport tot schaling. Dus met een min-width.
+- [] logo minimaliseren met alleen de titel nog zichtbaar voor maximaal foto oppervlakte.
+- [] min width van de pagina 600
+- [] mobiel weergave testen 
+- [] hiervoor menu kleiner kunnen maken naar alleen iconen en een hamburger menu.

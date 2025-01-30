@@ -25,11 +25,15 @@ export async function initDb() {
 
     // Voer migraties uit
     const migrations = [
-      '001_create_users.sql',
-      '002_create_albums.sql',
-      '003_create_photos.sql',
-      '004_create_pages.sql',
-      '005_create_settings.sql'
+      '001_create_pages.sql',
+      '002_create_settings.sql',
+      '003_create_default_settings.sql',
+      '004_create_users.sql',
+      '005_create_albums.sql',
+      '006_create_photos.sql',
+      '007_create_photos_albums.sql',
+      '008_create_home_album.sql',
+      '009_create_sample_photos.sql'
     ];
 
     for (const migration of migrations) {

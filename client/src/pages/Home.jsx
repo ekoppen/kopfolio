@@ -42,7 +42,19 @@ const Home = () => {
   const [photos, setPhotos] = useState([]);
   const [pageSettings, setPageSettings] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [loadedImages, setLoadedImages] = useState(new Set());
   const progressInterval = useRef(null);
+
+  // Functie om afbeeldingen vooraf te laden
+  const preloadImages = (imageUrls) => {
+    imageUrls.forEach(url => {
+      const img = new Image();
+      img.onload = () => {
+        setLoadedImages(prev => new Set([...prev, url]));
+      };
+      img.src = url;
+    });
+  };
 
   useEffect(() => {
     const loadHomeContent = async () => {
@@ -60,7 +72,14 @@ const Home = () => {
         
         if (homeAlbum) {
           const photosResponse = await api.get(`/photos/album/${homeAlbum.id}`);
-          setPhotos(photosResponse.data);
+          const newPhotos = photosResponse.data;
+          setPhotos(newPhotos);
+
+          // Start met preloaden van de afbeeldingen
+          const imageUrls = newPhotos.map(photo => 
+            `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`
+          );
+          preloadImages(imageUrls);
         }
       } catch (error) {
         console.error('Fout bij ophalen home content:', error);
@@ -68,6 +87,14 @@ const Home = () => {
     };
 
     loadHomeContent();
+
+    // Luister naar updates van de slideshow instellingen
+    const handleSettingsUpdate = () => {
+      loadHomeContent();
+    };
+
+    window.addEventListener('slideshowSettingsUpdated', handleSettingsUpdate);
+    return () => window.removeEventListener('slideshowSettingsUpdated', handleSettingsUpdate);
   }, []);
 
   // Start de voortgangsbalk wanneer een nieuwe slide begint
@@ -102,14 +129,14 @@ const Home = () => {
   const settings = {
     dots: false,
     infinite: true,
-    speed: pageSettings?.speed === 'slow' ? 1000 : pageSettings?.speed === 'fast' ? 300 : 500,
+    speed: pageSettings?.transition === 'slide' ? 1000 : 500,
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: pageSettings?.autoPlay !== false,
     autoplaySpeed: pageSettings?.interval || 5000,
     fade: pageSettings?.transition === 'fade',
-    cssEase: pageSettings?.transition === 'slide' ? 'cubic-bezier(0.4, 0, 0.2, 1)' : 'ease-out',
-    slide: true,
+    cssEase: pageSettings?.transition === 'slide' ? 'cubic-bezier(0.4, 0, 0.2, 1)' : 'linear',
+    slide: pageSettings?.transition !== 'fade',
     arrows: false,
     pauseOnHover: false,
     lazyLoad: true,
@@ -119,6 +146,14 @@ const Home = () => {
       // Reset en start de voortgangsbalk
       setProgress(0);
       startProgress();
+
+      // Stuur een custom event met de huidige slide en totaal aantal slides
+      window.dispatchEvent(new CustomEvent('slideshowProgress', {
+        detail: {
+          currentSlide: 0,
+          totalSlides: photos.length
+        }
+      }));
     }
   };
 
@@ -137,36 +172,45 @@ const Home = () => {
         p: '0 !important',
         '& .slick-slide': {
           ...(pageSettings?.transition === 'slide' && {
-            opacity: 0.5,
-            transition: 'opacity 0.5s ease-out',
+            opacity: 0,
+            transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
           }),
           ...(pageSettings?.transition === 'zoom' && {
-            transform: 'scale(1.2)',
+            transform: 'scale(1.1)',
             transition: 'transform 6s ease-out',
-          }),
+          })
         },
         '& .slick-active': {
-          opacity: '1 !important',
-          transform: pageSettings?.transition === 'zoom' ? 'scale(1) !important' : 'none',
+          ...(pageSettings?.transition === 'slide' && {
+            opacity: 1
+          }),
+          ...(pageSettings?.transition === 'zoom' && {
+            transform: 'scale(1)'
+          })
         },
       }}>
         {photos.length > 0 && (
           <Slider {...settings}>
-            {photos.map((photo) => (
-              <Box 
-                key={photo.id}
-                sx={{
-                  height: '100vh !important',
-                  width: '100vw !important',
-                  backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  m: '0 !important',
-                  p: '0 !important'
-                }}
-              />
-            ))}
+            {photos.map((photo) => {
+              const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
+              return (
+                <Box 
+                  key={photo.id}
+                  sx={{
+                    height: '100vh !important',
+                    width: '100vw !important',
+                    backgroundImage: `url(${imageUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    m: '0 !important',
+                    p: '0 !important',
+                    opacity: loadedImages.has(imageUrl) ? 1 : 0,
+                    transition: 'opacity 0.5s ease-in-out'
+                  }}
+                />
+              );
+            })}
           </Slider>
         )}
       </Box>

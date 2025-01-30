@@ -87,14 +87,54 @@ kopfolio/
 │   │   ├── utils/     # Utility functies
 │   │   └── styles/    # CSS styles
 │   └── public/        # Statische bestanden
-└── server/            # Backend Node.js applicatie
-    ├── src/
-    │   ├── controllers/
-    │   ├── routes/
-    │   ├── middleware/
-    │   └── utils/
-    └── public/        # Uploads en statische bestanden
+├── server/            # Backend Node.js applicatie
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   ├── middleware/
+│   │   └── utils/
+│   └── public/        # Uploads en statische bestanden
+└── uploads/           # Foto uploads
+    └── sample-images/ # Voorbeeldfoto's
 ```
+
+## Home Album
+
+De homepage toont foto's uit een speciaal "home album". Dit album wordt automatisch aangemaakt tijdens de installatie. Om dit te configureren:
+
+1. Log in als admin gebruiker
+2. Ga naar het admin dashboard
+3. Klik op "Albums" in het menu
+4. Je ziet een album genaamd "Home Album" met een "Home" label
+5. Klik op het foto-icoon bij dit album om foto's toe te voegen
+6. Upload nieuwe foto's of selecteer bestaande foto's om ze aan het home album toe te voegen
+
+De geselecteerde foto's zullen nu op de homepage worden getoond in een slideshow.
+
+## Voorbeeldfoto's
+
+In de `uploads/sample-images` map vind je enkele voorbeeldfoto's die je kunt gebruiken om te starten. Om deze te gebruiken:
+
+1. Kopieer de foto's van `uploads/sample-images` naar de `uploads/photos` map
+2. De foto's zullen automatisch beschikbaar zijn in het admin dashboard
+3. Voeg ze toe aan het home album zoals hierboven beschreven
+
+## Branding
+
+Bij de eerste installatie wordt een standaard configuratie aangemaakt met:
+- Een standaard logo in de `uploads/branding` map
+- Basis site-instellingen zoals titel en ondertitel
+- Standaard lettertypen en kleuren
+
+Om deze aan te passen:
+1. Log in als admin gebruiker
+2. Ga naar het admin dashboard
+3. Pas de volgende instellingen aan:
+   - Upload een eigen logo
+   - Wijzig de site titel en ondertitel
+   - Pas lettertypen en kleuren aan
+   - Configureer de positie van het logo
+   - Bewerk de voettekst
 
 ## Scripts
 

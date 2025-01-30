@@ -120,7 +120,8 @@ const Layout = () => {
       display: 'flex', 
       flexDirection: 'column', 
       minHeight: '100vh',
-      bgcolor: 'background.default'
+      bgcolor: 'background.default',
+      position: 'relative'
     }}>
       <AppBar 
         position="sticky"
@@ -141,16 +142,15 @@ const Layout = () => {
         }}>
           <Box 
             sx={{ 
-              position: 'fixed',
-              top: 0,
+              position: 'absolute',
+              top: -1,
               left: 0,
               right: 0,
               display: 'flex',
               flexDirection: 'column',
               alignItems: settings.logo_position === 'center' ? 'center' : 'flex-start',
               zIndex: 1200,
-              p: 2,
-              mt: `${settings.logo_margin_top}px`,
+              mt: 0,
               ml: settings.logo_position === 'left' ? `${settings.logo_margin_left}px` : 'auto',
               mr: settings.logo_position === 'center' ? 'auto' : undefined
             }}
@@ -163,14 +163,13 @@ const Layout = () => {
                     : 'rgba(60,60,60,0.9)',
                   borderRadius: '0 0 16px 16px',
                   p: 2,
-                  pt: 3,
-                  mt: -2,
                   boxShadow: theme.palette.mode === 'dark' 
                     ? '0 4px 20px rgba(0,0,0,0.5)' 
                     : '0 4px 20px rgba(0,0,0,0.1)',
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  transform: 'translateY(-1px)'
                 }}
               >
                 <Box

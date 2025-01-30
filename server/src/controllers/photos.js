@@ -193,20 +193,21 @@ export const uploadPhotos = async (req, res) => {
         // Voeg toe aan database
         const result = await client.query(
           `INSERT INTO photos (
-            filename, taken_at, hash, size, width, height, 
-            make, model, exif_data
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+            filename, original_filename, title, description,
+            width, height, size, mime_type, hash, taken_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
           RETURNING *`,
           [
             filename,
-            dateOriginal,
-            hash,
-            file.size,
+            file.name,
+            null, // title
+            null, // description
             width,
             height,
-            exifData?.make || null,
-            exifData?.model || null,
-            exifData ? JSON.stringify(exifData) : null
+            file.size,
+            file.mimetype,
+            hash,
+            dateOriginal
           ]
         );
 
@@ -214,10 +215,7 @@ export const uploadPhotos = async (req, res) => {
         uploadResults.push(result.rows[0]);
       } catch (err) {
         console.error('Error processing file:', file.name, err);
-        errors.push({
-          filename: file.name,
-          error: err.message
-        });
+        errors.push(`Fout bij verwerken van ${file.name}: ${err.message}`);
         
         await cleanupFiles(filepath, thumbnailPath);
         filesCreated.pop();
@@ -248,7 +246,7 @@ export const uploadPhotos = async (req, res) => {
       
     // Als er ook errors zijn, voeg die toe aan het bericht
     const warningMessage = errors.length > 0
-      ? `${errors.length} foto's overgeslagen (${errors.map(e => typeof e === 'string' ? e : e.error).join(', ')})`
+      ? `${errors.length} foto's overgeslagen (${errors.join(', ')})`
       : null;
 
     res.json({

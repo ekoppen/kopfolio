@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -9,11 +9,14 @@ RUN apk add --no-cache postgresql-client
 COPY package*.json ./
 
 # Installeer dependencies
-RUN npm ci && npm install slugify
+RUN npm install
 
 # Maak uploads en temp directories en zet de juiste permissies
-RUN mkdir -p /app/public/uploads /app/temp && \
-    chmod 777 /app/public/uploads /app/temp
+RUN mkdir -p /app/public/uploads/photos \
+    /app/public/uploads/thumbs \
+    /app/public/uploads/branding \
+    /app/temp && \
+    chmod -R 777 /app/public/uploads /app/temp
 
 # Kopieer de rest van de applicatie
 COPY . .

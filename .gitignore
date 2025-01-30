@@ -36,6 +36,11 @@ yarn-error.log*
 /server/public/uploads/*
 !/server/public/uploads/.gitkeep
 uploads/*
+!uploads/sample-images/
+!uploads/branding/
+!uploads/sample-images/*
+!uploads/branding/*
+
 # Misc
 *.log
 .cache/ 

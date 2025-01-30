@@ -380,7 +380,7 @@ const AdminPhotos = () => {
           >
             <CardMedia
               component="img"
-              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
+              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumbs/thumb_${photo.filename}`}
               alt={photo.title || 'Uploaded photo'}
               sx={{ 
                 aspectRatio: '4/3',
@@ -496,7 +496,7 @@ const AdminPhotos = () => {
           >
             <CardMedia
               component="img"
-              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
+              image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumbs/thumb_${photo.filename}`}
               alt={photo.title || 'Uploaded photo'}
               sx={{ 
                 aspectRatio: '4/3',
@@ -614,7 +614,7 @@ const AdminPhotos = () => {
                   >
                     <CardMedia
                       component="img"
-                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
+                      image={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumbs/thumb_${photo.filename}`}
                       alt={photo.title || 'Uploaded photo'}
                       sx={{ 
                         aspectRatio: '4/3',
@@ -915,7 +915,7 @@ const AdminPhotos = () => {
             <>
               <Box sx={{ mb: 2 }}>
                 <img
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${selectedPhoto.filename}`}
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/thumbs/thumb_${selectedPhoto.filename}`}
                   alt={selectedPhoto.title || 'Geselecteerde foto'}
                   style={{ 
                     width: '100%',
