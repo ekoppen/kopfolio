@@ -34,7 +34,8 @@ export async function initDb() {
       '007_create_photos_albums.sql',
       '008_create_home_album.sql',
       '009_create_sample_photos.sql',
-      '010_add_menu_fields.sql'
+      '010_add_menu_fields.sql',
+      '011_add_sidebar_pattern.sql'
     ];
 
     for (const migration of migrations) {

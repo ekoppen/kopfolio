@@ -55,7 +55,8 @@ const Dashboard = () => {
     logo_margin_left: 0,
     subtitle_margin_top: 0,
     subtitle_margin_left: 0,
-    footer_text: ''
+    footer_text: '',
+    sidebar_pattern: 'none'
   });
   const [logoPreview, setLogoPreview] = useState(null);
   const [importStatus, setImportStatus] = useState({
@@ -101,7 +102,8 @@ const Dashboard = () => {
         logo_margin_left: response.data.logo_margin_left || 0,
         subtitle_margin_top: response.data.subtitle_margin_top || 0,
         subtitle_margin_left: response.data.subtitle_margin_left || 0,
-        footer_text: response.data.footer_text || ''
+        footer_text: response.data.footer_text || '',
+        sidebar_pattern: response.data.sidebar_pattern || 'none'
       });
       if (response.data.logo) {
         setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${response.data.logo}`);
@@ -140,6 +142,7 @@ const Dashboard = () => {
       formData.append('subtitle_margin_top', settings.subtitle_margin_top);
       formData.append('subtitle_margin_left', settings.subtitle_margin_left);
       formData.append('footer_text', settings.footer_text);
+      formData.append('sidebar_pattern', settings.sidebar_pattern);
       if (settings.logo instanceof File) {
         formData.append('logo', settings.logo);
       }
@@ -166,7 +169,8 @@ const Dashboard = () => {
           logo_margin_left: settings.logo_margin_left,
           subtitle_margin_top: settings.subtitle_margin_top,
           subtitle_margin_left: settings.subtitle_margin_left,
-          footer_text: settings.footer_text
+          footer_text: settings.footer_text,
+          sidebar_pattern: settings.sidebar_pattern
         }
       }));
 
@@ -535,16 +539,6 @@ const Dashboard = () => {
                   />
                 </Button>
               )}
-              <FormControl size="small">
-                <Select
-                  value={settings.logo_position}
-                  onChange={(e) => setSettings(prev => ({ ...prev, logo_position: e.target.value }))}
-                  sx={{ minWidth: 120 }}
-                >
-                  <MenuItem value="left">Links</MenuItem>
-                  <MenuItem value="center">Midden</MenuItem>
-                </Select>
-              </FormControl>
             </Box>
             <Grid container spacing={2}>
               <Grid item xs={6}>
@@ -667,6 +661,23 @@ const Dashboard = () => {
                   inputProps: { min: -50, max: 100 }
                 }}
               />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Achtergrondpatroon zijbalk</InputLabel>
+                <Select
+                  value={settings.sidebar_pattern}
+                  onChange={(e) => setSettings({ ...settings, sidebar_pattern: e.target.value })}
+                  label="Achtergrondpatroon zijbalk"
+                >
+                  <MenuItem value="none">Geen patroon</MenuItem>
+                  <MenuItem value="canvas">Canvas structuur</MenuItem>
+                  <MenuItem value="dots">Stippen patroon</MenuItem>
+                  <MenuItem value="lines">Lijnen patroon</MenuItem>
+                  <MenuItem value="circuit">Circuit patroon</MenuItem>
+                  <MenuItem value="geometric">Geometrisch patroon</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
 

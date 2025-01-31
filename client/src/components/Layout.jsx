@@ -38,7 +38,8 @@ const Layout = () => {
     logo_margin_left: 0,
     subtitle_margin_top: 0,
     subtitle_margin_left: 0,
-    footer_text: ''
+    footer_text: '',
+    sidebar_pattern: 'none'
   });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
@@ -71,7 +72,8 @@ const Layout = () => {
           logo_margin_left: parseInt(response.data.logo_margin_left) || 0,
           subtitle_margin_top: parseInt(response.data.subtitle_margin_top) || 0,
           subtitle_margin_left: parseInt(response.data.subtitle_margin_left) || 0,
-          footer_text: response.data.footer_text || ''
+          footer_text: response.data.footer_text || '',
+          sidebar_pattern: response.data.sidebar_pattern || 'none'
         }));
       } catch (error) {
         console.error('Fout bij laden site instellingen:', error);
@@ -95,7 +97,8 @@ const Layout = () => {
         logo_margin_left,
         subtitle_margin_top,
         subtitle_margin_left,
-        footer_text
+        footer_text,
+        sidebar_pattern
       } = event.detail;
       
       setSettings(prev => ({
@@ -112,7 +115,8 @@ const Layout = () => {
         logo_margin_left: parseInt(logo_margin_left) || prev.logo_margin_left,
         subtitle_margin_top: parseInt(subtitle_margin_top) || prev.subtitle_margin_top,
         subtitle_margin_left: parseInt(subtitle_margin_left) || prev.subtitle_margin_left,
-        footer_text: footer_text || prev.footer_text
+        footer_text: footer_text || prev.footer_text,
+        sidebar_pattern: sidebar_pattern || prev.sidebar_pattern
       }));
     };
 
@@ -175,6 +179,50 @@ const Layout = () => {
     }
   };
   
+  // Functie om het juiste patroon te bepalen
+  const getPatternStyle = (pattern) => {
+    const baseColor = theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+    
+    switch (pattern) {
+      case 'canvas':
+        return {
+          backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
+                           linear-gradient(90deg, ${baseColor} 1px, transparent 1px)`,
+          backgroundSize: '20px 20px'
+        };
+      case 'dots':
+        return {
+          backgroundImage: `radial-gradient(${baseColor} 2px, transparent 2px)`,
+          backgroundSize: '20px 20px'
+        };
+      case 'lines':
+        return {
+          backgroundImage: `linear-gradient(45deg, ${baseColor} 25%, transparent 25%),
+                           linear-gradient(-45deg, ${baseColor} 25%, transparent 25%)`,
+          backgroundSize: '20px 20px'
+        };
+      case 'circuit':
+        return {
+          backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
+                           linear-gradient(90deg, ${baseColor} 1px, transparent 1px),
+                           linear-gradient(${baseColor} 0.5px, transparent 0.5px),
+                           linear-gradient(90deg, ${baseColor} 0.5px, transparent 0.5px)`,
+          backgroundSize: '50px 50px, 50px 50px, 10px 10px, 10px 10px'
+        };
+      case 'geometric':
+        return {
+          backgroundImage: `linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
+                           linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
+                           linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
+                           linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor})`,
+          backgroundSize: '80px 140px',
+          backgroundPosition: '0 0, 0 0, 40px 70px, 40px 70px'
+        };
+      default:
+        return {};
+    }
+  };
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -194,7 +242,8 @@ const Layout = () => {
           backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
           zIndex: barPosition === 'full-left' ? 200 : 1800,
           width: barPosition === 'full-left' ? '280px' : '100%',
-          height: barPosition === 'full-left' ? '100vh' : 'auto'
+          height: barPosition === 'full-left' ? '100vh' : 'auto',
+          ...(barPosition === 'full-left' && settings.sidebar_pattern !== 'none' && getPatternStyle(settings.sidebar_pattern))
         }}
       >
         <Toolbar sx={{ 
@@ -220,22 +269,22 @@ const Layout = () => {
               sx={{
                 bgcolor: 'transparent',
                 borderRadius: 0,
-                p: 2,
+                p: 0,
                 boxShadow: 'none',
                 display: 'flex',
                 flexDirection: barPosition === 'full-left' ? 'column' : 'row',
                 gap: 4,
-                alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
+                alignItems: 'center',
                 width: barPosition === 'full-left' ? '100%' : '100vw',
                 minWidth: barPosition === 'full-left' ? '100%' : '100vw',
                 height: barPosition === 'full-left' ? '100%' : '65px',
                 position: barPosition === 'full-left' ? 'relative' : 'absolute',
                 left: 0,
-                top: barPosition === 'full-left' ? 0 : -1,
+                top: barPosition === 'full-left' ? 0 : 0,
                 zIndex: 1200,
                 pr: 2,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: 'translateY(-1px)'
+                pl: barPosition === 'full-left' ? 2 : 4,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}>
               {/* Logo en Subtitle */}
               <Box sx={{ 
@@ -244,17 +293,21 @@ const Layout = () => {
                 alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
                 gap: barPosition === 'full-left' ? 0 : 4,
                 zIndex: 1300,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative'
               }}>
                 <Box
                   component="img"
                   src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
                   alt="Logo"
                   sx={{
-                    height: barPosition === 'full-left' ? 80 : 60,
+                    height: barPosition === 'full-left' ? 70 : 60,
                     width: 'auto',
                     objectFit: 'contain',
-                    transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    mt: `${settings.logo_margin_top}px`,
+                    ml: `${settings.logo_margin_left}px`,
+                    position: 'relative'
                   }}
                 />
                 {settings.site_subtitle && barPosition === 'full-left' && (
@@ -266,7 +319,7 @@ const Layout = () => {
                       fontSize: settings.subtitle_size,
                       textShadow: '0 0 10px rgba(0,0,0,0.5)',
                       mt: 1,
-                      textAlign: 'center',
+                      textAlign: 'left',
                       mb: 1
                     }}
                   >
@@ -422,7 +475,7 @@ const Layout = () => {
             height: '32px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
+            justifyContent: 'flex-end',
             bgcolor: barPosition === 'full-left' 
             ? 'transparent'
             : theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : 'rgba(60, 60, 60, 0.6)',
@@ -447,14 +500,14 @@ const Layout = () => {
               fontSize: '0.9rem',
               fontWeight: 500,
               letterSpacing: '0.02em',
-              textAlign: settings.logo_position === 'center' ? 'center' : 'right',
+              textAlign: 'right',
               position: 'relative',
               zIndex: 1,
               textShadow: theme.palette.mode === 'dark'
                 ? '0 1px 2px rgba(0,0,0,0.5), 0 1px 8px rgba(0,0,0,0.25)'
                 : '0 1px 2px rgba(255,255,255,0.5), 0 1px 8px rgba(255,255,255,0.25)',
               mixBlendMode: theme.palette.mode === 'dark' ? 'lighten' : 'darken',
-              width: settings.logo_position === 'center' ? '100%' : 'auto',
+              width: 'auto',
               px: 3,
               transition: theme.transitions.create(
                 ['color', 'text-shadow'], 
