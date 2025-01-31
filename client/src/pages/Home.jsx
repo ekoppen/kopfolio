@@ -114,14 +114,15 @@ const Home = () => {
         left: barPosition === 'full-left' ? '280px' : 0,
         right: 0,
         bottom: 0,
-        bgcolor: barPosition === 'full-left' 
-          ? (theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.95)' : 'rgba(60,60,60,0.95)')
-          : 'black',
+        bgcolor: theme.palette.mode === 'dark' 
+          ? 'rgba(30, 30, 30, 0.9)'
+          : 'rgba(60, 60, 60, 0.6)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: barPosition === 'full-left' ? '32px' : 0
+        padding: barPosition === 'full-left' ? '32px' : 0,
+        zIndex: 1
       }}>
         {photos.length > 0 && (
           <Box sx={{
@@ -133,7 +134,8 @@ const Home = () => {
             overflow: 'hidden',
             boxShadow: barPosition === 'full-left' 
               ? '0 0 0 1px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.5)'
-              : 'none'
+              : 'none',
+            zIndex: 2
           }}>
             <Swiper
               ref={swiperRef}

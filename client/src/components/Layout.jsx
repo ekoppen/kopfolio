@@ -180,32 +180,39 @@ const Layout = () => {
       display: 'flex', 
       flexDirection: barPosition === 'full-left' ? 'row' : 'column', 
       minHeight: '100vh',
-      bgcolor: 'background.default',
+      bgcolor: 'transparent',
       position: 'relative'
     }}>
       <AppBar 
         position={barPosition === 'full-left' ? 'relative' : "sticky"}
         elevation={0}
         sx={{ 
-          bgcolor: theme.palette.mode === 'dark' 
-            ? 'rgba(30,30,30,0.9)'
-            : 'rgba(60,60,60,0.9)',
+          bgcolor: 'transparent',
           borderBottom: barPosition !== 'full-left' ? '1px solid' : 'none',
-          borderRight: barPosition === 'full-left' ? '1px solid' : 'none',
+          borderRight: 'none',
           borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-          zIndex: 1100,
+          backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
+          zIndex: barPosition === 'full-left' ? 200 : 1800,
           width: barPosition === 'full-left' ? '280px' : '100%',
           height: barPosition === 'full-left' ? '100vh' : 'auto'
         }}
       >
         <Toolbar sx={{ 
           display: 'flex',
+          bgcolor: barPosition === 'full-left' 
+          ? (theme.palette.mode === 'dark' 
+            ? 'rgba(30, 30, 30, 0.9)'
+            : 'rgba(60, 60, 60, 0.6)')
+          : (theme.palette.mode === 'dark' 
+              ? 'rgba(30, 30, 30, 0.9)'
+              : 'rgba(60, 60, 60, 0.6)'),
           justifyContent: 'space-between',
           gap: 2,
-          px: { xs: 2, sm: 3, md: 4 },
+          px: barPosition === 'full-left' ? 2 : { xs: 2, sm: 3, md: 4 },
           position: 'relative',
           height: barPosition === 'full-left' ? '100%' : 64,
-          flexDirection: barPosition === 'full-left' ? 'column' : 'row'
+          flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+          zIndex: 1200
         }}>
           {/* Logo en Menu Box */}
           {settings.logo && (
@@ -216,17 +223,17 @@ const Layout = () => {
                 p: 2,
                 boxShadow: 'none',
                 display: 'flex',
+                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
                 gap: 4,
-                alignItems: 'center',
+                alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
                 width: barPosition === 'full-left' ? '100%' : '100vw',
                 minWidth: barPosition === 'full-left' ? '100%' : '100vw',
-                height: barPosition === 'full-left' ? 'auto' : '65px',
+                height: barPosition === 'full-left' ? '100%' : '65px',
                 position: barPosition === 'full-left' ? 'relative' : 'absolute',
                 left: 0,
                 top: barPosition === 'full-left' ? 0 : -1,
                 zIndex: 1200,
                 pr: 2,
-                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 transform: 'translateY(-1px)'
               }}>
@@ -234,7 +241,7 @@ const Layout = () => {
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-                alignItems: 'center',
+                alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
                 gap: barPosition === 'full-left' ? 0 : 4,
                 zIndex: 1300,
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -244,7 +251,7 @@ const Layout = () => {
                   src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
                   alt="Logo"
                   sx={{
-                    height: barPosition === 'full-left' ? 120 : 60,
+                    height: barPosition === 'full-left' ? 80 : 60,
                     width: 'auto',
                     objectFit: 'contain',
                     transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -258,8 +265,7 @@ const Layout = () => {
                       fontFamily: settings.subtitle_font,
                       fontSize: settings.subtitle_size,
                       textShadow: '0 0 10px rgba(0,0,0,0.5)',
-                      mt: `${settings.subtitle_margin_top}px`,
-                      ml: `${settings.subtitle_margin_left}px`,
+                      mt: 1,
                       textAlign: 'center',
                       mb: 1
                     }}
@@ -269,138 +275,199 @@ const Layout = () => {
                 )}
               </Box>
 
-              {/* Menu Items */}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-                gap: barPosition === 'full-left' ? 0.5 : 3,
-                pt: barPosition === 'full-left' ? 1 : 0,
-                pl: barPosition === 'full-left' ? 0 : 0,
-                ml: barPosition === 'full-left' ? 0 : -2,
-                mt: barPosition === 'full-left' ? 4 : 0,
-                alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
-                alignSelf: barPosition === 'full-left' ? 'flex-start' : 'center',
-                flex: 1,
-                width: barPosition === 'full-left' ? '100%' : 'auto',
-                zIndex: 1400,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}>
-                {menuPages.map((page) => (
-                  <Button
-                    key={page.id}
-                    component={RouterLink}
-                    to={`/${page.slug}`}
-                    startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
-                    sx={{ 
-                      color: settings.subtitle_color,
-                      textAlign: 'left',
-                      justifyContent: 'flex-start',
-                      fontFamily: settings.subtitle_font,
-                      fontSize: settings.subtitle_size,
-                      textTransform: 'none',
-                      whiteSpace: 'nowrap',
-                      width: barPosition === 'full-left' ? '100%' : 'auto',
-                      minHeight: barPosition === 'full-left' ? 32 : 'auto',
-                      py: barPosition === 'full-left' ? 0.5 : 1,
-                      '&:hover': {
-                        color: 'primary.main',
-                        bgcolor: 'rgba(255,255,255,0.1)'
-                      }
-                    }}
-                  >
-                    {page.title}
-                  </Button>
-                ))}
-              </Box>
+              {barPosition === 'full-left' ? (
+                <Box sx={{ 
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1,
+                  width: '100%',
+                  justifyContent: 'space-between',
+                  pl: 1
+                }}>
+                  {/* Menu Items */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: 0.5,
+                    pt: 1,
+                    mt: 2,
+                    alignItems: 'flex-start',
+                    width: '100%',
+                    zIndex: 1400,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}>
+                    {menuPages.map((page) => (
+                      <Button
+                        key={page.id}
+                        component={RouterLink}
+                        to={`/${page.slug}`}
+                        startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
+                        sx={{ 
+                          color: settings.subtitle_color,
+                          textAlign: 'left',
+                          justifyContent: 'flex-start',
+                          fontFamily: settings.subtitle_font,
+                          fontSize: settings.subtitle_size,
+                          textTransform: 'none',
+                          whiteSpace: 'nowrap',
+                          width: '100%',
+                          minHeight: 32,
+                          py: 0.5,
+                          pl: 1,
+                          '&:hover': {
+                            color: 'primary.main',
+                            bgcolor: 'rgba(255,255,255,0.1)'
+                          }
+                        }}
+                      >
+                        {page.title}
+                      </Button>
+                    ))}
+                  </Box>
 
-              {/* Navigation */}
-              <Box sx={{ 
-                ml: 'auto', 
-                mr: 2,
-                mt: barPosition === 'full-left' ? 'auto' : 0,
-                zIndex: 1500
-              }}>
-                <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
-              </Box>
+                  {/* Navigation */}
+                  <Box sx={{ 
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'flex-start',
+                    mt: 'auto',
+                    pb: 2,
+                    pl: 1,
+                    zIndex: 1500
+                  }}>
+                    <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+                  </Box>
+                </Box>
+              ) : (
+                <>
+                  {/* Menu Items - Horizontaal */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'row',
+                    gap: 3,
+                    ml: -2,
+                    alignItems: 'center',
+                    zIndex: 1400
+                  }}>
+                    {menuPages.map((page) => (
+                      <Button
+                        key={page.id}
+                        component={RouterLink}
+                        to={`/${page.slug}`}
+                        startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
+                        sx={{ 
+                          color: settings.subtitle_color,
+                          textAlign: 'left',
+                          justifyContent: 'flex-start',
+                          fontFamily: settings.subtitle_font,
+                          fontSize: settings.subtitle_size,
+                          textTransform: 'none',
+                          whiteSpace: 'nowrap',
+                          py: 1,
+                          '&:hover': {
+                            color: 'primary.main',
+                            bgcolor: 'rgba(255,255,255,0.1)'
+                          }
+                        }}
+                      >
+                        {page.title}
+                      </Button>
+                    ))}
+                  </Box>
+
+                  {/* Navigation - Horizontaal */}
+                  <Box sx={{ 
+                    ml: 'auto',
+                    display: 'flex',
+                    zIndex: 1500
+                  }}>
+                    <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+                  </Box>
+                </>
+              )}
             </Box>
           )}
         </Toolbar>
       </AppBar>
 
-      <Container 
-        component="main" 
-        sx={{ 
-          flex: 1,
-          py: 4,
-          px: {
-            xs: 2,
-            sm: 3,
-            md: 4
-          },
-          ml: barPosition === 'full-left' ? '280px' : 0,
-          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'grey.50'
-        }}
-      >
-        <Outlet />
-      </Container>
-
-      <Box 
-        component="footer" 
-        sx={{ 
-          height: '32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
-          bgcolor: 'transparent',
-          position: 'relative',
-          zIndex: 1300,
-          overflow: 'hidden',
-          px: 3,
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '1px',
-            bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-            opacity: 0.1
-          },
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            height: '100%',
-            width: `${((currentSlide) / (totalSlides || 1)) * 100}%`,
-            background: `linear-gradient(90deg, 
-              ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'} 0%, 
-              ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'} 100%)`,
-            transition: 'width 0.3s ease-out',
-            backdropFilter: 'blur(8px)'
-          }
-        }}
-      >
-        <Typography 
-          variant="body2" 
+      <Box sx={{ 
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        width: '100%',
+        position: 'relative'
+      }}>
+        <Container 
+          component="main" 
           sx={{ 
-            color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            letterSpacing: '0.02em',
-            textAlign: settings.logo_position === 'center' ? 'center' : 'right',
-            position: 'relative',
-            zIndex: 1,
-            textShadow: theme.palette.mode === 'dark'
-              ? '0 1px 2px rgba(0,0,0,0.5), 0 1px 8px rgba(0,0,0,0.25)'
-              : '0 1px 2px rgba(255,255,255,0.5), 0 1px 8px rgba(255,255,255,0.25)',
-            mixBlendMode: theme.palette.mode === 'dark' ? 'lighten' : 'darken',
-            width: settings.logo_position === 'center' ? '100%' : 'auto'
+            flex: 1,
+            py: 4,
+            px: {
+              xs: 2,
+              sm: 3,
+              md: 4
+            },
+            ml: barPosition === 'full-left' ? '280px' : 0,
+            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            bgcolor: 'transparent'
           }}
         >
-          {settings.footer_text}
-        </Typography>
+          <Outlet />
+        </Container>
+
+        <Box 
+          component="footer" 
+          sx={{ 
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
+            bgcolor: barPosition === 'full-left' 
+            ? 'transparent'
+            : theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : 'rgba(60, 60, 60, 0.6)',
+            position: 'sticky',
+            bottom: 0,
+            ml: barPosition === 'full-left' ? '280px' : 0,
+            width: barPosition === 'full-left' ? 'calc(100% - 280px)' : '100%',
+            transition: theme.transitions.create(
+              ['margin-left', 'width', 'background-color'], 
+              {
+                duration: theme.transitions.duration.standard,
+                easing: theme.transitions.easing.easeInOut
+              }
+            ),
+            backdropFilter: 'blur(8px)',
+                     }}
+        >
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              letterSpacing: '0.02em',
+              textAlign: settings.logo_position === 'center' ? 'center' : 'right',
+              position: 'relative',
+              zIndex: 1,
+              textShadow: theme.palette.mode === 'dark'
+                ? '0 1px 2px rgba(0,0,0,0.5), 0 1px 8px rgba(0,0,0,0.25)'
+                : '0 1px 2px rgba(255,255,255,0.5), 0 1px 8px rgba(255,255,255,0.25)',
+              mixBlendMode: theme.palette.mode === 'dark' ? 'lighten' : 'darken',
+              width: settings.logo_position === 'center' ? '100%' : 'auto',
+              px: 3,
+              transition: theme.transitions.create(
+                ['color', 'text-shadow'], 
+                {
+                  duration: theme.transitions.duration.standard,
+                  easing: theme.transitions.easing.easeInOut
+                }
+              )
+            }}
+          >
+            {settings.footer_text}
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );
