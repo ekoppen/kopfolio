@@ -1,59 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import api from '../utils/api';
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { 
+  EffectFade, 
+  EffectCreative, 
+  EffectCards, 
+  EffectCoverflow,
+  Autoplay 
+} from 'swiper/modules';
 
-// Custom styling voor de slideshow
-const sliderStyles = `
-  .slick-slider, .slick-list, .slick-track {
-    height: 100vh !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  .slick-slide {
-    width: 100vw !important;
-  }
-  .slick-slide > div {
-    height: 100vh !important;
-    width: 100vw !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  .slick-slider {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  .slick-list {
-    overflow: hidden !important;
-  }
-  .slick-track {
-    display: flex !important;
-  }
-  .slick-slide {
-    opacity: 0;
-    transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  .slick-active {
-    opacity: 1 !important;
-  }
-  .slick-current {
-    z-index: 1;
-  }
-`;
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/effect-fade';
+import 'swiper/css/effect-creative';
+import 'swiper/css/effect-cards';
+import 'swiper/css/effect-coverflow';
 
 const Home = () => {
+  const theme = useTheme();
   const [photos, setPhotos] = useState([]);
   const [pageSettings, setPageSettings] = useState(null);
-  const [progress, setProgress] = useState(0);
   const [loadedImages, setLoadedImages] = useState(new Set());
-  const progressInterval = useRef(null);
+  const swiperRef = useRef(null);
+  const [barPosition, setBarPosition] = useState(() => {
+    const savedPosition = localStorage.getItem('appBarPosition');
+    return savedPosition || 'top';
+  });
 
   // Functie om afbeeldingen vooraf te laden
   const preloadImages = (imageUrls) => {
@@ -107,119 +80,120 @@ const Home = () => {
     return () => window.removeEventListener('slideshowSettingsUpdated', handleSettingsUpdate);
   }, []);
 
-  // Start de voortgangsbalk wanneer een nieuwe slide begint
-  const startProgress = () => {
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
+  // Luister naar veranderingen in barPosition
+  useEffect(() => {
+    const updateBarPosition = (event) => {
+      setBarPosition(event.detail.position);
+    };
+
+    window.addEventListener('barPositionChanged', updateBarPosition);
+    
+    // Initial position
+    const savedPosition = localStorage.getItem('appBarPosition');
+    if (savedPosition) {
+      setBarPosition(savedPosition);
     }
 
-    const duration = pageSettings?.interval || 5000;
-    const startTime = Date.now();
-    
-    progressInterval.current = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / duration) * 100, 100);
-      setProgress(newProgress);
-
-      if (newProgress >= 100) {
-        clearInterval(progressInterval.current);
-      }
-    }, 16); // ~60fps
-  };
-
-  // Cleanup interval bij unmount
-  useEffect(() => {
-    return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
-    };
+    return () => window.removeEventListener('barPositionChanged', updateBarPosition);
   }, []);
 
-  const settings = {
-    dots: false,
-    infinite: true,
-    speed: pageSettings?.transition === 'slide' ? 1000 : 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: pageSettings?.autoPlay !== false,
-    autoplaySpeed: pageSettings?.interval || 5000,
-    fade: pageSettings?.transition === 'fade',
-    cssEase: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    slide: pageSettings?.transition !== 'fade',
-    arrows: false,
-    pauseOnHover: false,
-    lazyLoad: true,
-    swipe: true,
-    draggable: true,
-    beforeChange: () => {
-      // Reset en start de voortgangsbalk
-      setProgress(0);
-      startProgress();
-
-      // Stuur een custom event met de huidige slide en totaal aantal slides
-      window.dispatchEvent(new CustomEvent('slideshowProgress', {
-        detail: {
-          currentSlide: 0,
-          totalSlides: photos.length
-        }
-      }));
-    }
-  };
-
   return (
-    <>
-      <style>{sliderStyles}</style>
-      <Box sx={{ 
-        position: 'fixed',
+    <Box sx={{ 
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 0,
+      overflow: 'hidden',
+      display: 'flex'
+    }}>
+      <Box sx={{
+        position: 'absolute',
         top: 0,
-        left: 0,
+        left: barPosition === 'full-left' ? '280px' : 0,
         right: 0,
         bottom: 0,
-        zIndex: 0,
-        overflow: 'hidden',
-        m: '0 !important',
-        p: '0 !important',
+        bgcolor: barPosition === 'full-left' 
+          ? (theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.95)' : 'rgba(60,60,60,0.95)')
+          : 'black',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: barPosition === 'full-left' ? '32px' : 0
       }}>
         {photos.length > 0 && (
-          <Slider {...settings}>
-            {photos.map((photo) => {
-              const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
-              return (
-                <Box 
-                  key={photo.id}
-                  sx={{
-                    height: '100vh !important',
-                    width: '100vw !important',
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    m: '0 !important',
-                    p: '0 !important',
-                    opacity: loadedImages.has(imageUrl) ? 1 : 0,
-                    transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }}
-                />
-              );
-            })}
-          </Slider>
+          <Box sx={{
+            width: barPosition === 'full-left' ? 'calc(100% - 64px)' : '100%',
+            height: barPosition === 'full-left' ? 'calc(100% - 64px)' : '100%',
+            position: 'relative',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            borderRadius: barPosition === 'full-left' ? '16px' : 0,
+            overflow: 'hidden',
+            boxShadow: barPosition === 'full-left' 
+              ? '0 0 0 1px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.5)'
+              : 'none'
+          }}>
+            <Swiper
+              ref={swiperRef}
+              modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay]}
+              effect={pageSettings?.transition || 'fade'}
+              speed={pageSettings?.speed || 1000}
+              slidesPerView={1}
+              loop={true}
+              autoplay={{
+                delay: pageSettings?.interval || 5000,
+                disableOnInteraction: false,
+                enabled: pageSettings?.autoPlay !== false
+              }}
+              pagination={false}
+              navigation={false}
+              creativeEffect={{
+                prev: {
+                  translate: [0, 0, -400],
+                },
+                next: {
+                  translate: ['100%', 0, 0],
+                },
+              }}
+              coverflowEffect={{
+                rotate: 50,
+                stretch: 0,
+                depth: 100,
+                modifier: 1,
+                slideShadows: true,
+              }}
+              style={{
+                width: '100%',
+                height: '100%'
+              }}
+            >
+              {photos.map((photo) => {
+                const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
+                return (
+                  <SwiperSlide key={photo.id}>
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundImage: `url(${imageUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        opacity: loadedImages.has(imageUrl) ? 1 : 0,
+                        transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    />
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>
+          </Box>
         )}
       </Box>
-      <Box 
-        sx={{ 
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          width: `${progress}%`,
-          height: '32px',
-          background: 'rgba(255,255,255,0.1)',
-          transition: 'width 16ms linear',
-          zIndex: 1299
-        }} 
-      />
-    </>
+    </Box>
   );
-}
+};
 
 export default Home; 

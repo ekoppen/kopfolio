@@ -32,7 +32,11 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
             bgcolor: 'rgba(0,0,0,0.2)',
             '&:hover': {
               bgcolor: 'rgba(0,0,0,0.4)'
-            }
+            },
+            borderRadius: '50%',
+            width: 40,
+            height: 40,
+            padding: 1
           }}
         >
           {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}

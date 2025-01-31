@@ -26,7 +26,8 @@ import {
   MenuItem,
   Slider,
   FormControlLabel,
-  Switch
+  Switch,
+  FormHelperText
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -167,6 +168,7 @@ const AdminPages = () => {
           slideshow: {
             interval: localSlideShowSettings.interval,
             transition: localSlideShowSettings.transition,
+            speed: localSlideShowSettings.speed || 1000,
             autoPlay: localSlideShowSettings.autoPlay,
             showTitles: localSlideShowSettings.showTitles,
             showShadow: localSlideShowSettings.showShadow
@@ -438,8 +440,13 @@ const AdminPages = () => {
                 >
                   <MenuItem value="fade">Vervagen</MenuItem>
                   <MenuItem value="slide">Schuiven</MenuItem>
-                  <MenuItem value="zoom">Inzoomen</MenuItem>
+                  <MenuItem value="creative">Creatief</MenuItem>
+                  <MenuItem value="cards">Kaarten</MenuItem>
+                  <MenuItem value="coverflow">Cover Flow</MenuItem>
                 </Select>
+                <FormHelperText>
+                  Kies het type overgang tussen de foto's
+                </FormHelperText>
               </FormControl>
 
               <FormControl fullWidth sx={{ mb: 3 }}>
@@ -459,6 +466,31 @@ const AdminPages = () => {
                   valueLabelDisplay="auto"
                   valueLabelFormat={value => `${value}s`}
                 />
+                <FormHelperText>
+                  De tijd tussen elke foto wissel
+                </FormHelperText>
+              </FormControl>
+
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <Typography gutterBottom>
+                  Animatie snelheid (milliseconden)
+                </Typography>
+                <Slider
+                  value={localSlideShowSettings.speed || 1000}
+                  min={500}
+                  max={2000}
+                  step={100}
+                  marks
+                  onChange={(e, value) => setLocalSlideShowSettings(prev => ({
+                    ...prev,
+                    speed: value
+                  }))}
+                  valueLabelDisplay="auto"
+                  valueLabelFormat={value => `${value}ms`}
+                />
+                <FormHelperText>
+                  De duur van de overgangsanimatie
+                </FormHelperText>
               </FormControl>
 
               <FormControlLabel

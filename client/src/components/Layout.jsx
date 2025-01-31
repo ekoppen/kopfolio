@@ -42,7 +42,14 @@ const Layout = () => {
   });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const savedState = localStorage.getItem('appBarExpanded');
+    return savedState !== null ? JSON.parse(savedState) : false;
+  });
+  const [barPosition, setBarPosition] = useState(() => {
+    const savedPosition = localStorage.getItem('appBarPosition');
+    return savedPosition || 'top'; // 'top' of 'full-left'
+  });
   const [menuPages, setMenuPages] = useState([]);
   
   useEffect(() => {
@@ -140,23 +147,55 @@ const Layout = () => {
 
     loadMenuPages();
   }, []);
+
+  // Update localStorage wanneer isExpanded verandert
+  useEffect(() => {
+    localStorage.setItem('appBarExpanded', JSON.stringify(isExpanded));
+  }, [isExpanded]);
+
+  // Update localStorage wanneer barPosition verandert
+  useEffect(() => {
+    localStorage.setItem('appBarPosition', barPosition);
+  }, [barPosition]);
+
+  // Toggle functie die de balk uitklapt naar links
+  const handleToggle = () => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setBarPosition('full-left');
+      window.dispatchEvent(new CustomEvent('barPositionChanged', { 
+        detail: { position: 'full-left' } 
+      }));
+    } else {
+      setIsExpanded(false);
+      setBarPosition('top');
+      window.dispatchEvent(new CustomEvent('barPositionChanged', { 
+        detail: { position: 'top' } 
+      }));
+    }
+  };
   
   return (
     <Box sx={{ 
       display: 'flex', 
-      flexDirection: 'column', 
+      flexDirection: barPosition === 'full-left' ? 'row' : 'column', 
       minHeight: '100vh',
       bgcolor: 'background.default',
       position: 'relative'
     }}>
       <AppBar 
-        position="sticky"
+        position={barPosition === 'full-left' ? 'relative' : "sticky"}
         elevation={0}
         sx={{ 
-          bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'common.white',
-          borderBottom: '1px solid',
+          bgcolor: theme.palette.mode === 'dark' 
+            ? 'rgba(30,30,30,0.9)'
+            : 'rgba(60,60,60,0.9)',
+          borderBottom: barPosition !== 'full-left' ? '1px solid' : 'none',
+          borderRight: barPosition === 'full-left' ? '1px solid' : 'none',
           borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-          zIndex: 1100
+          zIndex: 1100,
+          width: barPosition === 'full-left' ? '280px' : '100%',
+          height: barPosition === 'full-left' ? '100vh' : 'auto'
         }}
       >
         <Toolbar sx={{ 
@@ -165,57 +204,53 @@ const Layout = () => {
           gap: 2,
           px: { xs: 2, sm: 3, md: 4 },
           position: 'relative',
-          height: 64
+          height: barPosition === 'full-left' ? '100%' : 64,
+          flexDirection: barPosition === 'full-left' ? 'column' : 'row'
         }}>
-          {/* Logo en Menu Box als eerste */}
+          {/* Logo en Menu Box */}
           {settings.logo && (
             <Box
               sx={{
-                bgcolor: theme.palette.mode === 'dark' 
-                  ? 'rgba(30,30,30,0.9)'
-                  : 'rgba(60,60,60,0.9)',
-                borderRadius: isExpanded ? '0 0 16px 16px' : 0,
+                bgcolor: 'transparent',
+                borderRadius: 0,
                 p: 2,
-                boxShadow: theme.palette.mode === 'dark' 
-                  ? '0 4px 20px rgba(0,0,0,0.5)' 
-                  : '0 4px 20px rgba(0,0,0,0.1)',
+                boxShadow: 'none',
                 display: 'flex',
                 gap: 4,
                 alignItems: 'center',
-                width: isExpanded ? 'auto' : '100vw',
-                minWidth: isExpanded ? 'fit-content' : '100vw',
-                height: isExpanded ? 'auto' : '65px',
-                position: 'absolute',
-                left: isExpanded ? (settings.logo_position === 'center' ? '50%' : 24) : 0,
-                top: -1,
+                width: barPosition === 'full-left' ? '100%' : '100vw',
+                minWidth: barPosition === 'full-left' ? '100%' : '100vw',
+                height: barPosition === 'full-left' ? 'auto' : '65px',
+                position: barPosition === 'full-left' ? 'relative' : 'absolute',
+                left: 0,
+                top: barPosition === 'full-left' ? 0 : -1,
                 zIndex: 1200,
-                pr: isExpanded ? 6 : 2,
-                transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: isExpanded && settings.logo_position === 'center' 
-                  ? 'translate(-50%, -1px)' 
-                  : 'translateY(-1px)'
+                pr: 2,
+                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: 'translateY(-1px)'
               }}>
               {/* Logo en Subtitle */}
               <Box sx={{ 
                 display: 'flex', 
-                flexDirection: isExpanded ? 'column' : 'row',
+                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
                 alignItems: 'center',
-                gap: isExpanded ? 0 : 4,
+                gap: barPosition === 'full-left' ? 0 : 4,
                 zIndex: 1300,
-                transition: 'flex-direction 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}>
                 <Box
                   component="img"
                   src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
                   alt="Logo"
                   sx={{
-                    height: isExpanded ? 120 : 60,
+                    height: barPosition === 'full-left' ? 120 : 60,
                     width: 'auto',
                     objectFit: 'contain',
                     transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 />
-                {settings.site_subtitle && isExpanded && (
+                {settings.site_subtitle && barPosition === 'full-left' && (
                   <Typography
                     variant="subtitle1"
                     sx={{
@@ -225,7 +260,8 @@ const Layout = () => {
                       textShadow: '0 0 10px rgba(0,0,0,0.5)',
                       mt: `${settings.subtitle_margin_top}px`,
                       ml: `${settings.subtitle_margin_left}px`,
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      mb: 1
                     }}
                   >
                     {settings.site_subtitle}
@@ -236,17 +272,18 @@ const Layout = () => {
               {/* Menu Items */}
               <Box sx={{ 
                 display: 'flex', 
-                flexDirection: isExpanded ? 'column' : 'row',
-                gap: isExpanded ? 1 : 3,
-                pt: isExpanded ? 3 : 0,
-                pl: isExpanded ? 3 : 0,
-                ml: isExpanded ? -5 : -2,
-                mt: isExpanded ? -3 : 0,
-                alignItems: isExpanded ? 'flex-start' : 'center',
-                alignSelf: isExpanded ? 'flex-start' : 'center',
+                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+                gap: barPosition === 'full-left' ? 0.5 : 3,
+                pt: barPosition === 'full-left' ? 1 : 0,
+                pl: barPosition === 'full-left' ? 0 : 0,
+                ml: barPosition === 'full-left' ? 0 : -2,
+                mt: barPosition === 'full-left' ? 4 : 0,
+                alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
+                alignSelf: barPosition === 'full-left' ? 'flex-start' : 'center',
                 flex: 1,
+                width: barPosition === 'full-left' ? '100%' : 'auto',
                 zIndex: 1400,
-                transition: 'flex-direction 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}>
                 {menuPages.map((page) => (
                   <Button
@@ -262,6 +299,9 @@ const Layout = () => {
                       fontSize: settings.subtitle_size,
                       textTransform: 'none',
                       whiteSpace: 'nowrap',
+                      width: barPosition === 'full-left' ? '100%' : 'auto',
+                      minHeight: barPosition === 'full-left' ? 32 : 'auto',
+                      py: barPosition === 'full-left' ? 0.5 : 1,
                       '&:hover': {
                         color: 'primary.main',
                         bgcolor: 'rgba(255,255,255,0.1)'
@@ -273,24 +313,15 @@ const Layout = () => {
                 ))}
               </Box>
 
-              {/* Navigation - alleen tonen in ingeklapte weergave */}
-              {!isExpanded && (
-                <Box sx={{ 
-                  ml: 'auto', 
-                  mr: 2,
-                  zIndex: 1500
-                }}>
-                  <Navigation isExpanded={isExpanded} onToggleExpand={() => setIsExpanded(!isExpanded)} />
-                </Box>
-              )}
-            </Box>
-          )}
-          
-          {/* Spacer en Navigation - alleen tonen in uitgeklapte weergave */}
-          <Box sx={{ flex: 1 }} />
-          {isExpanded && (
-            <Box sx={{ zIndex: 1500 }}>
-              <Navigation isExpanded={isExpanded} onToggleExpand={() => setIsExpanded(!isExpanded)} />
+              {/* Navigation */}
+              <Box sx={{ 
+                ml: 'auto', 
+                mr: 2,
+                mt: barPosition === 'full-left' ? 'auto' : 0,
+                zIndex: 1500
+              }}>
+                <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+              </Box>
             </Box>
           )}
         </Toolbar>
@@ -299,13 +330,15 @@ const Layout = () => {
       <Container 
         component="main" 
         sx={{ 
-          flex: 1, 
+          flex: 1,
           py: 4,
           px: {
             xs: 2,
             sm: 3,
             md: 4
           },
+          ml: barPosition === 'full-left' ? '280px' : 0,
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'grey.50'
         }}
       >
