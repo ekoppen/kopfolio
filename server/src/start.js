@@ -28,12 +28,14 @@ async function setupDirectories() {
   const dirs = [
     path.join(__dirname, '../public/uploads/photos'),
     path.join(__dirname, '../public/uploads/thumbs'),
-    path.join(__dirname, '../public/uploads/branding')
+    path.join(__dirname, '../public/uploads/branding'),
+    path.join(__dirname, '../public/patterns')
   ];
 
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
+      console.log(`Map aangemaakt: ${dir}`);
     }
   }
 }

@@ -1,13 +1,38 @@
 import { pool } from '../models/db.js';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { uploadDirs, getUploadPath } from '../middleware/upload.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Haal beschikbare patronen op
+export const getPatterns = async (req, res) => {
+  try {
+    const patternsDir = path.join(__dirname, '../../public/patterns');
+    const files = await fs.readdir(patternsDir);
+    const patterns = files
+      .filter(file => file.endsWith('.svg'))
+      .map(file => ({
+        name: file,
+        value: file,
+        preview: `/patterns/${file}`
+      }));
+    
+    res.json(patterns);
+  } catch (error) {
+    console.error('Error getting patterns:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Haal de huidige instellingen op
-const getSettings = async (req, res) => {
+export const getSettings = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern FROM settings WHERE id = 1'
+      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, pattern_opacity, pattern_scale FROM settings WHERE id = 1'
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -17,7 +42,7 @@ const getSettings = async (req, res) => {
 };
 
 // Update de instellingen
-const updateSettings = async (req, res) => {
+export const updateSettings = async (req, res) => {
   try {
     const {
       site_title,
@@ -33,7 +58,9 @@ const updateSettings = async (req, res) => {
       subtitle_margin_top,
       subtitle_margin_left,
       footer_text,
-      sidebar_pattern
+      sidebar_pattern,
+      pattern_opacity,
+      pattern_scale
     } = req.body;
 
     let query = `
@@ -51,7 +78,9 @@ const updateSettings = async (req, res) => {
           subtitle_margin_top = COALESCE($11, subtitle_margin_top),
           subtitle_margin_left = COALESCE($12, subtitle_margin_left),
           footer_text = COALESCE($13, footer_text),
-          sidebar_pattern = COALESCE($14, sidebar_pattern)
+          sidebar_pattern = COALESCE($14, sidebar_pattern),
+          pattern_opacity = COALESCE($15, pattern_opacity),
+          pattern_scale = COALESCE($16, pattern_scale)
     `;
 
     const values = [
@@ -68,7 +97,9 @@ const updateSettings = async (req, res) => {
       subtitle_margin_top,
       subtitle_margin_left,
       footer_text,
-      sidebar_pattern
+      sidebar_pattern,
+      pattern_opacity,
+      pattern_scale
     ];
 
     // Als er een logo is geüpload
@@ -81,7 +112,7 @@ const updateSettings = async (req, res) => {
       await logoFile.mv(filepath);
       
       // Update de query om het nieuwe logo op te slaan
-      query += ', logo = $15';
+      query += ', logo = $17';
       values.push(filename);
     }
 
@@ -93,6 +124,4 @@ const updateSettings = async (req, res) => {
     console.error('Error updating settings:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-};
-
-export { getSettings, updateSettings }; 
+}; 

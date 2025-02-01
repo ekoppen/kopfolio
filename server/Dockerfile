@@ -15,8 +15,9 @@ RUN npm install
 RUN mkdir -p /app/public/uploads/photos \
     /app/public/uploads/thumbs \
     /app/public/uploads/branding \
+    /app/public/patterns \
     /app/temp && \
-    chmod -R 777 /app/public/uploads /app/temp
+    chmod -R 777 /app/public/uploads /app/public/patterns /app/temp
 
 # Kopieer de rest van de applicatie
 COPY . .

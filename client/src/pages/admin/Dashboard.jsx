@@ -15,7 +15,8 @@ import {
   MenuItem,
   IconButton,
   Tooltip,
-  LinearProgress
+  LinearProgress,
+  Slider
 } from '@mui/material';
 import {
   Collections as AlbumIcon,
@@ -56,9 +57,12 @@ const Dashboard = () => {
     subtitle_margin_top: 0,
     subtitle_margin_left: 0,
     footer_text: '',
-    sidebar_pattern: 'none'
+    sidebar_pattern: 'none',
+    pattern_opacity: 0.8,
+    pattern_scale: 1
   });
-  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [patterns, setPatterns] = useState([]);
   const [importStatus, setImportStatus] = useState({
     isImporting: false,
     currentStep: '',
@@ -103,7 +107,9 @@ const Dashboard = () => {
         subtitle_margin_top: response.data.subtitle_margin_top || 0,
         subtitle_margin_left: response.data.subtitle_margin_left || 0,
         footer_text: response.data.footer_text || '',
-        sidebar_pattern: response.data.sidebar_pattern || 'none'
+        sidebar_pattern: response.data.sidebar_pattern || 'none',
+        pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.8,
+        pattern_scale: parseFloat(response.data.pattern_scale) || 1
       });
       if (response.data.logo) {
         setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${response.data.logo}`);
@@ -113,9 +119,22 @@ const Dashboard = () => {
     }
   };
 
+  const loadPatterns = async () => {
+    try {
+      const response = await api.get('/settings/patterns');
+      setPatterns([
+        { name: 'Geen patroon', value: 'none', preview: null },
+        ...response.data
+      ]);
+    } catch (error) {
+      showToast('Fout bij ophalen patronen', 'error');
+    }
+  };
+
   useEffect(() => {
     loadStats();
     loadSettings();
+    loadPatterns();
   }, []);
 
   const handleLogoChange = (event) => {
@@ -128,28 +147,53 @@ const Dashboard = () => {
 
   const handleSaveSettings = async () => {
     try {
-      const formData = new FormData();
-      formData.append('site_title', settings.site_title);
-      formData.append('site_subtitle', settings.site_subtitle);
-      formData.append('subtitle_font', settings.subtitle_font);
-      formData.append('subtitle_size', settings.subtitle_size);
-      formData.append('subtitle_color', settings.subtitle_color);
-      formData.append('accent_color', settings.accent_color);
-      formData.append('font', settings.font);
-      formData.append('logo_position', settings.logo_position);
-      formData.append('logo_margin_top', settings.logo_margin_top);
-      formData.append('logo_margin_left', settings.logo_margin_left);
-      formData.append('subtitle_margin_top', settings.subtitle_margin_top);
-      formData.append('subtitle_margin_left', settings.subtitle_margin_left);
-      formData.append('footer_text', settings.footer_text);
-      formData.append('sidebar_pattern', settings.sidebar_pattern);
-      if (settings.logo instanceof File) {
-        formData.append('logo', settings.logo);
-      }
+      let response;
       
-      await api.put('/settings', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Als er een nieuw logo is, gebruik FormData
+      if (settings.logo instanceof File) {
+        const formData = new FormData();
+        formData.append('site_title', settings.site_title);
+        formData.append('site_subtitle', settings.site_subtitle);
+        formData.append('subtitle_font', settings.subtitle_font);
+        formData.append('subtitle_size', settings.subtitle_size);
+        formData.append('subtitle_color', settings.subtitle_color);
+        formData.append('accent_color', settings.accent_color);
+        formData.append('font', settings.font);
+        formData.append('logo_position', settings.logo_position);
+        formData.append('logo_margin_top', settings.logo_margin_top);
+        formData.append('logo_margin_left', settings.logo_margin_left);
+        formData.append('subtitle_margin_top', settings.subtitle_margin_top);
+        formData.append('subtitle_margin_left', settings.subtitle_margin_left);
+        formData.append('footer_text', settings.footer_text);
+        formData.append('sidebar_pattern', settings.sidebar_pattern);
+        formData.append('pattern_opacity', settings.pattern_opacity);
+        formData.append('pattern_scale', settings.pattern_scale);
+        formData.append('logo', settings.logo);
+        
+        response = await api.put('/settings', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        // Anders, gebruik gewone JSON
+        response = await api.put('/settings', {
+          site_title: settings.site_title,
+          site_subtitle: settings.site_subtitle,
+          subtitle_font: settings.subtitle_font,
+          subtitle_size: settings.subtitle_size,
+          subtitle_color: settings.subtitle_color,
+          accent_color: settings.accent_color,
+          font: settings.font,
+          logo_position: settings.logo_position,
+          logo_margin_top: settings.logo_margin_top,
+          logo_margin_left: settings.logo_margin_left,
+          subtitle_margin_top: settings.subtitle_margin_top,
+          subtitle_margin_left: settings.subtitle_margin_left,
+          footer_text: settings.footer_text,
+          sidebar_pattern: settings.sidebar_pattern,
+          pattern_opacity: settings.pattern_opacity,
+          pattern_scale: settings.pattern_scale
+        });
+      }
 
       // Update document font
       document.documentElement.style.setProperty('font-family', `${settings.font}, sans-serif`);
@@ -170,7 +214,9 @@ const Dashboard = () => {
           subtitle_margin_top: settings.subtitle_margin_top,
           subtitle_margin_left: settings.subtitle_margin_left,
           footer_text: settings.footer_text,
-          sidebar_pattern: settings.sidebar_pattern
+          sidebar_pattern: settings.sidebar_pattern,
+          pattern_opacity: settings.pattern_opacity,
+          pattern_scale: settings.pattern_scale
         }
       }));
 
@@ -670,15 +716,67 @@ const Dashboard = () => {
                   onChange={(e) => setSettings({ ...settings, sidebar_pattern: e.target.value })}
                   label="Achtergrondpatroon zijbalk"
                 >
-                  <MenuItem value="none">Geen patroon</MenuItem>
-                  <MenuItem value="canvas">Canvas structuur</MenuItem>
-                  <MenuItem value="dots">Stippen patroon</MenuItem>
-                  <MenuItem value="lines">Lijnen patroon</MenuItem>
-                  <MenuItem value="circuit">Circuit patroon</MenuItem>
-                  <MenuItem value="geometric">Geometrisch patroon</MenuItem>
+                  {patterns.map((pattern) => (
+                    <MenuItem key={pattern.value} value={pattern.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {pattern.preview && (
+                          <Box
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              borderRadius: 1,
+                              overflow: 'hidden',
+                              backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}${pattern.preview})`,
+                              bgcolor: 'background.paper'
+                            }}
+                          />
+                        )}
+                        <Typography>{pattern.name}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
+            {settings.sidebar_pattern !== 'none' && (
+              <>
+                <Grid item xs={12}>
+                  <Typography gutterBottom>Patroon transparantie</Typography>
+                  <Slider
+                    value={settings.pattern_opacity || 0.1}
+                    min={0.01}
+                    max={0.25}
+                    step={0.01}
+                    marks={[
+                      { value: 0.01, label: '1%' },
+                      { value: 0.05, label: '5%' },
+                      { value: 0.1, label: '10%' },
+                      { value: 0.15, label: '15%' },
+                      { value: 0.2, label: '20%' },
+                      { value: 0.25, label: '25%' }
+                    ]}
+                    onChange={(e, value) => setSettings(prev => ({ ...prev, pattern_opacity: value }))}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={value => `${Math.round(value * 100)}%`}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography gutterBottom>Patroon grootte</Typography>
+                  <Slider
+                    value={settings.pattern_scale || 1}
+                    min={0.5}
+                    max={3}
+                    step={0.1}
+                    marks
+                    onChange={(e, value) => setSettings(prev => ({ ...prev, pattern_scale: value }))}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={value => `${Math.round(value * 100)}%`}
+                  />
+                </Grid>
+              </>
+            )}
           </Grid>
 
           <TextField

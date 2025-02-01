@@ -23,8 +23,18 @@ export async function initDb() {
   try {
     await client.query('BEGIN');
 
+    // Maak de migrations tabel aan als deze nog niet bestaat
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Voer migraties uit
     const migrations = [
+      '001_create_migrations.sql',
       '001_create_pages.sql',
       '002_create_settings.sql',
       '003_create_default_settings.sql',
@@ -35,14 +45,27 @@ export async function initDb() {
       '008_create_home_album.sql',
       '009_create_sample_photos.sql',
       '010_add_menu_fields.sql',
-      '011_add_sidebar_pattern.sql'
+      '011_add_sidebar_pattern.sql',
+      '012_add_pattern_opacity.sql',
+      '013_add_pattern_scale.sql'
     ];
 
     for (const migration of migrations) {
-      const migrationSql = await fs.readFile(path.join(__dirname, '..', 'db', 'migrations', migration), 'utf8');
+      // Controleer of de migratie al is uitgevoerd
+      const { rows } = await client.query('SELECT * FROM migrations WHERE name = $1', [migration]);
       
-      // Voer het hele migratie bestand in één keer uit voor plpgsql functies
-      await client.query(migrationSql);
+      if (rows.length === 0) {
+        const migrationSql = await fs.readFile(path.join(__dirname, '..', 'db', 'migrations', migration), 'utf8');
+        
+        // Voer het hele migratie bestand in één keer uit voor plpgsql functies
+        await client.query(migrationSql);
+
+        // Registreer de migratie als uitgevoerd
+        await client.query('INSERT INTO migrations (name) VALUES ($1)', [migration]);
+        console.log(`Migratie ${migration} succesvol uitgevoerd`);
+      } else {
+        console.log(`Migratie ${migration} is al uitgevoerd`);
+      }
     }
 
     // Verwijder bestaande admin gebruiker

@@ -26,6 +26,10 @@ app.use('/api/albums', albumRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use('/patterns', express.static(path.join(__dirname, '../public/patterns')));
+
 // Basis route
 app.get('/', (req, res) => {
   res.json({ message: 'Welkom bij de Kopfolio API' });

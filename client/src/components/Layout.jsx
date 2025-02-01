@@ -39,7 +39,9 @@ const Layout = () => {
     subtitle_margin_top: 0,
     subtitle_margin_left: 0,
     footer_text: '',
-    sidebar_pattern: 'none'
+    sidebar_pattern: 'none',
+    pattern_opacity: 0.8,
+    pattern_scale: 1
   });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
@@ -73,7 +75,9 @@ const Layout = () => {
           subtitle_margin_top: parseInt(response.data.subtitle_margin_top) || 0,
           subtitle_margin_left: parseInt(response.data.subtitle_margin_left) || 0,
           footer_text: response.data.footer_text || '',
-          sidebar_pattern: response.data.sidebar_pattern || 'none'
+          sidebar_pattern: response.data.sidebar_pattern || 'none',
+          pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.8,
+          pattern_scale: parseFloat(response.data.pattern_scale) || 1
         }));
       } catch (error) {
         console.error('Fout bij laden site instellingen:', error);
@@ -98,7 +102,9 @@ const Layout = () => {
         subtitle_margin_top,
         subtitle_margin_left,
         footer_text,
-        sidebar_pattern
+        sidebar_pattern,
+        pattern_opacity,
+        pattern_scale
       } = event.detail;
       
       setSettings(prev => ({
@@ -116,7 +122,9 @@ const Layout = () => {
         subtitle_margin_top: parseInt(subtitle_margin_top) || prev.subtitle_margin_top,
         subtitle_margin_left: parseInt(subtitle_margin_left) || prev.subtitle_margin_left,
         footer_text: footer_text || prev.footer_text,
-        sidebar_pattern: sidebar_pattern || prev.sidebar_pattern
+        sidebar_pattern: sidebar_pattern || prev.sidebar_pattern,
+        pattern_opacity: parseFloat(pattern_opacity) || prev.pattern_opacity,
+        pattern_scale: parseFloat(pattern_scale) || prev.pattern_scale
       }));
     };
 
@@ -181,42 +189,122 @@ const Layout = () => {
   
   // Functie om het juiste patroon te bepalen
   const getPatternStyle = (pattern) => {
-    const baseColor = theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+    if (!pattern || pattern === 'none') return {};
+
+    // Als het een custom SVG patroon is
+    if (pattern.endsWith('.svg')) {
+      return {
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/patterns/${pattern})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: `${settings.pattern_scale * 100}%`,
+          backgroundPosition: 'center',
+          opacity: settings.pattern_opacity,
+          pointerEvents: 'none',
+          zIndex: 1
+        }
+      };
+    }
+
+    // Voor de ingebouwde patronen
+    const baseColor = theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+    const baseSize = 20 * (settings.pattern_scale || 1);
     
     switch (pattern) {
       case 'canvas':
         return {
-          backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
-                           linear-gradient(90deg, ${baseColor} 1px, transparent 1px)`,
-          backgroundSize: '20px 20px'
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
+                             linear-gradient(90deg, ${baseColor} 1px, transparent 1px)`,
+            backgroundSize: `${baseSize}px ${baseSize}px`,
+            opacity: settings.pattern_opacity,
+            pointerEvents: 'none',
+            zIndex: 1
+          }
         };
       case 'dots':
         return {
-          backgroundImage: `radial-gradient(${baseColor} 2px, transparent 2px)`,
-          backgroundSize: '20px 20px'
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `radial-gradient(${baseColor} ${2 * (settings.pattern_scale || 1)}px, transparent ${2 * (settings.pattern_scale || 1)}px)`,
+            backgroundSize: `${baseSize}px ${baseSize}px`,
+            opacity: settings.pattern_opacity,
+            pointerEvents: 'none',
+            zIndex: 1
+          }
         };
       case 'lines':
         return {
-          backgroundImage: `linear-gradient(45deg, ${baseColor} 25%, transparent 25%),
-                           linear-gradient(-45deg, ${baseColor} 25%, transparent 25%)`,
-          backgroundSize: '20px 20px'
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `linear-gradient(45deg, ${baseColor} 25%, transparent 25%),
+                             linear-gradient(-45deg, ${baseColor} 25%, transparent 25%)`,
+            backgroundSize: `${baseSize}px ${baseSize}px`,
+            opacity: settings.pattern_opacity,
+            pointerEvents: 'none',
+            zIndex: 1
+          }
         };
       case 'circuit':
         return {
-          backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
-                           linear-gradient(90deg, ${baseColor} 1px, transparent 1px),
-                           linear-gradient(${baseColor} 0.5px, transparent 0.5px),
-                           linear-gradient(90deg, ${baseColor} 0.5px, transparent 0.5px)`,
-          backgroundSize: '50px 50px, 50px 50px, 10px 10px, 10px 10px'
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
+                             linear-gradient(90deg, ${baseColor} 1px, transparent 1px),
+                             linear-gradient(${baseColor} 0.5px, transparent 0.5px),
+                             linear-gradient(90deg, ${baseColor} 0.5px, transparent 0.5px)`,
+            backgroundSize: `${baseSize * 2.5}px ${baseSize * 2.5}px, ${baseSize * 2.5}px ${baseSize * 2.5}px, ${baseSize * 0.5}px ${baseSize * 0.5}px, ${baseSize * 0.5}px ${baseSize * 0.5}px`,
+            opacity: settings.pattern_opacity,
+            pointerEvents: 'none',
+            zIndex: 1
+          }
         };
       case 'geometric':
         return {
-          backgroundImage: `linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
-                           linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
-                           linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
-                           linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor})`,
-          backgroundSize: '80px 140px',
-          backgroundPosition: '0 0, 0 0, 40px 70px, 40px 70px'
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
+                             linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
+                             linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
+                             linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor})`,
+            backgroundSize: `${baseSize * 4}px ${baseSize * 7}px`,
+            backgroundPosition: `0 0, 0 0, ${baseSize * 2}px ${baseSize * 3.5}px, ${baseSize * 2}px ${baseSize * 3.5}px`,
+            opacity: settings.pattern_opacity,
+            pointerEvents: 'none',
+            zIndex: 1
+          }
         };
       default:
         return {};
@@ -229,7 +317,25 @@ const Layout = () => {
       flexDirection: barPosition === 'full-left' ? 'row' : 'column', 
       minHeight: '100vh',
       bgcolor: 'transparent',
-      position: 'relative'
+      position: 'relative',
+      ...(settings.sidebar_pattern && settings.sidebar_pattern !== 'none' && {
+        '&::before': {
+          content: '""',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/patterns/${settings.sidebar_pattern})`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: `${settings.pattern_scale * 280}px`,
+          backgroundPosition: 'center',
+          opacity: settings.pattern_opacity,
+          zIndex: -1,
+          mixBlendMode: 'soft-light',
+          pointerEvents: 'none'
+        }
+      })
     }}>
       <AppBar 
         position={barPosition === 'full-left' ? 'relative' : "sticky"}
@@ -243,25 +349,33 @@ const Layout = () => {
           zIndex: barPosition === 'full-left' ? 200 : 1800,
           width: barPosition === 'full-left' ? '280px' : '100%',
           height: barPosition === 'full-left' ? '100vh' : 'auto',
-          ...(barPosition === 'full-left' && settings.sidebar_pattern !== 'none' && getPatternStyle(settings.sidebar_pattern))
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
+        {/* Achtergrond div */}
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : 'rgba(60, 60, 60, 0.6)',
+          zIndex: 0
+        }} />
+
+        {/* Pattern div verwijderd omdat we nu een globale pattern overlay hebben */}
+
         <Toolbar sx={{ 
           display: 'flex',
-          bgcolor: barPosition === 'full-left' 
-          ? (theme.palette.mode === 'dark' 
-            ? 'rgba(30, 30, 30, 0.9)'
-            : 'rgba(60, 60, 60, 0.6)')
-          : (theme.palette.mode === 'dark' 
-              ? 'rgba(30, 30, 30, 0.9)'
-              : 'rgba(60, 60, 60, 0.6)'),
+          bgcolor: 'transparent',
           justifyContent: 'space-between',
           gap: 2,
           px: barPosition === 'full-left' ? 2 : { xs: 2, sm: 3, md: 4 },
           position: 'relative',
           height: barPosition === 'full-left' ? '100%' : 64,
           flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-          zIndex: 1200
+          zIndex: 2
         }}>
           {/* Logo en Menu Box */}
           {settings.logo && (
@@ -469,29 +583,16 @@ const Layout = () => {
           <Outlet />
         </Container>
 
-        <Box 
-          component="footer" 
-          sx={{ 
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            bgcolor: barPosition === 'full-left' 
-            ? 'transparent'
-            : theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : 'rgba(60, 60, 60, 0.6)',
-            position: 'sticky',
-            bottom: 0,
-            ml: barPosition === 'full-left' ? '280px' : 0,
-            width: barPosition === 'full-left' ? 'calc(100% - 280px)' : '100%',
-            transition: theme.transitions.create(
-              ['margin-left', 'width', 'background-color'], 
-              {
-                duration: theme.transitions.duration.standard,
-                easing: theme.transitions.easing.easeInOut
-              }
-            ),
-            backdropFilter: 'blur(8px)',
-                     }}
+        <Box
+          component="footer"
+          sx={{
+            py: 3,
+            px: 2,
+            mt: 'auto',
+            bgcolor: 'transparent',
+            zIndex: 2,
+            position: 'relative'
+          }}
         >
           <Typography 
             variant="body2" 
