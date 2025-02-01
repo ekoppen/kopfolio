@@ -32,7 +32,7 @@ export const getPatterns = async (req, res) => {
 export const getSettings = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, pattern_opacity, pattern_scale FROM settings WHERE id = 1'
+      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, pattern_opacity, pattern_scale, pattern_color FROM settings WHERE id = 1'
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -60,7 +60,8 @@ export const updateSettings = async (req, res) => {
       footer_text,
       sidebar_pattern,
       pattern_opacity,
-      pattern_scale
+      pattern_scale,
+      pattern_color
     } = req.body;
 
     let query = `
@@ -80,7 +81,8 @@ export const updateSettings = async (req, res) => {
           footer_text = COALESCE($13, footer_text),
           sidebar_pattern = COALESCE($14, sidebar_pattern),
           pattern_opacity = COALESCE($15, pattern_opacity),
-          pattern_scale = COALESCE($16, pattern_scale)
+          pattern_scale = COALESCE($16, pattern_scale),
+          pattern_color = COALESCE($17, pattern_color)
     `;
 
     const values = [
@@ -99,7 +101,8 @@ export const updateSettings = async (req, res) => {
       footer_text,
       sidebar_pattern,
       pattern_opacity,
-      pattern_scale
+      pattern_scale,
+      pattern_color
     ];
 
     // Als er een logo is geüpload
@@ -112,7 +115,7 @@ export const updateSettings = async (req, res) => {
       await logoFile.mv(filepath);
       
       // Update de query om het nieuwe logo op te slaan
-      query += ', logo = $17';
+      query += ', logo = $18';
       values.push(filename);
     }
 

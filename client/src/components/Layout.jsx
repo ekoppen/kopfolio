@@ -41,7 +41,8 @@ const Layout = () => {
     footer_text: '',
     sidebar_pattern: 'none',
     pattern_opacity: 0.8,
-    pattern_scale: 1
+    pattern_scale: 1,
+    pattern_color: '#FCF4FF'
   });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
@@ -77,7 +78,8 @@ const Layout = () => {
           footer_text: response.data.footer_text || '',
           sidebar_pattern: response.data.sidebar_pattern || 'none',
           pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.8,
-          pattern_scale: parseFloat(response.data.pattern_scale) || 1
+          pattern_scale: parseFloat(response.data.pattern_scale) || 1,
+          pattern_color: response.data.pattern_color || '#FCF4FF'
         }));
       } catch (error) {
         console.error('Fout bij laden site instellingen:', error);
@@ -104,7 +106,8 @@ const Layout = () => {
         footer_text,
         sidebar_pattern,
         pattern_opacity,
-        pattern_scale
+        pattern_scale,
+        pattern_color
       } = event.detail;
       
       setSettings(prev => ({
@@ -124,7 +127,8 @@ const Layout = () => {
         footer_text: footer_text || prev.footer_text,
         sidebar_pattern: sidebar_pattern || prev.sidebar_pattern,
         pattern_opacity: parseFloat(pattern_opacity) || prev.pattern_opacity,
-        pattern_scale: parseFloat(pattern_scale) || prev.pattern_scale
+        pattern_scale: parseFloat(pattern_scale) || prev.pattern_scale,
+        pattern_color: pattern_color || prev.pattern_color
       }));
     };
 
@@ -188,7 +192,8 @@ const Layout = () => {
   };
   
   // Functie om het juiste patroon te bepalen
-  const getPatternStyle = (pattern) => {
+  const getPatternStyle = () => {
+    const pattern = settings.sidebar_pattern;
     if (!pattern || pattern === 'none') return {};
 
     // Als het een custom SVG patroon is
@@ -208,6 +213,19 @@ const Layout = () => {
           opacity: settings.pattern_opacity,
           pointerEvents: 'none',
           zIndex: 1
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: settings.pattern_color || '#FCF4FF',
+          mixBlendMode: 'multiply',
+          opacity: 0.5,
+          pointerEvents: 'none',
+          zIndex: 2
         }
       };
     }
@@ -332,7 +350,19 @@ const Layout = () => {
           backgroundPosition: 'center',
           opacity: settings.pattern_opacity,
           zIndex: -1,
-          mixBlendMode: 'soft-light',
+          pointerEvents: 'none'
+        },
+        '&::after': {
+          content: '""',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: settings.pattern_color || '#FCF4FF',
+          mixBlendMode: 'multiply',
+          opacity: 0.5,
+          zIndex: -1,
           pointerEvents: 'none'
         }
       })

@@ -31,6 +31,7 @@ import api from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import PatternPicker from '../../components/PatternPicker';
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -59,7 +60,8 @@ const Dashboard = () => {
     footer_text: '',
     sidebar_pattern: 'none',
     pattern_opacity: 0.8,
-    pattern_scale: 1
+    pattern_scale: 1,
+    pattern_color: '#000000'
   });
   const [logoPreview, setLogoPreview] = useState('');
   const [patterns, setPatterns] = useState([]);
@@ -109,7 +111,8 @@ const Dashboard = () => {
         footer_text: response.data.footer_text || '',
         sidebar_pattern: response.data.sidebar_pattern || 'none',
         pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.8,
-        pattern_scale: parseFloat(response.data.pattern_scale) || 1
+        pattern_scale: parseFloat(response.data.pattern_scale) || 1,
+        pattern_color: response.data.pattern_color || '#000000'
       });
       if (response.data.logo) {
         setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${response.data.logo}`);
@@ -168,6 +171,7 @@ const Dashboard = () => {
         formData.append('sidebar_pattern', settings.sidebar_pattern);
         formData.append('pattern_opacity', settings.pattern_opacity);
         formData.append('pattern_scale', settings.pattern_scale);
+        formData.append('pattern_color', settings.pattern_color);
         formData.append('logo', settings.logo);
         
         response = await api.put('/settings', formData, {
@@ -191,7 +195,8 @@ const Dashboard = () => {
           footer_text: settings.footer_text,
           sidebar_pattern: settings.sidebar_pattern,
           pattern_opacity: settings.pattern_opacity,
-          pattern_scale: settings.pattern_scale
+          pattern_scale: settings.pattern_scale,
+          pattern_color: settings.pattern_color
         });
       }
 
@@ -216,7 +221,8 @@ const Dashboard = () => {
           footer_text: settings.footer_text,
           sidebar_pattern: settings.sidebar_pattern,
           pattern_opacity: settings.pattern_opacity,
-          pattern_scale: settings.pattern_scale
+          pattern_scale: settings.pattern_scale,
+          pattern_color: settings.pattern_color
         }
       }));
 
@@ -709,74 +715,18 @@ const Dashboard = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Achtergrondpatroon zijbalk</InputLabel>
-                <Select
-                  value={settings.sidebar_pattern}
-                  onChange={(e) => setSettings({ ...settings, sidebar_pattern: e.target.value })}
-                  label="Achtergrondpatroon zijbalk"
-                >
-                  {patterns.map((pattern) => (
-                    <MenuItem key={pattern.value} value={pattern.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {pattern.preview && (
-                          <Box
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              borderRadius: 1,
-                              overflow: 'hidden',
-                              backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}${pattern.preview})`,
-                              bgcolor: 'background.paper'
-                            }}
-                          />
-                        )}
-                        <Typography>{pattern.name}</Typography>
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <PatternPicker
+                patterns={patterns}
+                selectedPattern={settings.sidebar_pattern}
+                patternOpacity={settings.pattern_opacity}
+                patternScale={settings.pattern_scale}
+                patternColor={settings.pattern_color}
+                onPatternChange={(value) => setSettings(prev => ({ ...prev, sidebar_pattern: value }))}
+                onOpacityChange={(value) => setSettings(prev => ({ ...prev, pattern_opacity: value }))}
+                onScaleChange={(value) => setSettings(prev => ({ ...prev, pattern_scale: value }))}
+                onColorChange={(value) => setSettings(prev => ({ ...prev, pattern_color: value }))}
+              />
             </Grid>
-            {settings.sidebar_pattern !== 'none' && (
-              <>
-                <Grid item xs={12}>
-                  <Typography gutterBottom>Patroon transparantie</Typography>
-                  <Slider
-                    value={settings.pattern_opacity || 0.1}
-                    min={0.01}
-                    max={0.25}
-                    step={0.01}
-                    marks={[
-                      { value: 0.01, label: '1%' },
-                      { value: 0.05, label: '5%' },
-                      { value: 0.1, label: '10%' },
-                      { value: 0.15, label: '15%' },
-                      { value: 0.2, label: '20%' },
-                      { value: 0.25, label: '25%' }
-                    ]}
-                    onChange={(e, value) => setSettings(prev => ({ ...prev, pattern_opacity: value }))}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={value => `${Math.round(value * 100)}%`}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography gutterBottom>Patroon grootte</Typography>
-                  <Slider
-                    value={settings.pattern_scale || 1}
-                    min={0.5}
-                    max={3}
-                    step={0.1}
-                    marks
-                    onChange={(e, value) => setSettings(prev => ({ ...prev, pattern_scale: value }))}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={value => `${Math.round(value * 100)}%`}
-                  />
-                </Grid>
-              </>
-            )}
           </Grid>
 
           <TextField
