@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Slider, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Paper, Typography, Slider, TextField, FormControl, InputLabel, Select, MenuItem, useTheme } from '@mui/material';
 
 const PatternPicker = ({ 
   patterns, 
@@ -12,6 +12,7 @@ const PatternPicker = ({
   onScaleChange,
   onColorChange
 }) => {
+  const theme = useTheme();
   const selectedPatternObj = patterns.find(p => p.value === selectedPattern) || patterns[0];
 
   return (
@@ -38,8 +39,10 @@ const PatternPicker = ({
           position: 'relative',
           borderRadius: 2,
           overflow: 'hidden',
-          bgcolor: 'background.paper',
-          mb: 3
+          bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.paper',
+          mb: 3,
+          border: 1,
+          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
         }}>
           {/* Pattern Preview Background */}
           <Box sx={{
@@ -74,9 +77,15 @@ const PatternPicker = ({
             width: 300,
             p: 3,
             borderRadius: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            bgcolor: theme.palette.mode === 'dark' 
+              ? 'rgba(30, 30, 30, 0.9)' 
+              : 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+              : '0 8px 32px rgba(0, 0, 0, 0.1)',
+            border: 1,
+            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
           }}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -117,7 +126,7 @@ const PatternPicker = ({
               />
             </Box>
 
-            <Box sx={{ mb: 3 }}>
+            <Box>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 TRANSPARANTIE
               </Typography>
