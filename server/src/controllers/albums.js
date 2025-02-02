@@ -116,61 +116,31 @@ export const getAlbum = async (req, res) => {
   }
 };
 
-// Update album
+// Update album informatie
 export const updateAlbum = async (req, res) => {
-  const client = await pool.connect();
-  
+  const { id } = req.params;
+  const { title, description, is_home } = req.body;
+
   try {
-    await client.query('BEGIN');
-    
-    const { id } = req.params;
-    const { title, description, is_home, cover_photo } = req.body;
-
-    // Haal eerst het huidige album op met FOR UPDATE
-    const currentAlbum = await client.query(
-      'SELECT is_home FROM albums WHERE id = $1 FOR UPDATE',
-      [id]
-    );
-
-    if (currentAlbum.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ message: 'Album niet gevonden' });
-    }
-
-    if (is_home && !currentAlbum.rows[0].is_home) {
-      // Als we dit album home willen maken, check dan of er al een ander home album is
-      const homeCheck = await client.query(
-        'SELECT id FROM albums WHERE is_home = true AND id != $1 FOR UPDATE',
-        [id]
-      );
-      if (homeCheck.rows.length > 0) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ 
-          message: 'Er bestaat al een home album. Er kan maar één home album zijn.' 
-        });
-      }
-    }
-
-    const result = await client.query(
+    const result = await pool.query(
       `UPDATE albums 
        SET title = COALESCE($1, title),
            description = COALESCE($2, description),
            is_home = COALESCE($3, is_home),
-           cover_photo = COALESCE($4, cover_photo),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5
+       WHERE id = $4
        RETURNING *`,
-      [title, description, is_home, cover_photo, id]
+      [title, description, is_home, id]
     );
 
-    await client.query('COMMIT');
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Album niet gevonden' });
+    }
+
     res.json(result.rows[0]);
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Error in updateAlbum:', error);
-    res.status(500).json({ message: 'Fout bij updaten album' });
-  } finally {
-    client.release();
+    res.status(500).json({ message: 'Fout bij updaten album', error: error.message });
   }
 };
 
@@ -262,5 +232,93 @@ export const removePhotosFromAlbum = async (req, res) => {
   } catch (error) {
     console.error('Error removing photos from album:', error);
     res.status(500).json({ error: 'Fout bij verwijderen van foto\'s uit het album' });
+  }
+};
+
+// Update album cover foto
+export const updateAlbumCover = async (req, res) => {
+  const { id } = req.params;
+  const { photoId } = req.body;
+
+  try {
+    // Controleer eerst of de foto bestaat en in het album zit
+    const photoCheck = await pool.query(
+      `SELECT 1 FROM photos_albums 
+       WHERE album_id = $1 AND photo_id = $2`,
+      [id, photoId]
+    );
+
+    if (photoCheck.rows.length === 0) {
+      return res.status(400).json({ 
+        message: 'De geselecteerde foto bestaat niet of zit niet in dit album' 
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE albums 
+       SET cover_photo_id = $1,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [photoId, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Album niet gevonden' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating album cover:', error);
+    res.status(500).json({ message: 'Fout bij updaten album cover', error: error.message });
+  }
+};
+
+// Update foto volgorde in album
+export const updatePhotoOrder = async (req, res) => {
+  const { id } = req.params;
+  const { photoOrder } = req.body; // Array van photo IDs in de gewenste volgorde
+
+  if (!Array.isArray(photoOrder)) {
+    return res.status(400).json({ message: 'Foto volgorde moet een array zijn' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Controleer of alle foto's in het album zitten
+    const photoCheck = await client.query(
+      `SELECT photo_id FROM photos_albums 
+       WHERE album_id = $1 AND photo_id = ANY($2)`,
+      [id, photoOrder]
+    );
+
+    if (photoCheck.rows.length !== photoOrder.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ 
+        message: 'Niet alle opgegeven foto\'s zitten in dit album' 
+      });
+    }
+
+    // Update de positie van elke foto
+    await Promise.all(photoOrder.map((photoId, index) => 
+      client.query(
+        `UPDATE photos_albums 
+         SET position = $1 
+         WHERE album_id = $2 AND photo_id = $3`,
+        [index, id, photoId]
+      )
+    ));
+
+    await client.query('COMMIT');
+    res.json({ message: 'Foto volgorde succesvol bijgewerkt' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating photo order:', error);
+    res.status(500).json({ message: 'Fout bij updaten foto volgorde', error: error.message });
+  } finally {
+    client.release();
   }
 }; 

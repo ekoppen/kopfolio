@@ -105,11 +105,11 @@ const AdminAlbums = () => {
 
       <Grid container spacing={2}>
         {albums.map((album) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={album.id}>
+          <Grid item xs={12} sm={6} md={4} lg={3} key={album.id} sx={{ display: 'flex' }}>
             <Card
               elevation={0}
               sx={{
-                height: '100%',
+                width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 bgcolor: 'background.paper',

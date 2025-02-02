@@ -191,11 +191,12 @@ export const uploadPhotos = async (req, res) => {
         }
 
         // Voeg toe aan database
+        console.log('Inserting into database with exif_data:', exifData);
         const result = await client.query(
           `INSERT INTO photos (
             filename, original_filename, title, description,
-            width, height, size, mime_type, hash, taken_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+            width, height, size, mime_type, hash, taken_at, exif_data
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
           RETURNING *`,
           [
             filename,
@@ -207,7 +208,8 @@ export const uploadPhotos = async (req, res) => {
             file.size,
             file.mimetype,
             hash,
-            dateOriginal
+            dateOriginal,
+            JSON.stringify(exifData)
           ]
         );
 
@@ -273,11 +275,13 @@ export const uploadPhotos = async (req, res) => {
 export const getPhotos = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.*, 
-             array_agg(DISTINCT jsonb_build_object(
-               'id', a.id,
-               'title', a.title
-             )) FILTER (WHERE a.id IS NOT NULL) as albums
+      SELECT 
+        p.*,
+        COALESCE(p.title, p.original_filename) as display_name,
+        array_agg(DISTINCT jsonb_build_object(
+          'id', a.id,
+          'title', a.title
+        )) FILTER (WHERE a.id IS NOT NULL) as albums
       FROM photos p 
       LEFT JOIN photos_albums pa ON p.id = pa.photo_id
       LEFT JOIN albums a ON pa.album_id = a.id 
@@ -288,7 +292,8 @@ export const getPhotos = async (req, res) => {
     // Verwerk de resultaten
     const photos = result.rows.map(photo => ({
       ...photo,
-      albums: photo.albums || []
+      albums: photo.albums || [],
+      exif_data: photo.exif_data || null
     }));
 
     res.json(photos);
@@ -332,7 +337,7 @@ export const updatePhoto = async (req, res) => {
        SET title = COALESCE($1, title),
            description = COALESCE($2, description),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2
+       WHERE id = $3
        RETURNING *`,
       [title, description, id]
     );

@@ -174,8 +174,14 @@ const AdminPhotos = () => {
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
+      // Speciale behandeling voor albums
+      if (sortConfig.key === 'albums') {
+        // Haal de albumnamen op en sorteer op de eerste albumnaam (of een lege string als er geen albums zijn)
+        aValue = (a.albums && a.albums.length > 0) ? a.albums.map(album => album.title).join(', ').toLowerCase() : '';
+        bValue = (b.albums && b.albums.length > 0) ? b.albums.map(album => album.title).join(', ').toLowerCase() : '';
+      }
       // Datumvelden
-      if (['created_at', 'original_date'].includes(sortConfig.key)) {
+      else if (['created_at', 'original_date'].includes(sortConfig.key)) {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
       }
@@ -573,10 +579,9 @@ const AdminPhotos = () => {
                 />
               </TableCell>
               <TableCell sx={{ width: 100 }}>Thumbnail</TableCell>
-              <SortableTableCell field="filename" label="Bestandsnaam" />
-              <SortableTableCell field="title" label="Titel" />
+              <SortableTableCell field="display_name" label="Naam" />
               <SortableTableCell field="exif_data.model" label="Camera Model" />
-              <SortableTableCell field="album_id" label="Album" />
+              <SortableTableCell field="albums" label="Album" width={300} />
               <SortableTableCell field="size" label="Grootte" width={100} />
               <SortableTableCell field="created_at" label="Geüpload op" width={150} />
               <SortableTableCell field="original_date" label="Originele datum" width={150} />
@@ -624,8 +629,7 @@ const AdminPhotos = () => {
                     />
                   </Box>
                 </TableCell>
-                <TableCell>{photo.filename}</TableCell>
-                <TableCell>{photo.title || '-'}</TableCell>
+                <TableCell>{photo.title || photo.original_filename}</TableCell>
                 <TableCell>
                   <Typography 
                     variant="body2" 
@@ -641,14 +645,17 @@ const AdminPhotos = () => {
                 </TableCell>
                 <TableCell>
                   {photo.albums?.length > 0 ? (
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', maxWidth: 300 }}>
                       {photo.albums.map(album => (
                         <Chip 
                           key={album.id}
                           label={album.title}
                           size="small"
                           variant="outlined"
-                          onClick={(e) => handleAlbumClick(e, photo)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAlbumClick(e, photo);
+                          }}
                           sx={{ 
                             cursor: 'pointer',
                             '&:hover': {
@@ -662,7 +669,10 @@ const AdminPhotos = () => {
                     <Button 
                       size="small" 
                       variant="text" 
-                      onClick={(e) => handleAlbumClick(e, photo)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAlbumClick(e, photo);
+                      }}
                       sx={{ 
                         color: 'text.secondary',
                         '&:hover': {
@@ -930,17 +940,7 @@ const AdminPhotos = () => {
                 <ListItem>
                   <Box sx={{ width: '100%' }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Bestandsnaam
-                    </Typography>
-                    <ListItemText 
-                      primary={selectedPhoto.filename} 
-                    />
-                  </Box>
-                </ListItem>
-                <ListItem>
-                  <Box sx={{ width: '100%' }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Titel
+                      Naam
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <TextField
@@ -950,7 +950,7 @@ const AdminPhotos = () => {
                           const newTitle = e.target.value;
                           setSelectedPhoto(prev => ({ ...prev, title: newTitle }));
                         }}
-                        placeholder="Voeg een titel toe"
+                        placeholder={selectedPhoto.original_filename}
                         sx={{ flex: 1 }}
                       />
                       <IconButton
@@ -960,7 +960,7 @@ const AdminPhotos = () => {
                             await api.put(`/photos/${selectedPhoto.id}`, { 
                               title: selectedPhoto.title 
                             });
-                            showToast('Titel succesvol opgeslagen', 'success');
+                            showToast('Naam succesvol opgeslagen', 'success');
                             setPhotos(prev => prev.map(p => 
                               p.id === selectedPhoto.id 
                                 ? { ...p, title: selectedPhoto.title }
@@ -968,7 +968,7 @@ const AdminPhotos = () => {
                             ));
                           } catch (error) {
                             console.error('Error saving title:', error);
-                            showToast('Fout bij opslaan titel', 'error');
+                            showToast('Fout bij opslaan naam', 'error');
                           }
                         }}
                         color="primary"
