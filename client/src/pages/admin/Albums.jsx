@@ -110,17 +110,19 @@ const AdminAlbums = () => {
               elevation={0}
               sx={{
                 width: '100%',
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                boxShadow: theme.palette.mode === 'dark' ? '0 2px 12px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.1)',
                 borderRadius: 2,
                 overflow: 'hidden',
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 4px 20px rgba(0,0,0,0.15)'
+                  boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.6)' : '0 4px 20px rgba(0,0,0,0.15)'
                 }
               }}
             >

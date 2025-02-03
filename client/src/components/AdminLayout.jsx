@@ -26,7 +26,8 @@ import {
   Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon,
   DarkMode as DarkModeIcon,
-  LightMode as LightModeIcon
+  LightMode as LightModeIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { ThemeContext } from '../contexts/ThemeContext';
 
@@ -47,7 +48,8 @@ const AdminLayout = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
     { text: 'Albums', icon: <AlbumIcon />, path: '/admin/albums' },
     { text: "Foto's", icon: <PhotoIcon />, path: '/admin/fotos' },
-    { text: "Pagina's", icon: <PageIcon />, path: '/admin/paginas' }
+    { text: "Pagina's", icon: <PageIcon />, path: '/admin/paginas' },
+    { text: "Instellingen", icon: <SettingsIcon />, path: '/admin/instellingen' }
   ];
 
   // Bepaal de actieve pagina

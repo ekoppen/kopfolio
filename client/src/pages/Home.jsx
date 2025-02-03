@@ -130,7 +130,11 @@ const Home = () => {
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             borderRadius: barPosition === 'full-left' ? '16px' : 0,
             overflow: 'hidden',
-            boxShadow: barPosition === 'full-left' ? 'none' : 'none',
+            boxShadow: barPosition === 'full-left' 
+              ? theme.palette.mode === 'dark'
+                ? '0 8px 32px rgba(0,0,0,0.5)'
+                : '0 8px 32px rgba(0,0,0,0.25)'
+              : 'none',
             zIndex: 2
           }}>
             <Swiper

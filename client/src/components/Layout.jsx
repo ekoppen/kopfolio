@@ -359,17 +359,24 @@ const Layout = () => {
                       to={`/${page.slug}`}
                       startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
                       sx={{ 
-                        color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                        color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
                         textAlign: 'left',
                         justifyContent: 'flex-start',
                         fontFamily: settings.subtitle_font,
                         fontSize: settings.subtitle_size,
                         textTransform: 'none',
                         whiteSpace: 'nowrap',
-                        py: 1,
+                        py: 0.75,
+                        px: 1.5,
+                        borderRadius: 1,
+                        transition: 'all 0.2s ease-in-out',
                         '&:hover': {
-                          color: 'primary.main',
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
+                        },
+                        '&.active': {
+                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'
                         }
                       }}
                     >

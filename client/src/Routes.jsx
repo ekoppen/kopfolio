@@ -11,6 +11,7 @@ import AdminAlbums from './pages/admin/Albums';
 import AdminPhotos from './pages/admin/Photos';
 import AdminPages from './pages/admin/Pages';
 import PageEditor from './pages/admin/PageEditor';
+import Settings from './pages/admin/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const AppRoutes = () => {
@@ -39,6 +40,7 @@ const AppRoutes = () => {
         <Route path="paginas" element={<AdminPages />} />
         <Route path="paginas/nieuw" element={<PageEditor />} />
         <Route path="paginas/:id" element={<PageEditor />} />
+        <Route path="instellingen" element={<Settings />} />
       </Route>
     </RouterRoutes>
   );
