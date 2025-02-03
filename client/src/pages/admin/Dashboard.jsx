@@ -61,7 +61,8 @@ const Dashboard = () => {
     sidebar_pattern: 'none',
     pattern_opacity: 0.8,
     pattern_scale: 1,
-    pattern_color: '#000000'
+    pattern_color: '#000000',
+    logo_size: 100
   });
   const [logoPreview, setLogoPreview] = useState('');
   const [patterns, setPatterns] = useState([]);
@@ -112,7 +113,8 @@ const Dashboard = () => {
         sidebar_pattern: response.data.sidebar_pattern || 'none',
         pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.8,
         pattern_scale: parseFloat(response.data.pattern_scale) || 1,
-        pattern_color: response.data.pattern_color || '#000000'
+        pattern_color: response.data.pattern_color || '#000000',
+        logo_size: response.data.logo_size || 100
       });
       if (response.data.logo) {
         setLogoPreview(`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${response.data.logo}`);
@@ -158,76 +160,69 @@ const Dashboard = () => {
         formData.append('site_title', settings.site_title);
         formData.append('site_subtitle', settings.site_subtitle);
         formData.append('subtitle_font', settings.subtitle_font);
-        formData.append('subtitle_size', settings.subtitle_size);
+        formData.append('subtitle_size', settings.subtitle_size.toString());
         formData.append('subtitle_color', settings.subtitle_color);
         formData.append('accent_color', settings.accent_color);
         formData.append('font', settings.font);
         formData.append('logo_position', settings.logo_position);
-        formData.append('logo_margin_top', settings.logo_margin_top);
-        formData.append('logo_margin_left', settings.logo_margin_left);
-        formData.append('subtitle_margin_top', settings.subtitle_margin_top);
-        formData.append('subtitle_margin_left', settings.subtitle_margin_left);
+        formData.append('logo_margin_top', settings.logo_margin_top.toString());
+        formData.append('logo_margin_left', settings.logo_margin_left.toString());
+        formData.append('subtitle_margin_top', settings.subtitle_margin_top.toString());
+        formData.append('subtitle_margin_left', settings.subtitle_margin_left.toString());
         formData.append('footer_text', settings.footer_text);
         formData.append('sidebar_pattern', settings.sidebar_pattern);
-        formData.append('pattern_opacity', settings.pattern_opacity);
-        formData.append('pattern_scale', settings.pattern_scale);
+        formData.append('pattern_opacity', settings.pattern_opacity.toString());
+        formData.append('pattern_scale', settings.pattern_scale.toString());
         formData.append('pattern_color', settings.pattern_color);
+        formData.append('logo_size', settings.logo_size.toString());
         formData.append('logo', settings.logo);
         
         response = await api.put('/settings', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
         });
       } else {
-        // Anders, gebruik gewone JSON
-        response = await api.put('/settings', {
-          site_title: settings.site_title,
-          site_subtitle: settings.site_subtitle,
-          subtitle_font: settings.subtitle_font,
-          subtitle_size: settings.subtitle_size,
-          subtitle_color: settings.subtitle_color,
-          accent_color: settings.accent_color,
-          font: settings.font,
-          logo_position: settings.logo_position,
-          logo_margin_top: settings.logo_margin_top,
-          logo_margin_left: settings.logo_margin_left,
-          subtitle_margin_top: settings.subtitle_margin_top,
-          subtitle_margin_left: settings.subtitle_margin_left,
-          footer_text: settings.footer_text,
-          sidebar_pattern: settings.sidebar_pattern,
-          pattern_opacity: settings.pattern_opacity,
-          pattern_scale: settings.pattern_scale,
-          pattern_color: settings.pattern_color
-        });
+        // Anders, stuur gewone JSON data
+        const { logo, ...settingsWithoutLogo } = settings;
+        response = await api.put('/settings', settingsWithoutLogo);
       }
 
-      // Update document font
-      document.documentElement.style.setProperty('font-family', `${settings.font}, sans-serif`);
-      
-      // Trigger een window event om de App component te informeren
-      window.dispatchEvent(new CustomEvent('settingsUpdated', { 
-        detail: { 
-          accent_color: settings.accent_color,
-          font: settings.font,
-          logo_position: settings.logo_position,
-          site_subtitle: settings.site_subtitle,
-          site_title: settings.site_title,
-          subtitle_font: settings.subtitle_font,
-          subtitle_size: settings.subtitle_size,
-          subtitle_color: settings.subtitle_color,
-          logo_margin_top: settings.logo_margin_top,
-          logo_margin_left: settings.logo_margin_left,
-          subtitle_margin_top: settings.subtitle_margin_top,
-          subtitle_margin_left: settings.subtitle_margin_left,
-          footer_text: settings.footer_text,
-          sidebar_pattern: settings.sidebar_pattern,
-          pattern_opacity: settings.pattern_opacity,
-          pattern_scale: settings.pattern_scale,
-          pattern_color: settings.pattern_color
-        }
-      }));
+      if (response.data) {
+        showToast('Instellingen opgeslagen', 'success');
+        // Update de settings met de response data
+        setSettings(prev => ({
+          ...prev,
+          ...response.data
+        }));
 
-      showToast('Instellingen succesvol opgeslagen', 'success');
+        // Trigger een window event om de App component te informeren over alle instellingen
+        window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+          detail: { 
+            ...response.data,
+            accent_color: settings.accent_color,
+            font: settings.font,
+            logo_position: settings.logo_position,
+            site_subtitle: settings.site_subtitle,
+            site_title: settings.site_title,
+            subtitle_font: settings.subtitle_font,
+            subtitle_size: settings.subtitle_size,
+            subtitle_color: settings.subtitle_color,
+            logo_margin_top: settings.logo_margin_top,
+            logo_margin_left: settings.logo_margin_left,
+            subtitle_margin_top: settings.subtitle_margin_top,
+            subtitle_margin_left: settings.subtitle_margin_left,
+            footer_text: settings.footer_text,
+            sidebar_pattern: settings.sidebar_pattern,
+            pattern_opacity: settings.pattern_opacity,
+            pattern_scale: settings.pattern_scale,
+            pattern_color: settings.pattern_color,
+            logo_size: settings.logo_size
+          }
+        }));
+      }
     } catch (error) {
+      console.error('Error saving settings:', error);
       showToast('Fout bij opslaan instellingen', 'error');
     }
   };
@@ -614,6 +609,18 @@ const Dashboard = () => {
                   onChange={(e) => setSettings(prev => ({ ...prev, logo_margin_left: parseInt(e.target.value) }))}
                   InputProps={{
                     inputProps: { min: -50, max: 100 }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Logo grootte (px)"
+                  value={settings.logo_size}
+                  onChange={(e) => setSettings(prev => ({ ...prev, logo_size: parseInt(e.target.value) }))}
+                  InputProps={{
+                    inputProps: { min: 20, max: 200 }
                   }}
                 />
               </Grid>

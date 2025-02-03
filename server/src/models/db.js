@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +17,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
-  port: 5432
+  port: process.env.DB_PORT
 });
 
 export async function initDb() {
@@ -47,7 +50,8 @@ export async function initDb() {
       '010_add_menu_fields.sql',
       '011_add_sidebar_pattern.sql',
       '012_add_pattern_opacity.sql',
-      '013_add_pattern_scale.sql'
+      '013_add_pattern_scale.sql',
+      '014_add_logo_size.sql'
     ];
 
     for (const migration of migrations) {
@@ -88,5 +92,38 @@ export async function initDb() {
     client.release();
   }
 }
+
+// Functie om de database structuur te controleren en bij te werken
+const initializeDatabase = async () => {
+  try {
+    // Check en voeg logo_size kolom toe
+    const checkLogoSizeQuery = `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'logo_size'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN logo_size INTEGER DEFAULT 60;
+
+          UPDATE settings 
+          SET logo_size = 60
+          WHERE id = 1;
+        END IF;
+      END $$;
+    `;
+
+    await pool.query(checkLogoSizeQuery);
+    console.log('Database structuur gecontroleerd en bijgewerkt');
+  } catch (error) {
+    console.error('Fout bij initialiseren database:', error);
+  }
+};
+
+// Voer de initialisatie uit bij het opstarten
+initializeDatabase();
 
 export { pool }; 

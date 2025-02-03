@@ -25,7 +25,21 @@ Object.values(uploadDirs).forEach(dir => {
 
 // Helper functie om het juiste pad te krijgen voor een bestand
 const getUploadPath = (type, filename) => {
-  const dir = uploadDirs[type] || baseUploadDir;
+  if (!type) {
+    console.error('getUploadPath: type parameter is required');
+    return null;
+  }
+  
+  const dir = uploadDirs[type];
+  if (!dir) {
+    console.error(`getUploadPath: Invalid upload type: ${type}`);
+    return null;
+  }
+
+  if (!filename) {
+    return dir;
+  }
+
   return path.join(dir, filename);
 };
 

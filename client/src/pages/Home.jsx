@@ -106,7 +106,8 @@ const Home = () => {
       bottom: 0,
       zIndex: 0,
       overflow: 'hidden',
-      display: 'flex'
+      display: 'flex',
+      bgcolor: 'transparent'
     }}>
       <Box sx={{
         position: 'absolute',
@@ -114,9 +115,6 @@ const Home = () => {
         left: barPosition === 'full-left' ? '280px' : 0,
         right: 0,
         bottom: 0,
-        bgcolor: theme.palette.mode === 'dark' 
-          ? 'rgba(30, 30, 30, 0.9)'
-          : 'rgba(60, 60, 60, 0.6)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
         alignItems: 'center',
@@ -132,9 +130,7 @@ const Home = () => {
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             borderRadius: barPosition === 'full-left' ? '16px' : 0,
             overflow: 'hidden',
-            boxShadow: barPosition === 'full-left' 
-              ? '0 0 0 1px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.5)'
-              : 'none',
+            boxShadow: barPosition === 'full-left' ? 'none' : 'none',
             zIndex: 2
           }}>
             <Swiper

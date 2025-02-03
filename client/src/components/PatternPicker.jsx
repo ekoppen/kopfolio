@@ -1,11 +1,11 @@
 import React from 'react';
 import { Box, Paper, Typography, Slider, TextField, FormControl, InputLabel, Select, MenuItem, useTheme } from '@mui/material';
 
-const PatternPicker = ({ 
-  patterns, 
-  selectedPattern, 
-  patternOpacity, 
-  patternScale,
+const PatternPicker = ({
+  patterns = [], 
+  selectedPattern = 'none', 
+  patternOpacity = 0.15, 
+  patternScale = 1,
   patternColor = '#FCF4FF',
   onPatternChange, 
   onOpacityChange, 
@@ -13,7 +13,7 @@ const PatternPicker = ({
   onColorChange
 }) => {
   const theme = useTheme();
-  const selectedPatternObj = patterns.find(p => p.value === selectedPattern) || patterns[0];
+  const selectedPatternObj = patterns.find(p => p.value === selectedPattern);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -32,7 +32,7 @@ const PatternPicker = ({
         </Select>
       </FormControl>
 
-      {selectedPattern !== 'none' && (
+      {selectedPattern !== 'none' && selectedPatternObj?.preview && (
         <Box sx={{ 
           width: '100%', 
           height: 300, 
@@ -150,6 +150,6 @@ const PatternPicker = ({
       )}
     </Box>
   );
-};
+}
 
 export default PatternPicker; 

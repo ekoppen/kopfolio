@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSettings, updateSettings, getPatterns } from '../controllers/settings.js';
+import { getSettings, updateSettings, getPatterns, updateLogo } from '../controllers/settings.js';
 import { verifyToken } from '../middleware/auth.js';
 import fileUpload from 'express-fileupload';
 
@@ -18,12 +18,15 @@ router.get('/test', (req, res) => {
 router.get('/', getSettings);
 router.get('/patterns', getPatterns);
 
-// Beveiligde routes met fileUpload middleware alleen voor de PUT route
-router.put('/', verifyToken, fileUpload({
+// Beveiligde routes
+router.put('/', verifyToken, updateSettings);
+
+// Logo upload route met fileUpload middleware
+router.put('/logo', verifyToken, fileUpload({
   createParentPath: true,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB max file size
   },
-}), updateSettings);
+}), updateLogo);
 
 export default router;  

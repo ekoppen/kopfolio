@@ -32,7 +32,7 @@ export const getPatterns = async (req, res) => {
 export const getSettings = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, pattern_opacity, pattern_scale, pattern_color FROM settings WHERE id = 1'
+      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, pattern_opacity, pattern_scale, pattern_color, logo_size FROM settings WHERE id = 1'
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -61,7 +61,8 @@ export const updateSettings = async (req, res) => {
       sidebar_pattern,
       pattern_opacity,
       pattern_scale,
-      pattern_color
+      pattern_color,
+      logo_size
     } = req.body;
 
     let query = `
@@ -82,7 +83,8 @@ export const updateSettings = async (req, res) => {
           sidebar_pattern = COALESCE($14, sidebar_pattern),
           pattern_opacity = COALESCE($15, pattern_opacity),
           pattern_scale = COALESCE($16, pattern_scale),
-          pattern_color = COALESCE($17, pattern_color)
+          pattern_color = COALESCE($17, pattern_color),
+          logo_size = COALESCE($18, logo_size)
     `;
 
     const values = [
@@ -102,21 +104,57 @@ export const updateSettings = async (req, res) => {
       sidebar_pattern,
       pattern_opacity,
       pattern_scale,
-      pattern_color
+      pattern_color,
+      logo_size
     ];
 
     // Als er een logo is geüpload
     if (req.files && req.files.logo) {
-      const logoFile = req.files.logo;
-      const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(logoFile.name);
-      const filepath = getUploadPath('branding', filename);
-      
-      // Verplaats het bestand
-      await logoFile.mv(filepath);
-      
-      // Update de query om het nieuwe logo op te slaan
-      query += ', logo = $18';
-      values.push(filename);
+      try {
+        const logoFile = req.files.logo;
+        
+        // Valideer bestandsgrootte
+        if (logoFile.size > 10 * 1024 * 1024) {
+          return res.status(400).json({ error: 'Logo bestand is te groot (max 10MB)' });
+        }
+
+        // Valideer bestandstype
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(logoFile.mimetype)) {
+          return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen JPG, PNG en GIF zijn toegestaan.' });
+        }
+
+        // Genereer unieke bestandsnaam
+        const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(logoFile.name);
+        const uploadDir = getUploadPath('branding');
+        const filepath = path.join(uploadDir, filename);
+
+        // Zorg dat de upload directory bestaat
+        await fs.mkdir(uploadDir, { recursive: true });
+        
+        // Verplaats het bestand
+        await logoFile.mv(filepath);
+        
+        // Update de query om het nieuwe logo op te slaan
+        query += ', logo = $19';
+        values.push(filename);
+
+        // Verwijder het oude logo bestand als het bestaat
+        const oldResult = await pool.query('SELECT logo FROM settings WHERE id = 1');
+        const oldLogo = oldResult.rows[0]?.logo;
+        if (oldLogo) {
+          const oldPath = path.join(uploadDir, oldLogo);
+          try {
+            await fs.unlink(oldPath);
+          } catch (err) {
+            console.error('Error removing old logo:', err);
+            // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+          }
+        }
+      } catch (error) {
+        console.error('Error handling logo upload:', error);
+        return res.status(500).json({ error: 'Fout bij uploaden van logo' });
+      }
     }
 
     query += ' WHERE id = 1 RETURNING *';
@@ -126,5 +164,61 @@ export const updateSettings = async (req, res) => {
   } catch (error) {
     console.error('Error updating settings:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateLogo = async (req, res) => {
+  try {
+    if (!req.files || !req.files.logo) {
+      return res.status(400).json({ error: 'Geen logo bestand ontvangen' });
+    }
+
+    const logoFile = req.files.logo;
+    
+    // Valideer bestandsgrootte
+    if (logoFile.size > 10 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Logo bestand is te groot (max 10MB)' });
+    }
+
+    // Valideer bestandstype
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(logoFile.mimetype)) {
+      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen JPG, PNG en GIF zijn toegestaan.' });
+    }
+
+    // Genereer unieke bestandsnaam
+    const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(logoFile.name);
+    const uploadDir = getUploadPath('branding');
+    
+    if (!uploadDir) {
+      throw new Error('Upload directory niet gevonden');
+    }
+    
+    const filepath = path.join(uploadDir, filename);
+
+    // Verplaats het bestand
+    await logoFile.mv(filepath);
+
+    // Verwijder het oude logo bestand als het bestaat
+    const oldResult = await pool.query('SELECT logo FROM settings WHERE id = 1');
+    const oldLogo = oldResult.rows[0]?.logo;
+    if (oldLogo) {
+      const oldPath = path.join(uploadDir, oldLogo);
+      try {
+        await fs.unlink(oldPath);
+      } catch (err) {
+        console.error('Error removing old logo:', err);
+        // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+      }
+    }
+
+    // Update alleen het logo veld in de database
+    const query = 'UPDATE settings SET logo = $1 WHERE id = 1 RETURNING logo';
+    const result = await pool.query(query, [filename]);
+    
+    res.json({ logo: result.rows[0].logo });
+  } catch (error) {
+    console.error('Error handling logo upload:', error);
+    res.status(500).json({ error: 'Fout bij uploaden van logo' });
   }
 }; 

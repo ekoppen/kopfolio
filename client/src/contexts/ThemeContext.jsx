@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { lightTheme, darkTheme } from '../theme';
+import { blue } from '@mui/material/colors';
+import { useSettings } from './SettingsContext';
 
 console.log('ThemeContext.jsx wordt geladen!');
 
@@ -12,56 +13,66 @@ export const ThemeContext = createContext({
   },
 });
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme moet binnen een ThemeProvider gebruikt worden');
+  }
+  return context;
+};
 
-export const ThemeProvider = ({ children, accentColor, font }) => {
-  console.log('ThemeProvider wordt gerenderd!');
-
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    const initialMode = savedMode ? JSON.parse(savedMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
-    console.log('Initial dark mode:', initialMode);
-    return initialMode;
+export const ThemeProvider = ({ children }) => {
+  const { settings } = useSettings();
+  const [mode, setMode] = useState(() => {
+    const savedMode = localStorage.getItem('themeMode');
+    return savedMode || 'light';
   });
 
-  useEffect(() => {
-    console.log('Dark mode gewijzigd naar:', isDarkMode);
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    console.log('toggleDarkMode aangeroepen, huidige isDarkMode:', isDarkMode);
-    setIsDarkMode(prev => !prev);
+  const commonThemeSettings = {
+    typography: {
+      fontFamily: `${settings.font || 'Inter'}, "Roboto", "Helvetica", "Arial", sans-serif`,
+    },
+    shape: {
+      borderRadius: 8
+    },
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+            borderRadius: 8
+          }
+        }
+      }
+    }
   };
 
-  const theme = useMemo(() => {
-    console.log('Theme wordt opnieuw berekend, isDarkMode:', isDarkMode);
-    const baseTheme = isDarkMode ? darkTheme : lightTheme;
-    return createTheme({
-      ...baseTheme,
-      palette: {
-        ...baseTheme.palette,
-        mode: isDarkMode ? 'dark' : 'light',
-        primary: {
-          main: accentColor,
-          light: isDarkMode ? '#e3f2fd' : '#42a5f5',
-          dark: isDarkMode ? '#42a5f5' : '#1565c0',
-        }
+  const theme = useMemo(() => createTheme({
+    ...commonThemeSettings,
+    palette: {
+      mode,
+      primary: {
+        main: settings.accent_color || blue[500],
       },
-      typography: {
-        ...baseTheme.typography,
-        fontFamily: `"${font}", ${baseTheme.typography.fontFamily}`
+      background: {
+        default: mode === 'dark' ? '#121212' : '#f5f5f5',
+        paper: mode === 'dark' ? '#1e1e1e' : '#ffffff'
       }
-    });
-  }, [isDarkMode, accentColor, font]);
+    }
+  }), [mode, settings.accent_color, settings.font]);
 
-  const contextValue = useMemo(() => {
-    console.log('Context value wordt opnieuw berekend');
-    return {
-      isDarkMode,
-      toggleDarkMode
-    };
-  }, [isDarkMode]);
+  const toggleColorMode = () => {
+    setMode((prevMode) => {
+      const newMode = prevMode === 'light' ? 'dark' : 'light';
+      localStorage.setItem('themeMode', newMode);
+      return newMode;
+    });
+  };
+
+  const contextValue = useMemo(() => ({
+    mode,
+    toggleColorMode
+  }), [mode]);
 
   return (
     <ThemeContext.Provider value={contextValue}>

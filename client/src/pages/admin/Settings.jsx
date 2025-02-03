@@ -1,37 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, FormControl, InputLabel, Select, MenuItem, CircularProgress, Button, Paper, Slider, TextField } from '@mui/material';
 import { useToast } from '../../contexts/ToastContext';
-import api from '../../services/api';
+import { useSettings } from '../../contexts/SettingsContext';
+import api from '../../utils/api';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 const Settings = () => {
-  const [settings, setSettings] = useState({
-    site_title: '',
-    site_subtitle: '',
-    subtitle_font: 'Roboto',
-    subtitle_size: 14,
-    subtitle_color: '#FFFFFF',
-    accent_color: '#000000',
-    font: 'Roboto',
-    subtitle_margin_top: 0,
-    subtitle_margin_left: 0,
-    sidebar_pattern: 'none',
-    pattern_opacity: 0.1,
-    pattern_scale: 1,
-    pattern_color: '#FCF4FF'
-  });
+  const { settings, updateSettings } = useSettings();
   const [patterns, setPatterns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
   const { showToast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [settingsResponse, patternsResponse] = await Promise.all([
-          api.get('/settings'),
-          api.get('/settings/patterns')
-        ]);
-        setSettings(settingsResponse.data);
+        const patternsResponse = await api.get('/settings/patterns');
         setPatterns([
           { name: 'Geen', value: 'none' },
           ...patternsResponse.data
@@ -46,26 +31,70 @@ const Settings = () => {
     loadData();
   }, []);
 
+  const handleChange = async (field, value) => {
+    try {
+      const newSettings = { ...settings, [field]: value };
+      const success = await updateSettings(newSettings);
+      if (!success) {
+        showToast('Fout bij opslaan instelling', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      showToast('Fout bij opslaan instelling', 'error');
+    }
+  };
+
+  const handleLogoChange = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('Logo bestand is te groot (max 10MB)', 'error');
+        return;
+      }
+
+      try {
+        // Maak een aparte FormData alleen voor het logo
+        const formData = new FormData();
+        formData.append('logo', file);
+        
+        const response = await api.put('/settings/logo', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        if (response.data) {
+          setLogoPreview(URL.createObjectURL(file));
+          const newSettings = { ...settings, logo: response.data.logo };
+          updateSettings(newSettings);
+          showToast('Logo succesvol geüpload', 'success');
+        }
+      } catch (error) {
+        console.error('Error uploading logo:', error);
+        showToast('Fout bij uploaden logo', 'error');
+      }
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
     try {
-      await api.put('/settings', settings);
-      showToast('Instellingen opgeslagen', 'success');
-      // Trigger een window event om de App component te informeren
-      window.dispatchEvent(new CustomEvent('settingsUpdated', { 
-        detail: settings
-      }));
+      // Verwijder het logo uit de settings voor de update
+      const { logo, ...settingsWithoutLogo } = settings;
+      const success = await updateSettings(settingsWithoutLogo);
+      
+      if (success) {
+        showToast('Instellingen opgeslagen', 'success');
+      } else {
+        showToast('Fout bij opslaan instellingen', 'error');
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
       showToast('Fout bij opslaan instellingen', 'error');
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleChange = (field, value) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
   };
 
   const selectedPattern = patterns.find(p => p.value === settings.sidebar_pattern);
@@ -117,17 +146,8 @@ const Settings = () => {
                       backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}${selectedPattern.preview})`,
                       backgroundSize: `${settings.pattern_scale * 100}%`,
                       backgroundPosition: 'center',
-                      opacity: settings.pattern_opacity
-                    }} />
-                    <Box sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      bgcolor: settings.pattern_color,
-                      mixBlendMode: 'multiply',
-                      opacity: 0.5
+                      opacity: settings.pattern_opacity,
+                      filter: `opacity(${settings.pattern_opacity}) drop-shadow(0 0 0 ${settings.pattern_color})`
                     }} />
                   </Box>
                 )}
@@ -149,6 +169,9 @@ const Settings = () => {
                 <Box sx={{ px: 3, py: 2 }}>
                   <Box sx={{ mb: 3 }}>
                     <Typography gutterBottom>Patroon kleur</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                      Dit is de kleur van het patroon zelf. De kleur wordt automatisch transparant gemaakt.
+                    </Typography>
                     <TextField
                       type="color"
                       value={settings.pattern_color || '#FCF4FF'}
@@ -201,6 +224,41 @@ const Settings = () => {
                   </Box>
                 </Box>
               )}
+            </Box>
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>Logo</Typography>
+            <Box sx={{ mb: 2 }}>
+              {(logoPreview || settings.logo) && (
+                <Box
+                  component="img"
+                  src={logoPreview || `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+                  alt="Site Logo"
+                  sx={{
+                    maxWidth: 200,
+                    maxHeight: 100,
+                    objectFit: 'contain',
+                    mb: 2
+                  }}
+                />
+              )}
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="logo-upload"
+                type="file"
+                onChange={handleLogoChange}
+              />
+              <label htmlFor="logo-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<CloudUploadIcon />}
+                >
+                  Logo Uploaden
+                </Button>
+              </label>
             </Box>
           </Paper>
 

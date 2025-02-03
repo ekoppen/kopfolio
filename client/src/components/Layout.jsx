@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import Navigation from './Navigation';
 import api from '../utils/api';
+import { useSettings } from '../contexts/SettingsContext';
 
 console.log('Layout.jsx wordt geladen!');
 
@@ -24,117 +25,46 @@ const Layout = () => {
   console.log('Layout component wordt gerenderd!');
   
   const theme = useTheme();
-  const [settings, setSettings] = useState({
-    site_title: '',
-    site_subtitle: '',
-    subtitle_font: 'Roboto',
-    subtitle_size: 14,
-    subtitle_color: '#FFFFFF',
-    accent_color: '#000000',
-    font: 'Roboto',
-    logo: null,
-    logo_position: 'left',
-    logo_margin_top: 0,
-    logo_margin_left: 0,
-    subtitle_margin_top: 0,
-    subtitle_margin_left: 0,
-    footer_text: '',
-    sidebar_pattern: 'none',
-    pattern_opacity: 0.8,
-    pattern_scale: 1,
-    pattern_color: '#FCF4FF'
-  });
+  const { settings } = useSettings();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
   const [isExpanded, setIsExpanded] = useState(() => {
-    const savedState = localStorage.getItem('appBarExpanded');
-    return savedState !== null ? JSON.parse(savedState) : false;
-  });
-  const [barPosition, setBarPosition] = useState(() => {
     const savedPosition = localStorage.getItem('appBarPosition');
-    return savedPosition || 'top'; // 'top' of 'full-left'
+    return savedPosition === 'full-left';
   });
   const [menuPages, setMenuPages] = useState([]);
+
+  // Gebruik de opgeslagen positie als fallback voor de settings
+  const barPosition = settings.logo_position || localStorage.getItem('appBarPosition') || 'top';
   
+  // Update localStorage wanneer settings veranderen
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await api.get('/settings');
-        setSettings(prev => ({
-          ...prev,
-          site_title: response.data.site_title || '',
-          site_subtitle: response.data.site_subtitle || '',
-          subtitle_font: response.data.subtitle_font || 'Roboto',
-          subtitle_size: response.data.subtitle_size || 14,
-          subtitle_color: response.data.subtitle_color || '#FFFFFF',
-          accent_color: response.data.accent_color || '#000000',
-          font: response.data.font || 'Roboto',
-          logo: response.data.logo || null,
-          logo_position: response.data.logo_position || 'left',
-          logo_margin_top: parseInt(response.data.logo_margin_top) || 0,
-          logo_margin_left: parseInt(response.data.logo_margin_left) || 0,
-          subtitle_margin_top: parseInt(response.data.subtitle_margin_top) || 0,
-          subtitle_margin_left: parseInt(response.data.subtitle_margin_left) || 0,
-          footer_text: response.data.footer_text || '',
-          sidebar_pattern: response.data.sidebar_pattern || 'none',
-          pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.8,
-          pattern_scale: parseFloat(response.data.pattern_scale) || 1,
-          pattern_color: response.data.pattern_color || '#FCF4FF'
-        }));
-      } catch (error) {
-        console.error('Fout bij laden site instellingen:', error);
-      }
-    };
+    if (settings.logo_position) {
+      localStorage.setItem('appBarPosition', settings.logo_position);
+    }
+  }, [settings.logo_position]);
 
-    loadSettings();
-
+  useEffect(() => {
     // Luister naar settings updates
     const handleSettingsUpdate = (event) => {
-      const { 
-        site_title, 
-        site_subtitle,
-        subtitle_font,
-        subtitle_size,
-        subtitle_color,
-        accent_color,
-        font,
-        logo_position,
-        logo_margin_top,
-        logo_margin_left,
-        subtitle_margin_top,
-        subtitle_margin_left,
-        footer_text,
-        sidebar_pattern,
-        pattern_opacity,
-        pattern_scale,
-        pattern_color
-      } = event.detail;
-      
-      setSettings(prev => ({
-        ...prev,
-        site_title: site_title || prev.site_title,
-        site_subtitle: site_subtitle || prev.site_subtitle,
-        subtitle_font: subtitle_font || prev.subtitle_font,
-        subtitle_size: subtitle_size || prev.subtitle_size,
-        subtitle_color: subtitle_color || prev.subtitle_color,
-        accent_color: accent_color || prev.accent_color,
-        font: font || prev.font,
-        logo_position: logo_position || prev.logo_position,
-        logo_margin_top: parseInt(logo_margin_top) || prev.logo_margin_top,
-        logo_margin_left: parseInt(logo_margin_left) || prev.logo_margin_left,
-        subtitle_margin_top: parseInt(subtitle_margin_top) || prev.subtitle_margin_top,
-        subtitle_margin_left: parseInt(subtitle_margin_left) || prev.subtitle_margin_left,
-        footer_text: footer_text || prev.footer_text,
-        sidebar_pattern: sidebar_pattern || prev.sidebar_pattern,
-        pattern_opacity: parseFloat(pattern_opacity) || prev.pattern_opacity,
-        pattern_scale: parseFloat(pattern_scale) || prev.pattern_scale,
-        pattern_color: pattern_color || prev.pattern_color
+      const newSettings = event.detail;
+      const newPosition = newSettings.logo_position;
+      localStorage.setItem('appBarPosition', newPosition);
+      window.dispatchEvent(new CustomEvent('barPositionChanged', { 
+        detail: { position: newPosition } 
       }));
     };
 
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
     return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
   }, []);
+
+  // Synchroniseer isExpanded met barPosition
+  useEffect(() => {
+    setIsExpanded(barPosition === 'full-left');
+  }, [barPosition]);
 
   useEffect(() => {
     // Luister naar custom events van de slideshow
@@ -164,33 +94,30 @@ const Layout = () => {
     loadMenuPages();
   }, []);
 
-  // Update localStorage wanneer isExpanded verandert
-  useEffect(() => {
-    localStorage.setItem('appBarExpanded', JSON.stringify(isExpanded));
-  }, [isExpanded]);
-
-  // Update localStorage wanneer barPosition verandert
-  useEffect(() => {
-    localStorage.setItem('appBarPosition', barPosition);
-  }, [barPosition]);
-
   // Toggle functie die de balk uitklapt naar links
   const handleToggle = () => {
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setBarPosition('full-left');
-      window.dispatchEvent(new CustomEvent('barPositionChanged', { 
-        detail: { position: 'full-left' } 
-      }));
-    } else {
-      setIsExpanded(false);
-      setBarPosition('top');
-      window.dispatchEvent(new CustomEvent('barPositionChanged', { 
-        detail: { position: 'top' } 
-      }));
-    }
+    const newPosition = !isExpanded ? 'full-left' : 'top';
+    setIsExpanded(!isExpanded);
+    localStorage.setItem('appBarPosition', newPosition);
+    window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+      detail: { logo_position: newPosition } 
+    }));
   };
   
+  // Functie om hex kleur om te zetten naar rgba
+  const hexToRgba = (hex, opacity = 1) => {
+    // Verwijder de # als die aanwezig is
+    hex = hex.replace('#', '');
+    
+    // Parse de hex waarden
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    // Return rgba string
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
   // Functie om het juiste patroon te bepalen
   const getPatternStyle = () => {
     const pattern = settings.sidebar_pattern;
@@ -213,120 +140,18 @@ const Layout = () => {
           opacity: settings.pattern_opacity,
           pointerEvents: 'none',
           zIndex: 1
-        },
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: settings.pattern_color || '#FCF4FF',
-          mixBlendMode: 'multiply',
-          opacity: 0.5,
-          pointerEvents: 'none',
-          zIndex: 2
         }
       };
     }
 
     // Voor de ingebouwde patronen
-    const baseColor = theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+    const patternOpacity = settings.pattern_opacity || 0.15; // Gebruik de ingestelde transparantie
+    const baseColor = settings.pattern_color ? 
+      hexToRgba(settings.pattern_color, 1) : // Gebruik volledige kleur, opacity wordt apart toegepast
+      (theme.palette.mode === 'dark' ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)');
     const baseSize = 20 * (settings.pattern_scale || 1);
     
-    switch (pattern) {
-      case 'canvas':
-        return {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
-                             linear-gradient(90deg, ${baseColor} 1px, transparent 1px)`,
-            backgroundSize: `${baseSize}px ${baseSize}px`,
-            opacity: settings.pattern_opacity,
-            pointerEvents: 'none',
-            zIndex: 1
-          }
-        };
-      case 'dots':
-        return {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `radial-gradient(${baseColor} ${2 * (settings.pattern_scale || 1)}px, transparent ${2 * (settings.pattern_scale || 1)}px)`,
-            backgroundSize: `${baseSize}px ${baseSize}px`,
-            opacity: settings.pattern_opacity,
-            pointerEvents: 'none',
-            zIndex: 1
-          }
-        };
-      case 'lines':
-        return {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `linear-gradient(45deg, ${baseColor} 25%, transparent 25%),
-                             linear-gradient(-45deg, ${baseColor} 25%, transparent 25%)`,
-            backgroundSize: `${baseSize}px ${baseSize}px`,
-            opacity: settings.pattern_opacity,
-            pointerEvents: 'none',
-            zIndex: 1
-          }
-        };
-      case 'circuit':
-        return {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `linear-gradient(${baseColor} 1px, transparent 1px),
-                             linear-gradient(90deg, ${baseColor} 1px, transparent 1px),
-                             linear-gradient(${baseColor} 0.5px, transparent 0.5px),
-                             linear-gradient(90deg, ${baseColor} 0.5px, transparent 0.5px)`,
-            backgroundSize: `${baseSize * 2.5}px ${baseSize * 2.5}px, ${baseSize * 2.5}px ${baseSize * 2.5}px, ${baseSize * 0.5}px ${baseSize * 0.5}px, ${baseSize * 0.5}px ${baseSize * 0.5}px`,
-            opacity: settings.pattern_opacity,
-            pointerEvents: 'none',
-            zIndex: 1
-          }
-        };
-      case 'geometric':
-        return {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
-                             linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
-                             linear-gradient(30deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor}),
-                             linear-gradient(150deg, ${baseColor} 12%, transparent 12.5%, transparent 87%, ${baseColor} 87.5%, ${baseColor})`,
-            backgroundSize: `${baseSize * 4}px ${baseSize * 7}px`,
-            backgroundPosition: `0 0, 0 0, ${baseSize * 2}px ${baseSize * 3.5}px, ${baseSize * 2}px ${baseSize * 3.5}px`,
-            opacity: settings.pattern_opacity,
-            pointerEvents: 'none',
-            zIndex: 1
-          }
-        };
-      default:
-        return {};
-    }
+    
   };
 
   return (
@@ -367,223 +192,191 @@ const Layout = () => {
         }
       })
     }}>
+      {/* Fixed Logo Container */}
+      {settings.logo && (
+        <Box
+          component="img"
+          src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+          alt="Logo"
+          sx={{
+            position: 'fixed',
+            top: `${settings.logo_margin_top}px`,
+            left: `${settings.logo_margin_left}px`,
+            height: settings.logo_size || 60,
+            width: 'auto',
+            maxWidth: settings.logo_size * 2 || 120,
+            objectFit: 'contain',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            zIndex: 2000,
+            pointerEvents: 'none',
+            filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.2))'
+          }}
+        />
+      )}
+
+      {/* Main Layout Container */}
       <AppBar 
         position={barPosition === 'full-left' ? 'relative' : "sticky"}
         elevation={0}
         sx={{ 
           bgcolor: 'transparent',
-          borderBottom: barPosition !== 'full-left' ? '1px solid' : 'none',
-          borderRight: 'none',
-          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
           backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
           zIndex: barPosition === 'full-left' ? 200 : 1800,
           width: barPosition === 'full-left' ? '280px' : '100%',
           height: barPosition === 'full-left' ? '100vh' : 'auto',
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'visible',
+          ...(barPosition === 'full-left' && {
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+          })
         }}
       >
-        {/* Achtergrond div */}
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          bgcolor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : 'rgba(60, 60, 60, 0.6)',
-          zIndex: 0
-        }} />
-
-        {/* Pattern div verwijderd omdat we nu een globale pattern overlay hebben */}
-
         <Toolbar sx={{ 
           display: 'flex',
-          bgcolor: 'transparent',
           justifyContent: 'space-between',
           gap: 2,
           px: barPosition === 'full-left' ? 2 : { xs: 2, sm: 3, md: 4 },
           position: 'relative',
           height: barPosition === 'full-left' ? '100%' : 64,
           flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-          zIndex: 2
+          zIndex: 2,
+          ml: barPosition === 'full-left' ? 0 : `${settings.logo_size * 1.5 + settings.logo_margin_left + 80}px`,
+          width: barPosition === 'full-left' ? '100%' : 'auto',
+          bgcolor: 'transparent'
         }}>
           {/* Logo en Menu Box */}
-          {settings.logo && (
-            <Box
-              sx={{
-                bgcolor: 'transparent',
-                borderRadius: 0,
-                p: 0,
-                boxShadow: 'none',
-                display: 'flex',
-                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-                gap: 4,
-                alignItems: 'center',
-                width: barPosition === 'full-left' ? '100%' : '100vw',
-                minWidth: barPosition === 'full-left' ? '100%' : '100vw',
-                height: barPosition === 'full-left' ? '100%' : '65px',
-                position: barPosition === 'full-left' ? 'relative' : 'absolute',
-                left: 0,
-                top: barPosition === 'full-left' ? 0 : 0,
-                zIndex: 1200,
-                pr: 2,
-                pl: barPosition === 'full-left' ? 2 : 4,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}>
-              {/* Logo en Subtitle */}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-                alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
-                gap: barPosition === 'full-left' ? 0 : 4,
-                zIndex: 1300,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative'
-              }}>
-                <Box
-                  component="img"
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
-                  alt="Logo"
-                  sx={{
-                    height: barPosition === 'full-left' ? 70 : 60,
-                    width: 'auto',
-                    objectFit: 'contain',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    mt: `${settings.logo_margin_top}px`,
-                    ml: `${settings.logo_margin_left}px`,
-                    position: 'relative'
-                  }}
-                />
-                {settings.site_subtitle && barPosition === 'full-left' && (
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      color: settings.subtitle_color,
-                      fontFamily: settings.subtitle_font,
-                      fontSize: settings.subtitle_size,
-                      textShadow: '0 0 10px rgba(0,0,0,0.5)',
-                      mt: 1,
-                      textAlign: 'left',
-                      mb: 1
-                    }}
-                  >
-                    {settings.site_subtitle}
-                  </Typography>
-                )}
-              </Box>
+          <Box
+            sx={{
+              bgcolor: 'transparent',
+              borderRadius: 0,
+              p: 0,
+              boxShadow: 'none',
+              display: 'flex',
+              flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+              gap: 4,
+              alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              height: barPosition === 'full-left' ? '100%' : '65px',
+              position: 'relative',
+              zIndex: 1200
+            }}>
 
-              {barPosition === 'full-left' ? (
+            {barPosition === 'full-left' ? (
+              <Box sx={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                width: '100%',
+                justifyContent: 'space-between',
+                pl: 1,
+                mt: `${settings.logo_size + 40}px`,
+                position: 'relative',
+                zIndex: 1500
+              }}>
+                {/* Menu Items */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: 0.5,
+                  pt: 1,
+                  alignItems: 'flex-start',
+                  width: '100%',
+                  zIndex: 1400,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  {menuPages.map((page) => (
+                    <Button
+                      key={page.id}
+                      component={RouterLink}
+                      to={`/${page.slug}`}
+                      startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
+                      sx={{ 
+                        color: settings.subtitle_color,
+                        textAlign: 'left',
+                        justifyContent: 'flex-start',
+                        fontFamily: settings.subtitle_font,
+                        fontSize: settings.subtitle_size,
+                        textTransform: 'none',
+                        whiteSpace: 'nowrap',
+                        width: '100%',
+                        minHeight: 32,
+                        py: 0.5,
+                        pl: 1,
+                        '&:hover': {
+                          color: 'primary.main',
+                          bgcolor: 'rgba(255,255,255,0.1)'
+                        }
+                      }}
+                    >
+                      {page.title}
+                    </Button>
+                  ))}
+                </Box>
+
+                {/* Navigation */}
+                <Box sx={{ 
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  mt: 'auto',
+                  pb: 2,
+                  pl: 1,
+                  zIndex: 1500
+                }}>
+                  <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+                </Box>
+              </Box>
+            ) : (
+              <>
+                {/* Menu Items - Horizontaal */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'row',
+                  gap: 3,
+                  alignItems: 'center',
+                  zIndex: 1400,
+                  flex: 1
+                }}>
+                  {menuPages.map((page) => (
+                    <Button
+                      key={page.id}
+                      component={RouterLink}
+                      to={`/${page.slug}`}
+                      startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
+                      sx={{ 
+                        color: settings.subtitle_color,
+                        textAlign: 'left',
+                        justifyContent: 'flex-start',
+                        fontFamily: settings.subtitle_font,
+                        fontSize: settings.subtitle_size,
+                        textTransform: 'none',
+                        whiteSpace: 'nowrap',
+                        py: 1,
+                        '&:hover': {
+                          color: 'primary.main',
+                          bgcolor: 'rgba(255,255,255,0.1)'
+                        }
+                      }}
+                    >
+                      {page.title}
+                    </Button>
+                  ))}
+                </Box>
+
+                {/* Navigation - Horizontaal */}
                 <Box sx={{ 
                   display: 'flex',
-                  flexDirection: 'column',
-                  flex: 1,
-                  width: '100%',
-                  justifyContent: 'space-between',
-                  pl: 1
+                  alignItems: 'center',
+                  position: 'relative',
+                  zIndex: 1500,
+                  mr: 2
                 }}>
-                  {/* Menu Items */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 0.5,
-                    pt: 1,
-                    mt: 2,
-                    alignItems: 'flex-start',
-                    width: '100%',
-                    zIndex: 1400,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }}>
-                    {menuPages.map((page) => (
-                      <Button
-                        key={page.id}
-                        component={RouterLink}
-                        to={`/${page.slug}`}
-                        startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
-                        sx={{ 
-                          color: settings.subtitle_color,
-                          textAlign: 'left',
-                          justifyContent: 'flex-start',
-                          fontFamily: settings.subtitle_font,
-                          fontSize: settings.subtitle_size,
-                          textTransform: 'none',
-                          whiteSpace: 'nowrap',
-                          width: '100%',
-                          minHeight: 32,
-                          py: 0.5,
-                          pl: 1,
-                          '&:hover': {
-                            color: 'primary.main',
-                            bgcolor: 'rgba(255,255,255,0.1)'
-                          }
-                        }}
-                      >
-                        {page.title}
-                      </Button>
-                    ))}
-                  </Box>
-
-                  {/* Navigation */}
-                  <Box sx={{ 
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'flex-start',
-                    mt: 'auto',
-                    pb: 2,
-                    pl: 1,
-                    zIndex: 1500
-                  }}>
-                    <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
-                  </Box>
+                  <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
                 </Box>
-              ) : (
-                <>
-                  {/* Menu Items - Horizontaal */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'row',
-                    gap: 3,
-                    ml: -2,
-                    alignItems: 'center',
-                    zIndex: 1400
-                  }}>
-                    {menuPages.map((page) => (
-                      <Button
-                        key={page.id}
-                        component={RouterLink}
-                        to={`/${page.slug}`}
-                        startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
-                        sx={{ 
-                          color: settings.subtitle_color,
-                          textAlign: 'left',
-                          justifyContent: 'flex-start',
-                          fontFamily: settings.subtitle_font,
-                          fontSize: settings.subtitle_size,
-                          textTransform: 'none',
-                          whiteSpace: 'nowrap',
-                          py: 1,
-                          '&:hover': {
-                            color: 'primary.main',
-                            bgcolor: 'rgba(255,255,255,0.1)'
-                          }
-                        }}
-                      >
-                        {page.title}
-                      </Button>
-                    ))}
-                  </Box>
-
-                  {/* Navigation - Horizontaal */}
-                  <Box sx={{ 
-                    ml: 'auto',
-                    display: 'flex',
-                    zIndex: 1500
-                  }}>
-                    <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
-                  </Box>
-                </>
-              )}
-            </Box>
-          )}
+              </>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
