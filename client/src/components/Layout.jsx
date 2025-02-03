@@ -184,9 +184,9 @@ const Layout = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: settings.pattern_color || '#FCF4FF',
-          mixBlendMode: 'multiply',
-          opacity: 0.5,
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.85)' : settings.pattern_color || '#FCF4FF',
+          mixBlendMode: theme.palette.mode === 'dark' ? 'color' : 'multiply',
+          opacity: theme.palette.mode === 'dark' ? 1 : 0.5,
           zIndex: -1,
           pointerEvents: 'none'
         }
@@ -220,14 +220,23 @@ const Layout = () => {
         elevation={0}
         sx={{ 
           bgcolor: 'transparent',
-          backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
+          backdropFilter: 'none',
           zIndex: barPosition === 'full-left' ? 200 : 1800,
           width: barPosition === 'full-left' ? '280px' : '100%',
           height: barPosition === 'full-left' ? '100vh' : 'auto',
           position: 'relative',
           overflow: 'visible',
+          borderBottom: barPosition === 'full-left' 
+            ? 'none' 
+            : `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+          boxShadow: barPosition === 'full-left'
+            ? 'none'
+            : theme.palette.mode === 'dark'
+              ? '0 4px 30px rgba(0, 0, 0, 0.5)'
+              : '0 4px 30px rgba(0, 0, 0, 0.1)',
           ...(barPosition === 'full-left' && {
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+            backdropFilter: 'none',
+            boxShadow: 'none'
           })
         }}
       >
@@ -240,9 +249,13 @@ const Layout = () => {
           height: barPosition === 'full-left' ? '100%' : 64,
           flexDirection: barPosition === 'full-left' ? 'column' : 'row',
           zIndex: 2,
-          ml: barPosition === 'full-left' ? 0 : `${settings.logo_size * 1.5 + settings.logo_margin_left + 80}px`,
-          width: barPosition === 'full-left' ? '100%' : 'auto',
-          bgcolor: 'transparent'
+          width: '100%',
+          bgcolor: barPosition === 'full-left' 
+            ? 'transparent'
+            : theme.palette.mode === 'dark' 
+              ? 'rgba(18, 18, 18, 0.6)'
+              : 'rgba(255, 255, 255, 0.4)',
+          backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(6px)'
         }}>
           {/* Logo en Menu Box */}
           <Box
@@ -259,7 +272,8 @@ const Layout = () => {
               width: '100%',
               height: barPosition === 'full-left' ? '100%' : '65px',
               position: 'relative',
-              zIndex: 1200
+              zIndex: 1200,
+              ml: barPosition === 'full-left' ? 0 : `${settings.logo_size * 1.5 + settings.logo_margin_left + 80}px`
             }}>
 
             {barPosition === 'full-left' ? (
@@ -292,7 +306,7 @@ const Layout = () => {
                       to={`/${page.slug}`}
                       startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
                       sx={{ 
-                        color: settings.subtitle_color,
+                        color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                         textAlign: 'left',
                         justifyContent: 'flex-start',
                         fontFamily: settings.subtitle_font,
@@ -305,7 +319,7 @@ const Layout = () => {
                         pl: 1,
                         '&:hover': {
                           color: 'primary.main',
-                          bgcolor: 'rgba(255,255,255,0.1)'
+                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                         }
                       }}
                     >
@@ -345,7 +359,7 @@ const Layout = () => {
                       to={`/${page.slug}`}
                       startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
                       sx={{ 
-                        color: settings.subtitle_color,
+                        color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                         textAlign: 'left',
                         justifyContent: 'flex-start',
                         fontFamily: settings.subtitle_font,
@@ -355,7 +369,7 @@ const Layout = () => {
                         py: 1,
                         '&:hover': {
                           color: 'primary.main',
-                          bgcolor: 'rgba(255,255,255,0.1)'
+                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                         }
                       }}
                     >
@@ -384,9 +398,10 @@ const Layout = () => {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100vh',
+        height: barPosition === 'full-left' ? '100vh' : 'calc(100vh - 64px)',
         width: '100%',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         <Container 
           component="main" 
@@ -400,21 +415,27 @@ const Layout = () => {
             },
             ml: barPosition === 'full-left' ? '280px' : 0,
             transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            bgcolor: 'transparent'
+            bgcolor: 'transparent',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            overflow: 'auto'
           }}
         >
-          <Outlet />
+          <Box sx={{ flex: 1 }}>
+            <Outlet />
+          </Box>
         </Container>
-
         <Box
           component="footer"
           sx={{
-            py: 3,
-            px: 2,
-            mt: 'auto',
+            py: 2,
+            px: 4,
             bgcolor: 'transparent',
             zIndex: 2,
-            position: 'relative'
+            position: 'relative',
+            ml: barPosition === 'full-left' ? '280px' : 0,
+            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         >
           <Typography 
@@ -432,7 +453,6 @@ const Layout = () => {
                 : '0 1px 2px rgba(255,255,255,0.5), 0 1px 8px rgba(255,255,255,0.25)',
               mixBlendMode: theme.palette.mode === 'dark' ? 'lighten' : 'darken',
               width: 'auto',
-              px: 3,
               transition: theme.transitions.create(
                 ['color', 'text-shadow'], 
                 {

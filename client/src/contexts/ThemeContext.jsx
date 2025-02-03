@@ -28,6 +28,8 @@ export const ThemeProvider = ({ children }) => {
     return savedMode || 'light';
   });
 
+  const isDarkMode = mode === 'dark';
+
   const commonThemeSettings = {
     typography: {
       fontFamily: `${settings.font || 'Inter'}, "Roboto", "Helvetica", "Arial", sans-serif`,
@@ -47,6 +49,14 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const toggleDarkMode = () => {
+    setMode((prevMode) => {
+      const newMode = prevMode === 'light' ? 'dark' : 'light';
+      localStorage.setItem('themeMode', newMode);
+      return newMode;
+    });
+  };
+
   const theme = useMemo(() => createTheme({
     ...commonThemeSettings,
     palette: {
@@ -61,18 +71,10 @@ export const ThemeProvider = ({ children }) => {
     }
   }), [mode, settings.accent_color, settings.font]);
 
-  const toggleColorMode = () => {
-    setMode((prevMode) => {
-      const newMode = prevMode === 'light' ? 'dark' : 'light';
-      localStorage.setItem('themeMode', newMode);
-      return newMode;
-    });
-  };
-
   const contextValue = useMemo(() => ({
-    mode,
-    toggleColorMode
-  }), [mode]);
+    isDarkMode,
+    toggleDarkMode
+  }), [isDarkMode]);
 
   return (
     <ThemeContext.Provider value={contextValue}>
