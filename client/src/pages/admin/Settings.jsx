@@ -21,6 +21,7 @@ import {
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../utils/api';
 import PatternPicker from '../../components/PatternPicker';
+import FontPicker from '../../components/FontPicker';
 
 const Settings = () => {
   const theme = useTheme();
@@ -106,14 +107,22 @@ const Settings = () => {
 
   const handleSave = async () => {
     try {
-      setLoading(true);
       await api.put('/settings', settings);
       showToast('Instellingen opgeslagen', 'success');
+      
+      // Dispatch een event voor pattern updates
+      window.dispatchEvent(new CustomEvent('patternSettingsUpdated', {
+        detail: {
+          sidebar_pattern: settings.sidebar_pattern,
+          pattern_opacity: settings.pattern_opacity,
+          pattern_scale: settings.pattern_scale,
+          pattern_color: settings.pattern_color
+        }
+      }));
+      
     } catch (error) {
       console.error('Fout bij opslaan instellingen:', error);
       showToast('Fout bij opslaan instellingen', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -153,6 +162,13 @@ const Settings = () => {
                 />
               </Grid>
               <Grid item xs={12}>
+                <FontPicker
+                  label="Titel lettertype"
+                  value={settings.font}
+                  onChange={(value) => setSettings(prev => ({ ...prev, font: value }))}
+                />
+              </Grid>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Subtitel"
@@ -161,19 +177,11 @@ const Settings = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Subtitel lettertype</InputLabel>
-                  <Select
-                    value={settings.subtitle_font}
-                    label="Subtitel lettertype"
-                    onChange={(e) => setSettings(prev => ({ ...prev, subtitle_font: e.target.value }))}
-                  >
-                    <MenuItem value="Roboto">Roboto</MenuItem>
-                    <MenuItem value="Playfair Display">Playfair Display</MenuItem>
-                    <MenuItem value="Montserrat">Montserrat</MenuItem>
-                    <MenuItem value="Open Sans">Open Sans</MenuItem>
-                  </Select>
-                </FormControl>
+                <FontPicker
+                  label="Subtitel lettertype"
+                  value={settings.subtitle_font}
+                  onChange={(value) => setSettings(prev => ({ ...prev, subtitle_font: value }))}
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -181,50 +189,37 @@ const Settings = () => {
                   type="number"
                   label="Subtitel grootte"
                   value={settings.subtitle_size}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_size: parseInt(e.target.value) }))}
-                  InputProps={{
-                    inputProps: { min: 12, max: 48 }
-                  }}
+                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_size: e.target.value }))}
+                  inputProps={{ min: 8, max: 72 }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Subtitel kleur"
                   type="color"
+                  label="Subtitel kleur"
                   value={settings.subtitle_color}
                   onChange={(e) => setSettings(prev => ({ ...prev, subtitle_color: e.target.value }))}
-                  sx={{
-                    '& input': {
-                      height: 40,
-                      padding: 1,
-                      width: '100%'
-                    }
-                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Subtitel marge boven (px)"
+                  label="Subtitel marge boven"
                   value={settings.subtitle_margin_top}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_top: parseInt(e.target.value) }))}
-                  InputProps={{
-                    inputProps: { min: -50, max: 100 }
-                  }}
+                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_top: e.target.value }))}
+                  inputProps={{ min: -50, max: 100 }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Subtitel marge links (px)"
+                  label="Subtitel marge links"
                   value={settings.subtitle_margin_left}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_left: parseInt(e.target.value) }))}
-                  InputProps={{
-                    inputProps: { min: -50, max: 100 }
-                  }}
+                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_left: e.target.value }))}
+                  inputProps={{ min: -50, max: 100 }}
                 />
               </Grid>
             </Grid>

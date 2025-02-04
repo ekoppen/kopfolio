@@ -25,7 +25,7 @@ const Layout = () => {
   console.log('Layout component wordt gerenderd!');
   
   const theme = useTheme();
-  const { settings } = useSettings();
+  const { settings, setSettings } = useSettings();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -57,8 +57,22 @@ const Layout = () => {
       }));
     };
 
+    // Luister naar pattern updates
+    const handlePatternUpdate = (event) => {
+      const newPatternSettings = event.detail;
+      setSettings(prev => ({
+        ...prev,
+        ...newPatternSettings
+      }));
+    };
+
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
-    return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+    window.addEventListener('patternSettingsUpdated', handlePatternUpdate);
+    
+    return () => {
+      window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+      window.removeEventListener('patternSettingsUpdated', handlePatternUpdate);
+    };
   }, []);
 
   // Synchroniseer isExpanded met barPosition
@@ -171,11 +185,14 @@ const Layout = () => {
           bottom: 0,
           backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/patterns/${settings.sidebar_pattern})`,
           backgroundRepeat: 'repeat',
-          backgroundSize: `${settings.pattern_scale * 280}px`,
+          backgroundSize: settings.sidebar_pattern.endsWith('.svg')
+            ? `${settings.pattern_scale * 280}px`
+            : `${Math.max(settings.pattern_scale * 25, 10)}%`,
           backgroundPosition: 'center',
           opacity: settings.pattern_opacity,
           zIndex: -1,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          imageRendering: settings.sidebar_pattern.endsWith('.svg') ? 'auto' : 'crisp-edges'
         },
         '&::after': {
           content: '""',
@@ -194,24 +211,48 @@ const Layout = () => {
     }}>
       {/* Fixed Logo Container */}
       {settings.logo && (
-        <Box
-          component="img"
-          src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
-          alt="Logo"
-          sx={{
-            position: 'fixed',
-            top: `${settings.logo_margin_top}px`,
-            left: `${settings.logo_margin_left}px`,
-            height: settings.logo_size || 60,
-            width: 'auto',
-            maxWidth: settings.logo_size * 2 || 120,
-            objectFit: 'contain',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            zIndex: 2000,
-            pointerEvents: 'none',
-            filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.2))'
-          }}
-        />
+        <Box sx={{
+          position: 'fixed',
+          top: `${settings.logo_margin_top}px`,
+          left: `${settings.logo_margin_left}px`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: 1,
+          zIndex: 2000,
+        }}>
+          <Box
+            component="img"
+            src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+            alt="Logo"
+            sx={{
+              height: settings.logo_size || 60,
+              width: 'auto',
+              maxWidth: settings.logo_size * 2 || 120,
+              objectFit: 'contain',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.2))'
+            }}
+          />
+          {settings.site_subtitle && (
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontFamily: `'${settings.subtitle_font}', system-ui`,
+                fontSize: `${settings.subtitle_size}px`,
+                color: settings.subtitle_color,
+                marginTop: `${settings.subtitle_margin_top}px`,
+                marginLeft: `${settings.subtitle_margin_left}px`,
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                maxWidth: settings.logo_size * 3,
+                wordWrap: 'break-word'
+              }}
+            >
+              {settings.site_subtitle}
+            </Typography>
+          )}
+        </Box>
       )}
 
       {/* Main Layout Container */}
@@ -309,8 +350,8 @@ const Layout = () => {
                         color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                         textAlign: 'left',
                         justifyContent: 'flex-start',
-                        fontFamily: settings.subtitle_font,
-                        fontSize: settings.subtitle_size,
+                        fontFamily: `'${settings.font}', system-ui`,
+                        fontSize: '0.95rem',
                         textTransform: 'none',
                         whiteSpace: 'nowrap',
                         width: '100%',
@@ -362,8 +403,8 @@ const Layout = () => {
                         color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
                         textAlign: 'left',
                         justifyContent: 'flex-start',
-                        fontFamily: settings.subtitle_font,
-                        fontSize: settings.subtitle_size,
+                        fontFamily: `'${settings.font}', system-ui`,
+                        fontSize: '0.95rem',
                         textTransform: 'none',
                         whiteSpace: 'nowrap',
                         py: 0.75,

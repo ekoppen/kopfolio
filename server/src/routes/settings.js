@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSettings, updateSettings, getPatterns, updateLogo } from '../controllers/settings.js';
+import { getSettings, updateSettings, getPatterns, updateLogo, getFonts } from '../controllers/settings.js';
 import { verifyToken } from '../middleware/auth.js';
 import fileUpload from 'express-fileupload';
 
@@ -17,6 +17,7 @@ router.get('/test', (req, res) => {
 // Publieke routes
 router.get('/', getSettings);
 router.get('/patterns', getPatterns);
+router.get('/fonts', getFonts);
 
 // Beveiligde routes
 router.put('/', verifyToken, updateSettings);

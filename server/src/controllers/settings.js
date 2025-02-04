@@ -1,6 +1,7 @@
 import { pool } from '../models/db.js';
 import path from 'path';
 import { promises as fs } from 'fs';
+import fs_sync from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { uploadDirs, getUploadPath } from '../middleware/upload.js';
@@ -14,12 +15,18 @@ export const getPatterns = async (req, res) => {
     const patternsDir = path.join(__dirname, '../../public/patterns');
     const files = await fs.readdir(patternsDir);
     const patterns = files
-      .filter(file => file.endsWith('.svg'))
-      .map(file => ({
-        name: file,
-        value: file,
-        preview: `/patterns/${file}`
-      }));
+      .filter(file => /\.(svg|png|jpe?g|webp)$/i.test(file))
+      .map(file => {
+        const ext = path.extname(file).toLowerCase();
+        const name = file.replace(/\.[^/.]+$/, ''); // Verwijder extensie voor de naam
+        return {
+          name: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, ' '), // Maak naam leesbaar
+          value: file,
+          preview: `/patterns/${file}`,
+          type: ext.slice(1), // svg, png, jpg/jpeg, of webp
+          isRaster: ['png', 'jpg', 'jpeg', 'webp'].includes(ext.slice(1)) // Helper voor raster vs vector
+        };
+      });
     
     res.json(patterns);
   } catch (error) {
@@ -220,5 +227,54 @@ export const updateLogo = async (req, res) => {
   } catch (error) {
     console.error('Error handling logo upload:', error);
     res.status(500).json({ error: 'Fout bij uploaden van logo' });
+  }
+};
+
+// Haal beschikbare fonts op
+export const getFonts = async (req, res) => {
+  try {
+    const fontsDir = path.join(__dirname, '../../public/fonts');
+    console.log('Zoeken naar fonts in:', fontsDir);
+    
+    // Maak de fonts directory aan als deze nog niet bestaat
+    if (!fs_sync.existsSync(fontsDir)) {
+      await fs.mkdir(fontsDir, { recursive: true });
+    }
+
+    const files = await fs.readdir(fontsDir);
+    console.log('Gevonden font bestanden:', files);
+
+    const fonts = files
+      .filter(file => /\.(woff2?|ttf|otf)$/i.test(file))
+      .map(file => {
+        const ext = path.extname(file).toLowerCase();
+        const name = file.replace(/\.[^/.]+$/, ''); // Verwijder extensie voor de naam
+        const font = {
+          name: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, ' '), // Maak naam leesbaar
+          value: name,
+          file: file,
+          type: ext.slice(1) // woff, woff2, ttf, of otf
+        };
+        console.log('Font object aangemaakt:', font);
+        return font;
+      });
+    
+    // Voeg standaard system fonts toe
+    const systemFonts = [
+      { name: 'System Default', value: 'system-ui', type: 'system' },
+      { name: 'Arial', value: 'Arial', type: 'system' },
+      { name: 'Helvetica', value: 'Helvetica', type: 'system' },
+      { name: 'Verdana', value: 'Verdana', type: 'system' },
+      { name: 'Georgia', value: 'Georgia', type: 'system' },
+      { name: 'Times New Roman', value: 'Times New Roman', type: 'system' }
+    ];
+
+    const allFonts = [...systemFonts, ...fonts];
+    console.log('Alle fonts die worden teruggestuurd:', allFonts);
+    
+    res.json(allFonts);
+  } catch (error) {
+    console.error('Error getting fonts:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }; 
