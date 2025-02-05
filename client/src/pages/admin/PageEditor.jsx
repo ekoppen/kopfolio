@@ -11,7 +11,17 @@ import {
   Container,
   AppBar,
   Toolbar,
-  Divider
+  Divider,
+  FormControlLabel,
+  Switch,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -32,33 +42,50 @@ const PageEditor = () => {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [slideshowDialogOpen, setSlideshowDialogOpen] = useState(false);
   const [page, setPage] = useState({
     title: '',
     slug: '',
     description: '',
-    content: []
+    content: [],
+    is_in_menu: false,
+    parent_id: null,
+    is_parent_only: false,
+    settings: {
+      slideshow: {
+        interval: 5000,
+        transition: 'fade',
+        autoPlay: true
+      }
+    }
   });
+  const [availableParents, setAvailableParents] = useState([]);
 
   useEffect(() => {
-    if (!isNew) {
-      loadPage();
-    }
-  }, [id]);
+    const loadData = async () => {
+      try {
+        // Laad beschikbare parent pagina's
+        const pagesResponse = await api.get('/pages');
+        // Filter de huidige pagina uit de lijst van mogelijke parents
+        const filteredPages = id ? 
+          pagesResponse.data.filter(p => p.id !== parseInt(id)) : 
+          pagesResponse.data;
+        setAvailableParents(filteredPages);
 
-  const loadPage = async () => {
-    try {
-      const response = await api.get(`/pages/id/${id}`);
-      setPage({
-        ...response.data,
-        description: response.data.description || ''
-      });
-    } catch (error) {
-      setError(error.response?.data?.message || 'Fout bij laden pagina');
-      showToast('Fout bij laden pagina', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (id) {
+          const response = await api.get(`/pages/id/${id}`);
+          setPage(response.data);
+        }
+      } catch (error) {
+        console.error('Fout bij laden pagina:', error);
+        showToast('Fout bij laden pagina', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -75,24 +102,22 @@ const PageEditor = () => {
     }));
   };
 
-  const handleSave = async () => {
-    if (!page.title) {
-      showToast('Vul een titel in', 'error');
-      return;
-    }
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setSaving(true);
+
     try {
-      if (isNew) {
-        await api.post('/pages', page);
-        showToast('Pagina succesvol aangemaakt');
-      } else {
+      if (id) {
         await api.put(`/pages/${id}`, page);
-        showToast('Pagina succesvol opgeslagen');
+        showToast('Pagina succesvol bijgewerkt', 'success');
+      } else {
+        await api.post('/pages', page);
+        showToast('Pagina succesvol aangemaakt', 'success');
       }
       navigate('/admin/paginas');
     } catch (error) {
-      showToast(error.response?.data?.message || 'Fout bij opslaan pagina', 'error');
+      console.error('Fout bij opslaan pagina:', error);
+      showToast('Fout bij opslaan pagina', 'error');
     } finally {
       setSaving(false);
     }
@@ -132,7 +157,7 @@ const PageEditor = () => {
           <Button
             variant="contained"
             startIcon={<SaveIcon />}
-            onClick={handleSave}
+            onClick={handleSubmit}
             disabled={saving}
           >
             {saving ? 'Opslaan...' : 'Opslaan'}
@@ -157,6 +182,16 @@ const PageEditor = () => {
           <Typography variant="h6" gutterBottom>
             Pagina informatie
           </Typography>
+          {page.slug === 'home' && (
+            <Box sx={{ mb: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setSlideshowDialogOpen(true)}
+              >
+                Slideshow Instellingen
+              </Button>
+            </Box>
+          )}
           <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
             <TextField
               fullWidth
@@ -184,18 +219,190 @@ const PageEditor = () => {
             onChange={handleChange}
             multiline
             rows={2}
+            sx={{ mb: 2 }}
           />
+
+          <Divider sx={{ my: 3 }} />
+          
+          {page.slug !== 'home' && (
+            <>
+              <Typography variant="subtitle1" gutterBottom>
+                Menu instellingen
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={page.is_in_menu}
+                      onChange={(e) => setPage(prev => ({ 
+                        ...prev, 
+                        is_in_menu: e.target.checked,
+                        parent_id: e.target.checked ? prev.parent_id : null
+                      }))}
+                      name="is_in_menu"
+                    />
+                  }
+                  label="Toon in menu"
+                />
+
+                {page.is_in_menu && (
+                  <>
+                    <FormControl fullWidth>
+                      <InputLabel>Parent Pagina</InputLabel>
+                      <Select
+                        value={page.parent_id || ''}
+                        onChange={(e) => setPage(prev => ({
+                          ...prev,
+                          parent_id: e.target.value || null,
+                          is_parent_only: false // Reset parent-only als het een subpagina wordt
+                        }))}
+                        label="Parent Pagina"
+                      >
+                        <MenuItem value="">
+                          <em>Geen parent (top-level)</em>
+                        </MenuItem>
+                        {availableParents
+                          .filter(p => p.is_in_menu && p.is_parent_only)
+                          .map((parent) => (
+                            <MenuItem key={parent.id} value={parent.id}>
+                              {parent.title}
+                            </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    {page.is_in_menu && !page.parent_id && (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={Boolean(page.is_parent_only)}
+                            onChange={(e) => setPage(prev => ({ 
+                              ...prev, 
+                              is_parent_only: e.target.checked,
+                              content: e.target.checked ? [] : prev.content
+                            }))}
+                            name="is_parent_only"
+                          />
+                        }
+                        label="Alleen als parent gebruiken (niet klikbaar in menu)"
+                      />
+                    )}
+                  </>
+                )}
+              </Box>
+            </>
+          )}
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Inhoud
-          </Typography>
-          <PageContentEditor
-            initialContent={page.content}
-            onChange={handleContentChange}
-          />
-        </Paper>
+        {!page.is_parent_only && !page.slug === 'home' && (
+          <Paper elevation={0} sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Inhoud
+            </Typography>
+            <PageContentEditor
+              initialContent={page.content}
+              onChange={handleContentChange}
+            />
+          </Paper>
+        )}
+
+        {/* Slideshow Settings Dialog */}
+        <Dialog 
+          open={slideshowDialogOpen} 
+          onClose={() => setSlideshowDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Slideshow Instellingen</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <FormControl fullWidth>
+                <InputLabel>Transitie Effect</InputLabel>
+                <Select
+                  value={page.settings?.slideshow?.transition || 'fade'}
+                  onChange={(e) => setPage(prev => ({
+                    ...prev,
+                    settings: {
+                      ...prev.settings,
+                      slideshow: {
+                        ...prev.settings?.slideshow,
+                        transition: e.target.value
+                      }
+                    }
+                  }))}
+                  label="Transitie Effect"
+                >
+                  <MenuItem value="fade">Fade</MenuItem>
+                  <MenuItem value="slide">Horizontaal Scrollen</MenuItem>
+                  <MenuItem value="creative">Creative</MenuItem>
+                  <MenuItem value="cards">Cards</MenuItem>
+                  <MenuItem value="coverflow">Coverflow</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                type="number"
+                label="Interval (ms)"
+                value={page.settings?.slideshow?.interval || 5000}
+                onChange={(e) => setPage(prev => ({
+                  ...prev,
+                  settings: {
+                    ...prev.settings,
+                    slideshow: {
+                      ...prev.settings?.slideshow,
+                      interval: parseInt(e.target.value)
+                    }
+                  }
+                }))}
+                inputProps={{ min: 1000, step: 500 }}
+                helperText="Tijd tussen elke slide (in milliseconden)"
+              />
+
+              <TextField
+                fullWidth
+                type="number"
+                label="Effect Duur (ms)"
+                value={page.settings?.slideshow?.speed || 1000}
+                onChange={(e) => setPage(prev => ({
+                  ...prev,
+                  settings: {
+                    ...prev.settings,
+                    slideshow: {
+                      ...prev.settings?.slideshow,
+                      speed: parseInt(e.target.value)
+                    }
+                  }
+                }))}
+                inputProps={{ min: 100, step: 100 }}
+                helperText="Duur van het transitie effect (in milliseconden)"
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={page.settings?.slideshow?.autoPlay !== false}
+                    onChange={(e) => setPage(prev => ({
+                      ...prev,
+                      settings: {
+                        ...prev.settings,
+                        slideshow: {
+                          ...prev.settings?.slideshow,
+                          autoPlay: e.target.checked
+                        }
+                      }
+                    }))}
+                  />
+                }
+                label="Automatisch afspelen"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setSlideshowDialogOpen(false)}>Sluiten</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   );

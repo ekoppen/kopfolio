@@ -39,7 +39,13 @@ export const getPatterns = async (req, res) => {
 export const getSettings = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, pattern_opacity, pattern_scale, pattern_color, logo_size FROM settings WHERE id = 1'
+      `SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, 
+              accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, 
+              subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, 
+              pattern_opacity, pattern_scale, pattern_color, logo_size,
+              subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
+              subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity 
+       FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -69,7 +75,13 @@ export const updateSettings = async (req, res) => {
       pattern_opacity,
       pattern_scale,
       pattern_color,
-      logo_size
+      logo_size,
+      subtitle_shadow_enabled,
+      subtitle_shadow_x,
+      subtitle_shadow_y,
+      subtitle_shadow_blur,
+      subtitle_shadow_color,
+      subtitle_shadow_opacity
     } = req.body;
 
     let query = `
@@ -91,7 +103,13 @@ export const updateSettings = async (req, res) => {
           pattern_opacity = COALESCE($15, pattern_opacity),
           pattern_scale = COALESCE($16, pattern_scale),
           pattern_color = COALESCE($17, pattern_color),
-          logo_size = COALESCE($18, logo_size)
+          logo_size = COALESCE($18, logo_size),
+          subtitle_shadow_enabled = COALESCE($19, subtitle_shadow_enabled),
+          subtitle_shadow_x = COALESCE($20, subtitle_shadow_x),
+          subtitle_shadow_y = COALESCE($21, subtitle_shadow_y),
+          subtitle_shadow_blur = COALESCE($22, subtitle_shadow_blur),
+          subtitle_shadow_color = COALESCE($23, subtitle_shadow_color),
+          subtitle_shadow_opacity = COALESCE($24, subtitle_shadow_opacity)
     `;
 
     const values = [
@@ -112,7 +130,13 @@ export const updateSettings = async (req, res) => {
       pattern_opacity,
       pattern_scale,
       pattern_color,
-      logo_size
+      logo_size,
+      subtitle_shadow_enabled,
+      subtitle_shadow_x,
+      subtitle_shadow_y,
+      subtitle_shadow_blur,
+      subtitle_shadow_color,
+      subtitle_shadow_opacity
     ];
 
     // Als er een logo is geüpload
@@ -143,7 +167,7 @@ export const updateSettings = async (req, res) => {
         await logoFile.mv(filepath);
         
         // Update de query om het nieuwe logo op te slaan
-        query += ', logo = $19';
+        query += ', logo = $25';
         values.push(filename);
 
         // Verwijder het oude logo bestand als het bestaat

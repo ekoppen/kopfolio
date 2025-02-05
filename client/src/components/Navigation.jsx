@@ -28,10 +28,10 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
           onClick={onToggleExpand}
           size="medium"
           sx={{
-            color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+            color: '#fff',
+            bgcolor: 'rgba(0,0,0,0.2)',
             '&:hover': {
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'
+              bgcolor: 'rgba(0,0,0,0.4)'
             },
             borderRadius: '50%',
             width: 40,
@@ -48,12 +48,7 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
           component={RouterLink}
           to="/"
           startIcon={<HomeIcon />}
-          sx={{ 
-            color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-            '&:hover': {
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-            }
-          }}
+          sx={{ color: '#fff' }}
         >
           Home
         </Button>
@@ -64,10 +59,9 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
             component={RouterLink}
             to="/admin"
             sx={{ 
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+              color: '#fff',
               '&:hover': {
-                color: 'primary.main',
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                color: 'primary.main'
               }
             }}
           >
@@ -78,13 +72,7 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
             component={RouterLink}
             to="/admin"
             startIcon={<DashboardIcon />}
-            sx={{ 
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-              '&:hover': {
-                color: 'primary.main',
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-              }
-            }}
+            sx={{ color: '#fff' }}
           >
             Admin
           </Button>
@@ -95,10 +83,9 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
             component={RouterLink}
             to="/login"
             sx={{ 
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+              color: '#fff',
               '&:hover': {
-                color: 'primary.main',
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                color: 'primary.main'
               }
             }}
           >
@@ -109,13 +96,7 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
             component={RouterLink}
             to="/login"
             startIcon={<LoginIcon />}
-            sx={{ 
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-              '&:hover': {
-                color: 'primary.main',
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-              }
-            }}
+            sx={{ color: '#fff' }}
           >
             Login
           </Button>
@@ -125,13 +106,12 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         onClick={themeContext.toggleDarkMode}
         size="medium"
         sx={{
-          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+          color: '#fff',
           border: '1px solid',
-          borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+          borderColor: 'rgba(255,255,255,0.3)',
           '&:hover': {
             borderColor: 'primary.main',
-            color: 'primary.main',
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+            color: 'primary.main'
           }
         }}
       >

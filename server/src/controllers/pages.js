@@ -3,23 +3,42 @@ import slugify from 'slugify';
 
 // Maak nieuwe pagina
 export const createPage = async (req, res) => {
-  const { title, content, description } = req.body;
+  const { 
+    title, 
+    content, 
+    description, 
+    is_in_menu = false,
+    parent_id = null,
+    is_parent_only = false
+  } = req.body;
 
   try {
-    // Genereer slug van titel
+    // Genereer basis slug van titel
     const baseSlug = slugify(title, { lower: true, strict: true });
     let slug = baseSlug;
-    let counter = 1;
+
+    // Als er een parent_id is, haal dan de parent slug op
+    if (parent_id) {
+      const parentResult = await pool.query(
+        'SELECT slug FROM pages WHERE id = $1',
+        [parent_id]
+      );
+      if (parentResult.rows.length > 0) {
+        slug = `${parentResult.rows[0].slug}/${baseSlug}`;
+      }
+    }
 
     // Check of slug al bestaat, zo ja, voeg nummer toe
+    let counter = 1;
+    let finalSlug = slug;
     while (true) {
       const slugCheck = await pool.query(
         'SELECT id FROM pages WHERE slug = $1',
-        [slug]
+        [finalSlug]
       );
 
       if (slugCheck.rows.length === 0) break;
-      slug = `${baseSlug}-${counter}`;
+      finalSlug = `${slug}-${counter}`;
       counter++;
     }
 
@@ -27,10 +46,21 @@ export const createPage = async (req, res) => {
     const jsonContent = Array.isArray(content) ? content : [];
 
     const result = await pool.query(
-      `INSERT INTO pages (title, content, description, slug)
-       VALUES ($1, $2::jsonb, $3, $4)
-       RETURNING *`,
-      [title, JSON.stringify(jsonContent), description || '', slug]
+      `INSERT INTO pages (
+        title, content, description, slug, 
+        is_in_menu, parent_id, is_parent_only
+      )
+      VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7)
+      RETURNING *`,
+      [
+        title, 
+        JSON.stringify(jsonContent), 
+        description || '', 
+        finalSlug,
+        is_in_menu,
+        parent_id,
+        is_parent_only
+      ]
     );
 
     // Parse de content terug naar JSON voor de response
@@ -53,44 +83,49 @@ export const createPage = async (req, res) => {
 export const getPages = async (req, res) => {
   try {
     const result = await pool.query(`
+      WITH RECURSIVE page_tree AS (
+        -- Base case: top-level pages
+        SELECT 
+          p.*,
+          0 as level,
+          ARRAY[]::integer[] as path,
+          CASE WHEN p.slug = 'home' THEN 0 ELSE 1 END as sort_order
+        FROM pages p
+        WHERE parent_id IS NULL
+        
+        UNION ALL
+        
+        -- Recursive case: child pages
+        SELECT 
+          p.*,
+          pt.level + 1,
+          pt.path || p.parent_id,
+          1 as sort_order
+        FROM pages p
+        JOIN page_tree pt ON p.parent_id = pt.id
+      )
       SELECT 
-        id, 
-        title, 
-        slug, 
-        description, 
-        content,
-        settings,
-        created_at,
-        updated_at,
-        is_in_menu,
-        menu_order
-      FROM pages 
+        pt.*,
+        (
+          SELECT json_agg(children.*)
+          FROM page_tree children
+          WHERE children.parent_id = pt.id
+        ) as children
+      FROM page_tree pt
       ORDER BY 
-        CASE 
-          WHEN slug = 'home' THEN 0 
-          WHEN is_in_menu THEN 1
-          ELSE 2 
-        END,
-        menu_order NULLS LAST,
-        created_at DESC
+        pt.sort_order,
+        pt.path, 
+        pt.menu_order NULLS LAST, 
+        pt.created_at DESC
     `);
 
-    // Parse de content voor alle pagina's
-    const pages = result.rows.map(page => ({
+    res.json(result.rows.map(page => ({
       ...page,
-      content: page.content || [],
-      settings: page.settings || {},
-      is_published: true, // Standaard waarde voor bestaande pagina's
-      is_home: page.slug === 'home' // Bepaal is_home op basis van slug
-    }));
-
-    res.json(pages);
+      children: page.children || []
+    })));
   } catch (error) {
-    console.error('Error in getPages:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Fout bij ophalen pagina\'s' 
-    });
+    console.error('Error getting pages:', error);
+    res.status(500).json({ message: 'Error getting pages' });
   }
 };
 
@@ -99,7 +134,12 @@ export const getPage = async (req, res) => {
   const { slug, id } = req.params;
 
   try {
-    let query = 'SELECT * FROM pages WHERE ';
+    let query = `
+      SELECT 
+        id, title, slug, content, description, 
+        is_in_menu, menu_order, parent_id, 
+        is_parent_only, settings, created_at, updated_at
+      FROM pages WHERE `;
     let params = [];
 
     if (id) {
@@ -119,8 +159,11 @@ export const getPage = async (req, res) => {
     // Parse de content voor de pagina
     const page = {
       ...result.rows[0],
-      content: result.rows[0].content ? result.rows[0].content : []
+      content: result.rows[0].content ? result.rows[0].content : [],
+      is_parent_only: result.rows[0].is_parent_only || false
     };
+
+    console.log('Sending page:', page);
 
     res.json(page);
   } catch (error) {
@@ -162,67 +205,165 @@ export const updateMenuOrder = async (req, res) => {
   }
 };
 
-// Update pagina
+// Update een pagina
 export const updatePage = async (req, res) => {
   const { id } = req.params;
-  const { title, content, description, settings, is_in_menu, menu_order } = req.body;
+  const { 
+    title, content, slug, is_in_menu, menu_order, 
+    settings, parent_id, description, is_parent_only 
+  } = req.body;
+
+  // Voorkom dat een pagina zichzelf als parent heeft
+  if (parent_id && parseInt(parent_id) === parseInt(id)) {
+    return res.status(400).json({ 
+      message: 'Een pagina kan niet zichzelf als parent hebben' 
+    });
+  }
 
   try {
-    // Als de titel verandert, update ook de slug
-    let slug = null;
-    if (title) {
-      const baseSlug = slugify(title, { lower: true, strict: true });
-      slug = baseSlug;
-      let counter = 1;
+    // Als er een nieuwe parent is of de titel is gewijzigd, update de slug
+    let newSlug = slug;
+    if (title || parent_id !== undefined) {
+      const baseSlug = title ? slugify(title, { lower: true, strict: true }) : slug.split('/').pop();
+      
+      if (parent_id) {
+        const parentResult = await pool.query(
+          'SELECT slug FROM pages WHERE id = $1',
+          [parent_id]
+        );
+        if (parentResult.rows.length > 0) {
+          newSlug = `${parentResult.rows[0].slug}/${baseSlug}`;
+        }
+      } else {
+        newSlug = baseSlug;
+      }
 
-      // Check of nieuwe slug al bestaat (behalve voor huidige pagina)
+      // Check of de nieuwe slug al bestaat
+      let counter = 1;
+      let finalSlug = newSlug;
       while (true) {
         const slugCheck = await pool.query(
           'SELECT id FROM pages WHERE slug = $1 AND id != $2',
-          [slug, id]
+          [finalSlug, id]
         );
 
         if (slugCheck.rows.length === 0) break;
-        slug = `${baseSlug}-${counter}`;
+        finalSlug = `${newSlug}-${counter}`;
         counter++;
+      }
+      newSlug = finalSlug;
+    }
+
+    // Check voor cyclische referenties als er een parent_id is
+    if (parent_id) {
+      const cycleCheck = await pool.query(`
+        WITH RECURSIVE page_tree AS (
+          SELECT id, parent_id, 1 as level
+          FROM pages
+          WHERE id = $1
+          
+          UNION
+          
+          SELECT p.id, p.parent_id, pt.level + 1
+          FROM pages p
+          JOIN page_tree pt ON p.id = pt.parent_id
+        )
+        SELECT COUNT(*) FROM page_tree WHERE id = $2
+      `, [parent_id, id]);
+
+      if (cycleCheck.rows[0].count > 0) {
+        return res.status(400).json({ 
+          message: 'Deze parent-child relatie zou een cyclische referentie creëren' 
+        });
       }
     }
 
-    // Zorg ervoor dat content als JSON wordt opgeslagen
-    const jsonContent = Array.isArray(content) ? content : [];
+    // Bouw de update query dynamisch op
+    let updateFields = [];
+    let values = [];
+    let paramCount = 1;
 
-    const result = await pool.query(
-      `UPDATE pages 
-       SET title = COALESCE($1, title),
-           content = COALESCE($2::jsonb, content),
-           description = COALESCE($3, description),
-           slug = COALESCE($4, slug),
-           settings = COALESCE($5::jsonb, settings),
-           is_in_menu = COALESCE($6, is_in_menu),
-           menu_order = COALESCE($7, menu_order),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $8
-       RETURNING *`,
-      [title, JSON.stringify(jsonContent), description, slug, JSON.stringify(settings), is_in_menu, menu_order, id]
-    );
+    if (title !== undefined) {
+      updateFields.push(`title = $${paramCount}`);
+      values.push(title);
+      paramCount++;
+    }
+
+    if (content !== undefined) {
+      updateFields.push(`content = $${paramCount}::jsonb`);
+      values.push(JSON.stringify(content));
+      paramCount++;
+    }
+
+    if (newSlug !== undefined) {
+      updateFields.push(`slug = $${paramCount}`);
+      values.push(newSlug);
+      paramCount++;
+    }
+
+    if (is_in_menu !== undefined) {
+      updateFields.push(`is_in_menu = $${paramCount}`);
+      values.push(is_in_menu);
+      paramCount++;
+    }
+
+    if (menu_order !== undefined) {
+      updateFields.push(`menu_order = $${paramCount}`);
+      values.push(menu_order);
+      paramCount++;
+    }
+
+    if (settings !== undefined) {
+      updateFields.push(`settings = $${paramCount}::jsonb`);
+      values.push(JSON.stringify(settings));
+      paramCount++;
+    }
+
+    if (description !== undefined) {
+      updateFields.push(`description = $${paramCount}`);
+      values.push(description);
+      paramCount++;
+    }
+
+    // Voeg parent_id altijd toe, zelfs als het null is
+    updateFields.push(`parent_id = $${paramCount}`);
+    values.push(parent_id);
+    paramCount++;
+
+    // Voeg is_parent_only toe
+    updateFields.push(`is_parent_only = $${paramCount}`);
+    values.push(is_parent_only === true);
+    paramCount++;
+
+    // Voeg updated_at toe
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+
+    // Voeg het ID toe als laatste parameter
+    values.push(id);
+
+    const query = `
+      UPDATE pages 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    console.log('Update query:', query);
+    console.log('Update values:', values);
+
+    const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Pagina niet gevonden' });
     }
 
-    // Parse de content terug naar JSON voor de response
-    const page = {
-      ...result.rows[0],
-      content: result.rows[0].content ? result.rows[0].content : []
-    };
-
-    res.json({
-      message: 'Pagina succesvol bijgewerkt',
-      page
-    });
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error('Fout bij updaten pagina:', error);
-    res.status(500).json({ message: 'Fout bij updaten pagina', error: error.message });
+    console.error('Error updating page:', error);
+    res.status(500).json({ 
+      message: 'Error updating page', 
+      error: error.message 
+    });
   }
 };
 

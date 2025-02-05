@@ -51,7 +51,10 @@ export async function initDb() {
       '011_add_sidebar_pattern.sql',
       '012_add_pattern_opacity.sql',
       '013_add_pattern_scale.sql',
-      '014_add_logo_size.sql'
+      '014_add_logo_size.sql',
+      '015_add_subtitle_shadow.sql',
+      '016_add_page_parent.sql',
+      '017_add_parent_only.sql'
     ];
 
     for (const migration of migrations) {

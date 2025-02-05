@@ -27,12 +27,24 @@ export const ThemeProvider = ({ children }) => {
     const savedMode = localStorage.getItem('themeMode');
     return savedMode || 'light';
   });
+  const [themeVersion, setThemeVersion] = useState(0);
 
   const isDarkMode = mode === 'dark';
 
-  const commonThemeSettings = {
+  // Luister naar font updates
+  useEffect(() => {
+    const handleFontUpdate = () => {
+      console.log('Font update gedetecteerd, theme wordt vernieuwd');
+      setThemeVersion(prev => prev + 1);
+    };
+
+    window.addEventListener('fontUpdated', handleFontUpdate);
+    return () => window.removeEventListener('fontUpdated', handleFontUpdate);
+  }, []);
+
+  const commonThemeSettings = useMemo(() => ({
     typography: {
-      fontFamily: `${settings.font || 'Inter'}, "Roboto", "Helvetica", "Arial", sans-serif`,
+      fontFamily: `${settings?.font || 'Inter'}, "Roboto", "Helvetica", "Arial", sans-serif`,
     },
     shape: {
       borderRadius: 8
@@ -47,7 +59,7 @@ export const ThemeProvider = ({ children }) => {
         }
       }
     }
-  };
+  }), [settings?.font]);
 
   const toggleDarkMode = () => {
     setMode((prevMode) => {
@@ -62,14 +74,14 @@ export const ThemeProvider = ({ children }) => {
     palette: {
       mode,
       primary: {
-        main: settings.accent_color || blue[500],
+        main: settings?.accent_color || blue[500],
       },
       background: {
         default: mode === 'dark' ? '#121212' : '#f5f5f5',
         paper: mode === 'dark' ? '#1e1e1e' : '#ffffff'
       }
     }
-  }), [mode, settings.accent_color, settings.font]);
+  }), [mode, settings?.accent_color, commonThemeSettings, themeVersion]);
 
   const contextValue = useMemo(() => ({
     isDarkMode,

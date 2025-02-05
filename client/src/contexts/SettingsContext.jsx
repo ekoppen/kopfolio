@@ -216,6 +216,12 @@ export const SettingsProvider = ({ children }) => {
         localStorage.setItem('appBarPosition', newSettings.logo_position);
       }
 
+      // Verstuur een fontUpdated event als het font is gewijzigd
+      if (newSettings.font !== settings.font || newSettings.subtitle_font !== settings.subtitle_font) {
+        console.log('Font wijziging gedetecteerd, verstuur fontUpdated event');
+        window.dispatchEvent(new CustomEvent('fontUpdated'));
+      }
+
       window.dispatchEvent(new CustomEvent('settingsUpdated', { 
         detail: parsedSettings
       }));

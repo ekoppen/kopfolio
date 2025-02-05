@@ -13,7 +13,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  useTheme
+  useTheme,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import {
   Upload as UploadIcon,
@@ -126,101 +128,201 @@ const Settings = () => {
     }
   };
 
+  const handleChange = (field, value) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 500 }}>
-        Instellingen
+        Site Instellingen
       </Typography>
 
       <Grid container spacing={3}>
-        {/* Site Titel & Subtitel */}
-        <Grid item xs={12} md={6}>
+        {/* Typografie en Branding */}
+        <Grid item xs={12}>
           <Paper 
             elevation={0}
             sx={{ 
               p: 3,
               border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-              boxShadow: theme.palette.mode === 'dark' ? '0 2px 12px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.1)',
-              transition: 'box-shadow 0.2s',
-              '&:hover': {
-                boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.6)' : '0 4px 20px rgba(0,0,0,0.15)'
-              }
+              borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
             }}
           >
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-              Site Titel & Subtitel
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+              Typografie en Branding
             </Typography>
-
+            
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              {/* Eerste rij */}
+              <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Site titel"
+                  label="Site Titel"
                   value={settings.site_title}
-                  onChange={(e) => setSettings(prev => ({ ...prev, site_title: e.target.value }))}
+                  onChange={(e) => handleChange('site_title', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} md={4}>
                 <FontPicker
-                  label="Titel lettertype"
                   value={settings.font}
-                  onChange={(value) => setSettings(prev => ({ ...prev, font: value }))}
+                  onChange={(value) => handleChange('font', value)}
+                  label="Hoofdlettertype"
                 />
               </Grid>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    type="color"
+                    label="Accent Kleur"
+                    value={settings.accent_color}
+                    onChange={(e) => handleChange('accent_color', e.target.value)}
+                    sx={{ width: '100px' }}
+                  />
+                  <TextField
+                    type="text"
+                    value={settings.accent_color}
+                    onChange={(e) => handleChange('accent_color', e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
+              </Grid>
+
+              {/* Tweede rij - Subtitel instellingen */}
               <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 500 }}>
+                  Subtitel Instellingen
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
                   label="Subtitel"
                   value={settings.site_subtitle}
-                  onChange={(e) => setSettings(prev => ({ ...prev, site_subtitle: e.target.value }))}
+                  onChange={(e) => handleChange('site_subtitle', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} md={4}>
                 <FontPicker
-                  label="Subtitel lettertype"
                   value={settings.subtitle_font}
-                  onChange={(value) => setSettings(prev => ({ ...prev, subtitle_font: value }))}
+                  onChange={(value) => handleChange('subtitle_font', value)}
+                  label="Subtitel Lettertype"
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    type="color"
+                    label="Subtitel Kleur"
+                    value={settings.subtitle_color}
+                    onChange={(e) => handleChange('subtitle_color', e.target.value)}
+                    sx={{ width: '100px' }}
+                  />
+                  <TextField
+                    type="text"
+                    value={settings.subtitle_color}
+                    onChange={(e) => handleChange('subtitle_color', e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
+              </Grid>
+
+              {/* Derde rij - Subtitel grootte en marges */}
+              <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Subtitel grootte"
+                  label="Lettergrootte (px)"
                   value={settings.subtitle_size}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_size: e.target.value }))}
-                  inputProps={{ min: 8, max: 72 }}
+                  onChange={(e) => handleChange('subtitle_size', e.target.value)}
+                  InputProps={{ inputProps: { min: 8, max: 72 } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="color"
-                  label="Subtitel kleur"
-                  value={settings.subtitle_color}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_color: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Subtitel marge boven"
+                  label="Marge Boven (px)"
                   value={settings.subtitle_margin_top}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_top: e.target.value }))}
-                  inputProps={{ min: -50, max: 100 }}
+                  onChange={(e) => handleChange('subtitle_margin_top', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Subtitel marge links"
+                  label="Marge Links (px)"
                   value={settings.subtitle_margin_left}
-                  onChange={(e) => setSettings(prev => ({ ...prev, subtitle_margin_left: e.target.value }))}
-                  inputProps={{ min: -50, max: 100 }}
+                  onChange={(e) => handleChange('subtitle_margin_left', e.target.value)}
                 />
+              </Grid>
+
+              {/* Vierde rij - Dropshadow instellingen */}
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.subtitle_shadow_enabled}
+                        onChange={(e) => handleChange('subtitle_shadow_enabled', e.target.checked)}
+                      />
+                    }
+                    label="Dropshadow"
+                  />
+                  {settings.subtitle_shadow_enabled && (
+                    <>
+                      <TextField
+                        type="number"
+                        label="X Offset"
+                        value={settings.subtitle_shadow_x || 0}
+                        onChange={(e) => handleChange('subtitle_shadow_x', e.target.value)}
+                        sx={{ width: 100 }}
+                        InputProps={{ inputProps: { min: -20, max: 20 } }}
+                      />
+                      <TextField
+                        type="number"
+                        label="Y Offset"
+                        value={settings.subtitle_shadow_y || 0}
+                        onChange={(e) => handleChange('subtitle_shadow_y', e.target.value)}
+                        sx={{ width: 100 }}
+                        InputProps={{ inputProps: { min: -20, max: 20 } }}
+                      />
+                      <TextField
+                        type="number"
+                        label="Blur"
+                        value={settings.subtitle_shadow_blur || 0}
+                        onChange={(e) => handleChange('subtitle_shadow_blur', e.target.value)}
+                        sx={{ width: 100 }}
+                        InputProps={{ inputProps: { min: 0, max: 20 } }}
+                      />
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <TextField
+                          type="color"
+                          label="Shadow Kleur"
+                          value={settings.subtitle_shadow_color || '#000000'}
+                          onChange={(e) => handleChange('subtitle_shadow_color', e.target.value)}
+                          sx={{ width: '100px' }}
+                        />
+                        <TextField
+                          type="number"
+                          label="Opacity"
+                          value={settings.subtitle_shadow_opacity || 0.2}
+                          onChange={(e) => handleChange('subtitle_shadow_opacity', e.target.value)}
+                          sx={{ width: 100 }}
+                          InputProps={{ 
+                            inputProps: { 
+                              min: 0, 
+                              max: 1, 
+                              step: 0.1 
+                            } 
+                          }}
+                        />
+                      </Box>
+                    </>
+                  )}
+                </Box>
               </Grid>
             </Grid>
           </Paper>
