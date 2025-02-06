@@ -66,9 +66,15 @@ const SortablePageCard = ({ page, onEdit, onDelete, level = 0 }) => {
         borderRadius: 2,
         position: 'relative',
         overflow: 'visible',
+        boxShadow: theme.palette.mode === 'dark' 
+          ? '0 2px 12px rgba(0,0,0,0.5)' 
+          : '0 2px 12px rgba(0,0,0,0.1)',
         '&:hover': {
           borderColor: 'primary.main',
-          bgcolor: 'action.hover'
+          bgcolor: 'action.hover',
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 4px 20px rgba(0,0,0,0.6)' 
+            : '0 4px 20px rgba(0,0,0,0.15)'
         }
       }}
     >
@@ -122,7 +128,7 @@ const SortablePageCard = ({ page, onEdit, onDelete, level = 0 }) => {
                 )}
                 <Chip
                   size="small"
-                  label={`/${page.slug}`}
+                  label={page.parent_id ? `/${page.parent_slug}/${page.slug}` : `/${page.slug}`}
                   variant="outlined"
                   sx={{ 
                     height: 24,

@@ -86,23 +86,45 @@ export const getPages = async (req, res) => {
       WITH RECURSIVE page_tree AS (
         -- Base case: top-level pages
         SELECT 
-          p.*,
+          p.id,
+          p.title,
+          p.slug,
+          p.description,
+          p.content,
+          p.is_in_menu,
+          p.parent_id,
+          p.menu_order,
+          p.created_at,
+          p.settings,
+          p.is_parent_only,
+          CAST(NULL AS VARCHAR) as parent_slug,
+          ARRAY[p.menu_order] as path,
           0 as level,
-          ARRAY[]::integer[] as path,
-          CASE WHEN p.slug = 'home' THEN 0 ELSE 1 END as sort_order
+          ARRAY[]::integer[] as ancestors
         FROM pages p
-        WHERE parent_id IS NULL
-        
+        WHERE p.parent_id IS NULL
+
         UNION ALL
-        
+
         -- Recursive case: child pages
         SELECT 
-          p.*,
-          pt.level + 1,
-          pt.path || p.parent_id,
-          1 as sort_order
+          p.id,
+          p.title,
+          p.slug,
+          p.description,
+          p.content,
+          p.is_in_menu,
+          p.parent_id,
+          p.menu_order,
+          p.created_at,
+          p.settings,
+          p.is_parent_only,
+          parent.slug as parent_slug,
+          parent.path || p.menu_order,
+          parent.level + 1,
+          parent.ancestors || parent.id
         FROM pages p
-        JOIN page_tree pt ON p.parent_id = pt.id
+        JOIN page_tree parent ON p.parent_id = parent.id
       )
       SELECT 
         pt.*,
@@ -113,10 +135,8 @@ export const getPages = async (req, res) => {
         ) as children
       FROM page_tree pt
       ORDER BY 
-        pt.sort_order,
-        pt.path, 
-        pt.menu_order NULLS LAST, 
-        pt.created_at DESC
+        CASE WHEN pt.slug = 'home' THEN 0 ELSE 1 END,
+        pt.path;
     `);
 
     res.json(result.rows.map(page => ({
@@ -124,8 +144,8 @@ export const getPages = async (req, res) => {
       children: page.children || []
     })));
   } catch (error) {
-    console.error('Error getting pages:', error);
-    res.status(500).json({ message: 'Error getting pages' });
+    console.error('Error in getPages:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 

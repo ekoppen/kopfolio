@@ -44,7 +44,8 @@ export const getSettings = async (req, res) => {
               subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, 
               pattern_opacity, pattern_scale, pattern_color, logo_size,
               subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
-              subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity 
+              subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
+              menu_font_size, content_font_size
        FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
@@ -81,8 +82,28 @@ export const updateSettings = async (req, res) => {
       subtitle_shadow_y,
       subtitle_shadow_blur,
       subtitle_shadow_color,
-      subtitle_shadow_opacity
+      subtitle_shadow_opacity,
+      menu_font_size,
+      content_font_size
     } = req.body;
+
+    // Parse numerieke waarden
+    const parsedValues = {
+      subtitle_size: subtitle_size !== undefined ? Number(subtitle_size) : undefined,
+      logo_margin_top: logo_margin_top !== undefined ? Number(logo_margin_top) : undefined,
+      logo_margin_left: logo_margin_left !== undefined ? Number(logo_margin_left) : undefined,
+      subtitle_margin_top: subtitle_margin_top !== undefined ? Number(subtitle_margin_top) : undefined,
+      subtitle_margin_left: subtitle_margin_left !== undefined ? Number(subtitle_margin_left) : undefined,
+      pattern_opacity: pattern_opacity !== undefined ? Number(pattern_opacity) : undefined,
+      pattern_scale: pattern_scale !== undefined ? Number(pattern_scale) : undefined,
+      logo_size: logo_size !== undefined ? Number(logo_size) : undefined,
+      menu_font_size: menu_font_size !== undefined ? Number(menu_font_size) : undefined,
+      content_font_size: content_font_size !== undefined ? Number(content_font_size) : undefined,
+      subtitle_shadow_x: subtitle_shadow_x !== undefined ? Number(subtitle_shadow_x) : undefined,
+      subtitle_shadow_y: subtitle_shadow_y !== undefined ? Number(subtitle_shadow_y) : undefined,
+      subtitle_shadow_blur: subtitle_shadow_blur !== undefined ? Number(subtitle_shadow_blur) : undefined,
+      subtitle_shadow_opacity: subtitle_shadow_opacity !== undefined ? Number(subtitle_shadow_opacity) : undefined
+    };
 
     let query = `
       UPDATE settings 
@@ -109,34 +130,38 @@ export const updateSettings = async (req, res) => {
           subtitle_shadow_y = COALESCE($21, subtitle_shadow_y),
           subtitle_shadow_blur = COALESCE($22, subtitle_shadow_blur),
           subtitle_shadow_color = COALESCE($23, subtitle_shadow_color),
-          subtitle_shadow_opacity = COALESCE($24, subtitle_shadow_opacity)
+          subtitle_shadow_opacity = COALESCE($24, subtitle_shadow_opacity),
+          menu_font_size = COALESCE($25, menu_font_size),
+          content_font_size = COALESCE($26, content_font_size)
     `;
 
     const values = [
       site_title,
       site_subtitle,
       subtitle_font,
-      subtitle_size,
+      parsedValues.subtitle_size,
       subtitle_color,
       accent_color,
       font,
       logo_position,
-      logo_margin_top,
-      logo_margin_left,
-      subtitle_margin_top,
-      subtitle_margin_left,
+      parsedValues.logo_margin_top,
+      parsedValues.logo_margin_left,
+      parsedValues.subtitle_margin_top,
+      parsedValues.subtitle_margin_left,
       footer_text,
       sidebar_pattern,
-      pattern_opacity,
-      pattern_scale,
+      parsedValues.pattern_opacity,
+      parsedValues.pattern_scale,
       pattern_color,
-      logo_size,
+      parsedValues.logo_size,
       subtitle_shadow_enabled,
-      subtitle_shadow_x,
-      subtitle_shadow_y,
-      subtitle_shadow_blur,
+      parsedValues.subtitle_shadow_x,
+      parsedValues.subtitle_shadow_y,
+      parsedValues.subtitle_shadow_blur,
       subtitle_shadow_color,
-      subtitle_shadow_opacity
+      parsedValues.subtitle_shadow_opacity,
+      parsedValues.menu_font_size,
+      parsedValues.content_font_size
     ];
 
     // Als er een logo is geüpload
@@ -167,7 +192,7 @@ export const updateSettings = async (req, res) => {
         await logoFile.mv(filepath);
         
         // Update de query om het nieuwe logo op te slaan
-        query += ', logo = $25';
+        query += ', logo = $27';
         values.push(filename);
 
         // Verwijder het oude logo bestand als het bestaat

@@ -108,20 +108,22 @@ export const SettingsProvider = ({ children }) => {
       try {
         const response = await api.get('/settings');
         const savedPosition = localStorage.getItem('appBarPosition');
-        console.log('Loaded settings:', response.data, 'Saved position:', savedPosition);
+        console.log('Loaded settings from server:', response.data);
         
         // Parse en valideer alle numerieke waarden
         const parsedSettings = {
           ...response.data,
           logo_position: savedPosition || response.data.logo_position || 'left',
-          subtitle_size: parseInt(response.data.subtitle_size) || 14,
-          logo_margin_top: parseInt(response.data.logo_margin_top) || 0,
-          logo_margin_left: parseInt(response.data.logo_margin_left) || 0,
-          subtitle_margin_top: parseInt(response.data.subtitle_margin_top) || 0,
-          subtitle_margin_left: parseInt(response.data.subtitle_margin_left) || 0,
-          pattern_opacity: parseFloat(response.data.pattern_opacity) || 0.1,
-          pattern_scale: parseFloat(response.data.pattern_scale) || 1,
-          logo_size: parseInt(response.data.logo_size) || 200
+          subtitle_size: Number(response.data.subtitle_size) || 14,
+          logo_margin_top: Number(response.data.logo_margin_top) || 0,
+          logo_margin_left: Number(response.data.logo_margin_left) || 0,
+          subtitle_margin_top: Number(response.data.subtitle_margin_top) || 0,
+          subtitle_margin_left: Number(response.data.subtitle_margin_left) || 0,
+          pattern_opacity: Number(response.data.pattern_opacity) || 0.1,
+          pattern_scale: Number(response.data.pattern_scale) || 1,
+          logo_size: Number(response.data.logo_size) || 200,
+          menu_font_size: Number(response.data.menu_font_size) || 16,
+          content_font_size: Number(response.data.content_font_size) || 16
         };
 
         console.log('Parsed settings:', parsedSettings);
@@ -148,7 +150,9 @@ export const SettingsProvider = ({ children }) => {
           pattern_opacity: 0.1,
           pattern_scale: 1,
           pattern_color: '#000000',
-          logo_size: 200
+          logo_size: 200,
+          menu_font_size: 16,
+          content_font_size: 16
         });
       } finally {
         setLoading(false);
@@ -174,7 +178,9 @@ export const SettingsProvider = ({ children }) => {
         subtitle_margin_left: parseInt(newSettings.subtitle_margin_left) || prev.subtitle_margin_left,
         pattern_opacity: parseFloat(newSettings.pattern_opacity) || prev.pattern_opacity,
         pattern_scale: parseFloat(newSettings.pattern_scale) || prev.pattern_scale,
-        logo_size: parseInt(newSettings.logo_size) || prev.logo_size
+        logo_size: parseInt(newSettings.logo_size) || prev.logo_size,
+        menu_font_size: parseInt(newSettings.menu_font_size) || prev.menu_font_size,
+        content_font_size: parseInt(newSettings.content_font_size) || prev.content_font_size
       }));
     };
 
@@ -191,39 +197,53 @@ export const SettingsProvider = ({ children }) => {
 
   const updateSettings = async (newSettings) => {
     try {
-      await api.put('/settings', newSettings);
+      console.log('updateSettings aangeroepen met:', newSettings);
       
-      // Parse numerieke waarden voordat we ze opslaan
-      const parsedSettings = {
+      // Parse numerieke waarden voordat we ze naar de server sturen
+      const settingsToSave = {
         ...newSettings,
-        subtitle_size: parseInt(newSettings.subtitle_size) || settings.subtitle_size,
-        logo_margin_top: parseInt(newSettings.logo_margin_top) || settings.logo_margin_top,
-        logo_margin_left: parseInt(newSettings.logo_margin_left) || settings.logo_margin_left,
-        subtitle_margin_top: parseInt(newSettings.subtitle_margin_top) || settings.subtitle_margin_top,
-        subtitle_margin_left: parseInt(newSettings.subtitle_margin_left) || settings.subtitle_margin_left,
-        pattern_opacity: parseFloat(newSettings.pattern_opacity) || settings.pattern_opacity,
-        pattern_scale: parseFloat(newSettings.pattern_scale) || settings.pattern_scale,
-        logo_size: parseInt(newSettings.logo_size) || settings.logo_size
+        subtitle_size: Number(newSettings.subtitle_size),
+        logo_margin_top: Number(newSettings.logo_margin_top),
+        logo_margin_left: Number(newSettings.logo_margin_left),
+        subtitle_margin_top: Number(newSettings.subtitle_margin_top),
+        subtitle_margin_left: Number(newSettings.subtitle_margin_left),
+        pattern_opacity: Number(newSettings.pattern_opacity),
+        pattern_scale: Number(newSettings.pattern_scale),
+        logo_size: Number(newSettings.logo_size),
+        menu_font_size: Number(newSettings.menu_font_size),
+        content_font_size: Number(newSettings.content_font_size)
       };
 
-      setSettings(prev => ({
-        ...prev,
-        ...parsedSettings
-      }));
+      console.log('Versturen naar server:', settingsToSave);
+      
+      // Sla de wijzigingen op in de database
+      const response = await api.put('/settings', settingsToSave);
+      console.log('Response van server:', response.data);
+      
+      // Update de lokale state met de geparseerde waarden
+      setSettings(prev => {
+        console.log('Vorige instellingen:', prev);
+        const newState = {
+          ...prev,
+          ...settingsToSave
+        };
+        console.log('Nieuwe instellingen state:', newState);
+        return newState;
+      });
 
       // Update localStorage als logo_position verandert
       if (newSettings.logo_position) {
         localStorage.setItem('appBarPosition', newSettings.logo_position);
       }
 
-      // Verstuur een fontUpdated event als het font is gewijzigd
+      // Verstuur een fontUpdated event ALLEEN als de instellingen zijn opgeslagen
       if (newSettings.font !== settings.font || newSettings.subtitle_font !== settings.subtitle_font) {
-        console.log('Font wijziging gedetecteerd, verstuur fontUpdated event');
+        console.log('Font wijziging opgeslagen, verstuur fontUpdated event');
         window.dispatchEvent(new CustomEvent('fontUpdated'));
       }
 
       window.dispatchEvent(new CustomEvent('settingsUpdated', { 
-        detail: parsedSettings
+        detail: settingsToSave
       }));
       
       return true;
@@ -233,10 +253,24 @@ export const SettingsProvider = ({ children }) => {
     }
   };
 
+  // Functie voor tijdelijke lokale updates (zonder opslaan)
+  const updateSettingsLocally = (newSettings) => {
+    console.log('updateSettingsLocally aangeroepen met:', newSettings);
+    setSettings(prev => {
+      const newState = {
+        ...prev,
+        ...newSettings
+      };
+      console.log('Nieuwe lokale instellingen:', newState);
+      return newState;
+    });
+  };
+
   return (
     <SettingsContext.Provider value={{ 
       settings, 
       updateSettings,
+      updateSettingsLocally,
       setSettings
     }}>
       {children}

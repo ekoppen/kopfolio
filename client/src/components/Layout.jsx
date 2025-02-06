@@ -8,16 +8,36 @@ import {
   Box,
   useTheme,
   Button,
-  IconButton
+  IconButton,
+  List,
+  ListItem,
+  Paper
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  ArrowForwardIos as ArrowForwardIosIcon
+  ArrowForwardIos as ArrowForwardIosIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon
 } from '@mui/icons-material';
 import Navigation from './Navigation';
 import api from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensors,
+  useSensor
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 console.log('Layout.jsx wordt geladen!');
 
@@ -30,15 +50,27 @@ const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(1);
+  const [patterns, setPatterns] = useState([]);
   const [isExpanded, setIsExpanded] = useState(() => {
     const savedPosition = localStorage.getItem('appBarPosition');
     return savedPosition === 'full-left';
   });
+  const [pages, setPages] = useState([]);
   const [menuPages, setMenuPages] = useState([]);
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [expandedItems, setExpandedItems] = useState(new Set());
+  const [activeId, setActiveId] = useState(null);
 
   // Gebruik de opgeslagen positie als fallback voor de settings
   const barPosition = settings.logo_position || localStorage.getItem('appBarPosition') || 'top';
-  
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Update localStorage wanneer settings veranderen
   useEffect(() => {
     if (settings.logo_position) {
@@ -99,6 +131,7 @@ const Layout = () => {
         const sortedMenuPages = response.data
           .filter(page => page.is_in_menu)
           .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0));
+        setPages(response.data);
         setMenuPages(sortedMenuPages);
       } catch (error) {
         console.error('Fout bij laden menu pagina\'s:', error);
@@ -106,6 +139,20 @@ const Layout = () => {
     };
 
     loadMenuPages();
+  }, []);
+
+  // Laad de patronen
+  useEffect(() => {
+    const loadPatterns = async () => {
+      try {
+        const response = await api.get('/settings/patterns');
+        setPatterns(response.data);
+      } catch (error) {
+        console.error('Fout bij laden patronen:', error);
+        setPatterns([]);
+      }
+    };
+    loadPatterns();
   }, []);
 
   // Toggle functie die de balk uitklapt naar links
@@ -120,52 +167,226 @@ const Layout = () => {
   
   // Functie om hex kleur om te zetten naar rgba
   const hexToRgba = (hex, opacity = 1) => {
-    // Verwijder de # als die aanwezig is
-    hex = hex.replace('#', '');
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return `rgba(0, 0, 0, ${opacity})`;
     
-    // Parse de hex waarden
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
     
-    // Return rgba string
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  // Functie om te bepalen of een kleur licht of donker is
+  const isLightColor = (color) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Berekenen van de relatieve helderheid volgens WCAG richtlijnen
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5;
+  };
+
+  // Bepaal de tekstkleur op basis van de achtergrond
+  const getContrastColor = (bgColor) => {
+    return isLightColor(bgColor) ? '#000000' : '#FFFFFF';
   };
 
   // Functie om het juiste patroon te bepalen
   const getPatternStyle = () => {
-    const pattern = settings.sidebar_pattern;
-    if (!pattern || pattern === 'none') return {};
+    if (!settings?.sidebar_pattern) return {};
 
-    // Als het een custom SVG patroon is
-    if (pattern.endsWith('.svg')) {
-      return {
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/patterns/${pattern})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: `${settings.pattern_scale * 100}%`,
-          backgroundPosition: 'center',
-          opacity: settings.pattern_opacity,
-          pointerEvents: 'none',
-          zIndex: 1
+    const pattern = patterns.find(p => p.value === settings.sidebar_pattern);
+    if (!pattern) return {};
+
+    return {
+      backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}${pattern.preview})`,
+      backgroundSize: pattern.type === 'svg'
+        ? `${settings.pattern_scale * 280}px`
+        : `${Math.max(settings.pattern_scale * 25, 10)}%`,
+      backgroundPosition: 'center',
+      backgroundRepeat: 'repeat',
+      opacity: settings.pattern_opacity,
+      backgroundColor: settings.pattern_color || '#FCF4FF',
+      imageRendering: pattern.type === 'svg' ? 'auto' : 'crisp-edges'
+    };
+  };
+
+  // Bereken de tekstkleur op basis van de achtergrondkleur
+  const textColor = settings?.pattern_color ? 
+    getContrastColor(settings.pattern_color) : 
+    theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
+
+  const MenuItem = ({ page, level = 0, selectedPage, onPageSelect }) => {
+    const theme = useTheme();
+    const { settings } = useSettings();
+    const [isHovered, setIsHovered] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const childPages = pages.filter(p => p.parent_id === page.id);
+    const hasChildren = childPages.length > 0;
+
+    const getTextColor = () => {
+      if (settings?.logo_position === 'full-left' && settings?.pattern_color) {
+        const hex = settings.pattern_color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5 ? '#000000' : '#FFFFFF';
+      }
+      return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
+    };
+
+    const handleClick = (e) => {
+      if (hasChildren) {
+        e.preventDefault();
+        if (isExpanded) {
+          setDropdownOpen(!dropdownOpen);
+        } else {
+          setDropdownOpen(!dropdownOpen);
         }
-      };
+      } else {
+        e.preventDefault();
+        onPageSelect(page);
+      }
+    };
+
+    return (
+      <Box
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        sx={{ 
+          position: 'relative',
+          width: '100%'
+        }}
+      >
+        <Button
+          component="a"
+          href={`/pagina/${page.slug}`}
+          onClick={handleClick}
+          endIcon={hasChildren ? (
+            isExpanded ? (
+              dropdownOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
+            ) : (
+              <KeyboardArrowDownIcon />
+            )
+          ) : null}
+          sx={{
+            color: getTextColor(),
+            textAlign: 'left',
+            justifyContent: 'flex-start',
+            pl: isExpanded ? 2 + level * 2 : 2,
+            py: 1,
+            width: '100%',
+            fontSize: `${settings?.menu_font_size || 16}px`,
+            fontWeight: selectedPage?.id === page.id ? 500 : 400,
+            opacity: selectedPage?.id === page.id ? 1 : 0.8,
+            '&:hover': {
+              bgcolor: 'rgba(0, 0, 0, 0.1)',
+              opacity: 1
+            }
+          }}
+        >
+          {page.title}
+        </Button>
+        
+        {hasChildren && (
+          isExpanded ? (
+            // Full-left weergave: uitklapbaar menu
+            <Box
+              sx={{
+                maxHeight: dropdownOpen ? '500px' : '0px',
+                overflow: 'hidden',
+                transition: 'max-height 0.3s ease-in-out',
+                ml: 2
+              }}
+            >
+              {childPages.map((childPage) => (
+                <MenuItem
+                  key={childPage.id}
+                  page={childPage}
+                  level={level + 1}
+                  selectedPage={selectedPage}
+                  onPageSelect={onPageSelect}
+                />
+              ))}
+            </Box>
+          ) : (
+            // Top weergave: dropdown menu
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                minWidth: '200px',
+                bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.paper',
+                boxShadow: theme.shadows[4],
+                borderRadius: 1,
+                opacity: dropdownOpen || isHovered ? 1 : 0,
+                visibility: dropdownOpen || isHovered ? 'visible' : 'hidden',
+                transition: 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
+                zIndex: 1000,
+              }}
+            >
+              {childPages.map((childPage) => (
+                <MenuItem
+                  key={childPage.id}
+                  page={childPage}
+                  level={0}
+                  selectedPage={selectedPage}
+                  onPageSelect={onPageSelect}
+                />
+              ))}
+            </Box>
+          )
+        )}
+      </Box>
+    );
+  };
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      setActiveId(null);
+      return;
     }
 
-    // Voor de ingebouwde patronen
-    const patternOpacity = settings.pattern_opacity || 0.15; // Gebruik de ingestelde transparantie
-    const baseColor = settings.pattern_color ? 
-      hexToRgba(settings.pattern_color, 1) : // Gebruik volledige kleur, opacity wordt apart toegepast
-      (theme.palette.mode === 'dark' ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)');
-    const baseSize = 20 * (settings.pattern_scale || 1);
-    
-    
+    try {
+      // Update de parent_id van de versleepte pagina
+      await api.put(`/pages/${active.id}`, {
+        parent_id: over.id
+      });
+
+      // Herlaad de pagina's om de nieuwe structuur te tonen
+      await loadMenuPages();
+    } catch (error) {
+      console.error('Fout bij updaten pagina structuur:', error);
+    }
+
+    setActiveId(null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
+  const handleToggleSubmenu = (pageId) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(pageId)) {
+        newSet.delete(pageId);
+      } else {
+        newSet.add(pageId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -239,14 +460,14 @@ const Layout = () => {
             <Typography
               variant="subtitle1"
               sx={{
-                fontFamily: `'${settings.subtitle_font}', system-ui`,
+                fontFamily: settings.subtitle_font,
                 fontSize: `${settings.subtitle_size}px`,
                 color: settings.subtitle_color,
-                marginTop: `${settings.subtitle_margin_top}px`,
-                marginLeft: `${settings.subtitle_margin_left}px`,
-                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                maxWidth: settings.logo_size * 3,
-                wordWrap: 'break-word'
+                mt: `${settings.subtitle_margin_top}px`,
+                ml: `${settings.subtitle_margin_left}px`,
+                textShadow: settings.subtitle_shadow_enabled ? 
+                  `${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)}` : 
+                  'none'
               }}
             >
               {settings.site_subtitle}
@@ -330,44 +551,41 @@ const Layout = () => {
                 zIndex: 1500
               }}>
                 {/* Menu Items */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  gap: 0.5,
-                  pt: 1,
-                  alignItems: 'flex-start',
-                  width: '100%',
-                  zIndex: 1400,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}>
-                  {menuPages.map((page) => (
-                    <Button
-                      key={page.id}
-                      component={RouterLink}
-                      to={`/${page.slug}`}
-                      startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
-                      sx={{ 
-                        color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                        textAlign: 'left',
-                        justifyContent: 'flex-start',
-                        fontFamily: `'${settings.font}', system-ui`,
-                        fontSize: '0.95rem',
-                        textTransform: 'none',
-                        whiteSpace: 'nowrap',
-                        width: '100%',
-                        minHeight: 32,
-                        py: 0.5,
-                        pl: 1,
-                        '&:hover': {
-                          color: 'primary.main',
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-                        }
-                      }}
-                    >
-                      {page.title}
-                    </Button>
-                  ))}
-                </Box>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
+                  <SortableContext
+                    items={pages.filter(page => !page.parent_id).map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: 0.5,
+                      pt: 1,
+                      alignItems: 'flex-start',
+                      width: '100%',
+                      zIndex: 1400,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}>
+                      {pages
+                        .filter(page => !page.parent_id)
+                        .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
+                        .map(page => (
+                          <MenuItem
+                            key={page.id}
+                            page={page}
+                            selectedPage={selectedPage}
+                            onPageSelect={setSelectedPage}
+                          />
+                        ))}
+                    </Box>
+                  </SortableContext>
+                </DndContext>
 
                 {/* Navigation */}
                 <Box sx={{ 
@@ -385,46 +603,39 @@ const Layout = () => {
             ) : (
               <>
                 {/* Menu Items - Horizontaal */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'row',
-                  gap: 3,
-                  alignItems: 'center',
-                  zIndex: 1400,
-                  flex: 1
-                }}>
-                  {menuPages.map((page) => (
-                    <Button
-                      key={page.id}
-                      component={RouterLink}
-                      to={`/${page.slug}`}
-                      startIcon={<ArrowForwardIosIcon sx={{ fontSize: 4 }} />}
-                      sx={{ 
-                        color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
-                        textAlign: 'left',
-                        justifyContent: 'flex-start',
-                        fontFamily: `'${settings.font}', system-ui`,
-                        fontSize: '0.95rem',
-                        textTransform: 'none',
-                        whiteSpace: 'nowrap',
-                        py: 0.75,
-                        px: 1.5,
-                        borderRadius: 1,
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
-                        },
-                        '&.active': {
-                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'
-                        }
-                      }}
-                    >
-                      {page.title}
-                    </Button>
-                  ))}
-                </Box>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
+                  <SortableContext
+                    items={pages.filter(page => !page.parent_id).map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'row',
+                      gap: 3,
+                      alignItems: 'center',
+                      zIndex: 1400,
+                      flex: 1
+                    }}>
+                      {pages
+                        .filter(page => !page.parent_id)
+                        .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
+                        .map(page => (
+                          <MenuItem
+                            key={page.id}
+                            page={page}
+                            selectedPage={selectedPage}
+                            onPageSelect={setSelectedPage}
+                          />
+                        ))}
+                    </Box>
+                  </SortableContext>
+                </DndContext>
 
                 {/* Navigation - Horizontaal */}
                 <Box sx={{ 

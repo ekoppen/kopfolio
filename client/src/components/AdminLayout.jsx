@@ -30,6 +30,7 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;
@@ -38,6 +39,7 @@ const AdminLayout = () => {
   const theme = useTheme();
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = React.useContext(ThemeContext);
+  const { settings } = useSettings();
   const [isDrawerOpen, setIsDrawerOpen] = useState(() => {
     const savedState = localStorage.getItem('adminDrawerOpen');
     return savedState !== null ? JSON.parse(savedState) : true;
@@ -98,6 +100,9 @@ const AdminLayout = () => {
         PaperProps={{
           sx: {
             bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.paper',
+            '& .MuiListItemText-primary': {
+              fontSize: `${settings?.menu_font_size || 16}px`
+            }
           }
         }}
         sx={{

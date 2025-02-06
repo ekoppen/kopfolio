@@ -17,7 +17,7 @@ const PatternPicker = ({
 
   return (
     <Box sx={{ width: '100%' }}>
-      <FormControl fullWidth sx={{ mb: 3 }}>
+      <FormControl sx={{ minWidth: 200, maxWidth: 400 }}>
         <InputLabel>Achtergrondpatroon</InputLabel>
         <Select
           value={selectedPattern}
@@ -40,6 +40,7 @@ const PatternPicker = ({
           borderRadius: 2,
           overflow: 'hidden',
           bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.paper',
+          mt: 4,
           mb: 3,
           border: 1,
           borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
@@ -78,7 +79,7 @@ const PatternPicker = ({
             position: 'absolute',
             top: 20,
             left: 20,
-            width: 300,
+            width: 'auto',
             p: 2.5,
             borderRadius: 2,
             bgcolor: theme.palette.mode === 'dark' 
@@ -100,11 +101,12 @@ const PatternPicker = ({
                 size="small"
                 value={patternColor}
                 onChange={(e) => onColorChange(e.target.value)}
-                fullWidth
                 sx={{
+                  width: 150,
                   '& input': { 
                     height: 36,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    padding: '4px'
                   }
                 }}
               />
@@ -114,58 +116,62 @@ const PatternPicker = ({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 SCHAAL
               </Typography>
-              <Slider
-                value={patternScale}
-                min={0.1}
-                max={5}
-                step={0.1}
-                onChange={(e, value) => onScaleChange(value)}
-                marks={[
-                  { value: 0.1, label: 'Klein' },
-                  { value: 1, label: 'Normaal' },
-                  { value: 5, label: 'Groot' }
-                ]}
-                sx={{ 
-                  color: 'primary.main',
-                  '& .MuiSlider-thumb': {
-                    width: 14,
-                    height: 14
-                  },
-                  '& .MuiSlider-mark': {
-                    height: 4
-                  },
-                  py: 1
-                }}
-              />
+              <Box sx={{ width: 200 }}>
+                <Slider
+                  value={patternScale}
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  onChange={(e, value) => onScaleChange(value)}
+                  marks={[
+                    { value: 0.1, label: 'Klein' },
+                    { value: 1, label: 'Normaal' },
+                    { value: 5, label: 'Groot' }
+                  ]}
+                  sx={{ 
+                    color: 'primary.main',
+                    '& .MuiSlider-thumb': {
+                      width: 14,
+                      height: 14
+                    },
+                    '& .MuiSlider-mark': {
+                      height: 4
+                    },
+                    py: 1
+                  }}
+                />
+              </Box>
             </Box>
 
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 TRANSPARANTIE
               </Typography>
-              <Slider
-                value={patternOpacity}
-                min={0.01}
-                max={0.8}
-                step={0.01}
-                onChange={(e, value) => onOpacityChange(value)}
-                marks={[
-                  { value: 0.01, label: '1%' },
-                  { value: 0.4, label: '40%' },
-                  { value: 0.8, label: '80%' }
-                ]}
-                sx={{ 
-                  color: 'primary.main',
-                  '& .MuiSlider-thumb': {
-                    width: 14,
-                    height: 14
-                  },
-                  '& .MuiSlider-mark': {
-                    height: 4
-                  },
-                  py: 1
-                }}
-              />
+              <Box sx={{ width: 200 }}>
+                <Slider
+                  value={patternOpacity}
+                  min={0.01}
+                  max={0.8}
+                  step={0.01}
+                  onChange={(e, value) => onOpacityChange(value)}
+                  marks={[
+                    { value: 0.01, label: '1%' },
+                    { value: 0.4, label: '40%' },
+                    { value: 0.8, label: '80%' }
+                  ]}
+                  sx={{ 
+                    color: 'primary.main',
+                    '& .MuiSlider-thumb': {
+                      width: 14,
+                      height: 14
+                    },
+                    '& .MuiSlider-mark': {
+                      height: 4
+                    },
+                    py: 1
+                  }}
+                />
+              </Box>
             </Box>
           </Paper>
         </Box>
