@@ -24,24 +24,15 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
 
   // Bepaal de tekstkleur op basis van de achtergrond in full-left modus
   const getTextColor = () => {
-    if (settings.logo_position === 'full-left' && settings.pattern_color) {
-      const hex = settings.pattern_color.replace('#', '');
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      return luminance > 0.5 ? '#000000' : '#FFFFFF';
-    }
     return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
   };
 
   const buttonStyle = {
     color: getTextColor(),
+    bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)',
     '&:hover': {
       color: settings?.accent_color || theme.palette.primary.main,
-      bgcolor: settings.logo_position === 'full-left'
-        ? `rgba(${settings?.accent_color ? parseInt(settings.accent_color.slice(1, 3), 16) : 0}, ${settings?.accent_color ? parseInt(settings.accent_color.slice(3, 5), 16) : 0}, ${settings?.accent_color ? parseInt(settings.accent_color.slice(5, 7), 16) : 0}, 0.1)`
-        : 'rgba(0, 0, 0, 0.1)'
+      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)'
     }
   };
 
@@ -53,8 +44,19 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         '& .MuiIconButton-root': {
           transition: 'all 0.2s ease-in-out',
           minWidth: 'auto',
+          width: 36,
+          height: 36,
           padding: '8px',
-          ...buttonStyle
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)',
+          borderRadius: '8px',
+          ...buttonStyle,
+          '&:hover': {
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+            color: settings?.accent_color || theme.palette.primary.main,
+          },
+          '& .MuiSvgIcon-root': {
+            fontSize: 20
+          }
         },
         '& .MuiButton-root': {
           fontSize: `${settings?.menu_font_size || 16}px`,
@@ -70,12 +72,16 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
           onClick={onToggleExpand}
           size="medium"
           sx={{
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-            borderRadius: '50%',
-            width: 40,
-            height: 40,
-            padding: 1,
-            ...buttonStyle
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)',
+            borderRadius: '8px',
+            width: 36,
+            height: 36,
+            padding: '8px',
+            ...buttonStyle,
+            '&:hover': {
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+              color: settings?.accent_color || theme.palette.primary.main,
+            }
           }}
         >
           {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -86,7 +92,11 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         <IconButton
           component={RouterLink}
           to="/"
-          sx={buttonStyle}
+          sx={{
+            ...buttonStyle,
+            width: 36,
+            height: 36,
+          }}
         >
           <HomeIcon />
         </IconButton>
@@ -96,7 +106,11 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         <IconButton
           component={RouterLink}
           to="/admin"
-          sx={buttonStyle}
+          sx={{
+            ...buttonStyle,
+            width: 36,
+            height: 36,
+          }}
         >
           <DashboardIcon />
         </IconButton>
@@ -104,7 +118,11 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         <IconButton
           component={RouterLink}
           to="/login"
-          sx={buttonStyle}
+          sx={{
+            ...buttonStyle,
+            width: 36,
+            height: 36,
+          }}
         >
           <LoginIcon />
         </IconButton>
@@ -114,9 +132,14 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         onClick={themeContext.toggleDarkMode}
         size="medium"
         sx={{
-          border: '1px solid',
-          borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-          ...buttonStyle
+          ...buttonStyle,
+          width: 36,
+          height: 36,
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)',
+          '&:hover': {
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+            color: settings?.accent_color || theme.palette.primary.main,
+          }
         }}
       >
         {themeContext.isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}

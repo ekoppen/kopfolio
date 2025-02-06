@@ -221,20 +221,13 @@ const Layout = () => {
 
   const MenuItem = ({ page, level = 0, selectedPage, onPageSelect }) => {
     const theme = useTheme();
-    const { settings } = useSettings();
     const [isHovered, setIsHovered] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const childPages = pages.filter(p => p.parent_id === page.id);
-    const hasChildren = childPages.length > 0;
+    const hasChildren = page.children && page.children.length > 0;
 
     const getTextColor = () => {
-      if (settings?.logo_position === 'full-left' && settings?.pattern_color) {
-        const hex = settings.pattern_color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        return luminance > 0.5 ? '#000000' : '#FFFFFF';
+      if (settings?.logo_position === 'full-left') {
+        return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
       }
       return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
     };
@@ -242,13 +235,11 @@ const Layout = () => {
     const handleClick = (e) => {
       if (hasChildren) {
         e.preventDefault();
-        if (isExpanded) {
-          setDropdownOpen(!dropdownOpen);
-        } else {
+        if (page.is_parent_only) {
           setDropdownOpen(!dropdownOpen);
         }
-      } else {
-        e.preventDefault();
+      }
+      if (!page.is_parent_only) {
         onPageSelect(page);
       }
     };
@@ -257,14 +248,14 @@ const Layout = () => {
       <Box
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        sx={{ 
+        sx={{
           position: 'relative',
           width: '100%'
         }}
       >
         <Button
-          component="a"
-          href={`/pagina/${page.slug}`}
+          component={page.is_parent_only ? 'div' : RouterLink}
+          to={page.is_parent_only ? undefined : `/pagina/${page.slug}`}
           onClick={handleClick}
           endIcon={hasChildren ? (
             isExpanded ? (
@@ -282,9 +273,10 @@ const Layout = () => {
             width: '100%',
             fontSize: `${settings?.menu_font_size || 16}px`,
             fontWeight: selectedPage?.id === page.id ? 500 : 400,
-            opacity: selectedPage?.id === page.id ? 1 : 0.8,
+            opacity: selectedPage?.id === page.id ? 1 : 0.9,
+            textTransform: 'none',
             '&:hover': {
-              bgcolor: 'rgba(0, 0, 0, 0.1)',
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
               opacity: 1
             }
           }}
@@ -303,7 +295,7 @@ const Layout = () => {
                 ml: 2
               }}
             >
-              {childPages.map((childPage) => (
+              {page.children.map((childPage) => (
                 <MenuItem
                   key={childPage.id}
                   page={childPage}
@@ -330,7 +322,7 @@ const Layout = () => {
                 zIndex: 1000,
               }}
             >
-              {childPages.map((childPage) => (
+              {page.children.map((childPage) => (
                 <MenuItem
                   key={childPage.id}
                   page={childPage}
