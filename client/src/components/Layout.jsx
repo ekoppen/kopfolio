@@ -165,6 +165,11 @@ const Layout = () => {
     }));
   };
   
+  // Bepaal de tekstkleur op basis van de achtergrond in full-left modus
+  const getTextColor = () => {
+    return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
+  };
+
   // Functie om hex kleur om te zetten naar rgba
   const hexToRgba = (hex, opacity = 1) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -684,33 +689,22 @@ const Layout = () => {
             px: 4,
             bgcolor: 'transparent',
             zIndex: 2,
-            position: 'relative',
-            ml: barPosition === 'full-left' ? '280px' : 0,
-            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            position: 'fixed',
+            bottom: 32,
+            right: 64,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         >
           <Typography 
             variant="body2" 
             sx={{ 
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              letterSpacing: '0.02em',
+              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+              fontSize: '0.75rem',
               textAlign: 'right',
               position: 'relative',
               zIndex: 1,
-              textShadow: theme.palette.mode === 'dark'
-                ? '0 1px 2px rgba(0,0,0,0.5), 0 1px 8px rgba(0,0,0,0.25)'
-                : '0 1px 2px rgba(255,255,255,0.5), 0 1px 8px rgba(255,255,255,0.25)',
-              mixBlendMode: theme.palette.mode === 'dark' ? 'lighten' : 'darken',
               width: 'auto',
-              transition: theme.transitions.create(
-                ['color', 'text-shadow'], 
-                {
-                  duration: theme.transitions.duration.standard,
-                  easing: theme.transitions.easing.easeInOut
-                }
-              )
+              whiteSpace: 'nowrap'
             }}
           >
             {settings.footer_text}

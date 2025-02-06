@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, useTheme } from '@mui/material';
+import { Box, useTheme, Typography } from '@mui/material';
 import api from '../utils/api';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { 
@@ -22,6 +22,7 @@ const Home = () => {
   const [photos, setPhotos] = useState([]);
   const [pageSettings, setPageSettings] = useState(null);
   const [loadedImages, setLoadedImages] = useState(new Set());
+  const [activeSlide, setActiveSlide] = useState(0);
   const swiperRef = useRef(null);
   const [barPosition, setBarPosition] = useState(() => {
     const savedPosition = localStorage.getItem('appBarPosition');
@@ -125,7 +126,7 @@ const Home = () => {
         {photos.length > 0 && (
           <Box sx={{
             width: barPosition === 'full-left' ? 'calc(100% - 64px)' : '100%',
-            height: barPosition === 'full-left' ? 'calc(100% - 64px)' : '100%',
+            height: '100%',
             position: 'relative',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             borderRadius: barPosition === 'full-left' ? '16px' : 0,
@@ -151,6 +152,7 @@ const Home = () => {
               }}
               pagination={false}
               navigation={false}
+              onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
               creativeEffect={{
                 prev: {
                   translate: [0, 0, -400],
@@ -191,6 +193,60 @@ const Home = () => {
                 );
               })}
             </Swiper>
+
+            {/* Foto informatie in full-left weergave */}
+            {barPosition === 'full-left' && photos[activeSlide] && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: 32,
+                  bottom: 32,
+                  width: 280,
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? 'rgba(0, 0, 0, 0.85)' 
+                    : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid',
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 8px 32px rgba(0,0,0,0.5)'
+                    : '0 8px 32px rgba(0,0,0,0.25)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  zIndex: 3
+                }}
+              >
+                <Typography 
+                  variant="h6" 
+                  gutterBottom 
+                  sx={{ 
+                    fontSize: '1.1rem',
+                    fontWeight: 500,
+                    mb: 1,
+                    color: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.95)' 
+                      : 'rgba(0, 0, 0, 0.95)'
+                  }}
+                >
+                  {photos[activeSlide].title || 'Geen titel'}
+                </Typography>
+                {photos[activeSlide].description && (
+                  <Typography 
+                    variant="body2" 
+                    sx={{
+                      fontSize: '0.9rem',
+                      lineHeight: 1.5,
+                      color: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.7)' 
+                        : 'rgba(0, 0, 0, 0.7)'
+                    }}
+                  >
+                    {photos[activeSlide].description}
+                  </Typography>
+                )}
+              </Box>
+            )}
           </Box>
         )}
       </Box>

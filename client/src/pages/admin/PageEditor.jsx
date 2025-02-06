@@ -87,12 +87,32 @@ const PageEditor = () => {
     loadData();
   }, [id]);
 
+  // Functie om een titel om te zetten naar een slug
+  const generateSlug = (title) => {
+    return title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Verwijder diacritische tekens
+      .replace(/[^a-z0-9\s-]/g, '') // Verwijder speciale karakters
+      .replace(/\s+/g, '-') // Vervang spaties door streepjes
+      .replace(/-+/g, '-') // Vervang meerdere streepjes door één streepje
+      .trim(); // Verwijder spaties aan begin en eind
+  };
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setPage(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, checked } = e.target;
+    const newValue = e.target.type === 'checkbox' ? checked : value;
+    
+    setPage(prev => {
+      const updates = { [name]: newValue };
+      
+      // Update de slug automatisch als de titel verandert
+      if (name === 'title') {
+        updates.slug = generateSlug(value);
+      }
+      
+      return { ...prev, ...updates };
+    });
   };
 
   const handleContentChange = (newContent) => {

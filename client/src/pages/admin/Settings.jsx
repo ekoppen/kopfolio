@@ -173,7 +173,7 @@ const Settings = () => {
               }}
             >
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-                Site Titel
+                Site Titel en Footer
               </Typography>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
@@ -182,6 +182,15 @@ const Settings = () => {
                     label="Site Titel"
                     value={settings.site_title}
                     onChange={(e) => handleChange('site_title', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Footer Tekst"
+                    value={settings.footer_text}
+                    onChange={(e) => handleChange('footer_text', e.target.value)}
+                    helperText="Bijvoorbeeld: © 2024 Jouw Naam"
                   />
                 </Grid>
               </Grid>

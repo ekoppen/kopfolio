@@ -93,12 +93,12 @@ export const getPages = async (req, res) => {
           p.content,
           p.is_in_menu,
           p.parent_id,
-          p.menu_order,
+          COALESCE(p.menu_order, 9999) as menu_order,
           p.created_at,
           p.settings,
           p.is_parent_only,
           CAST(NULL AS VARCHAR) as parent_slug,
-          ARRAY[p.menu_order] as path,
+          ARRAY[COALESCE(p.menu_order, 9999)] as path,
           0 as level,
           ARRAY[]::integer[] as ancestors
         FROM pages p
@@ -115,12 +115,12 @@ export const getPages = async (req, res) => {
           p.content,
           p.is_in_menu,
           p.parent_id,
-          p.menu_order,
+          COALESCE(p.menu_order, 9999) as menu_order,
           p.created_at,
           p.settings,
           p.is_parent_only,
           parent.slug as parent_slug,
-          parent.path || p.menu_order,
+          parent.path || COALESCE(p.menu_order, 9999),
           parent.level + 1,
           parent.ancestors || parent.id
         FROM pages p
@@ -129,14 +129,15 @@ export const getPages = async (req, res) => {
       SELECT 
         pt.*,
         (
-          SELECT json_agg(children.*)
+          SELECT json_agg(children.* ORDER BY children.menu_order NULLS LAST)
           FROM page_tree children
           WHERE children.parent_id = pt.id
         ) as children
       FROM page_tree pt
       ORDER BY 
         CASE WHEN pt.slug = 'home' THEN 0 ELSE 1 END,
-        pt.path;
+        pt.level,
+        pt.menu_order NULLS LAST;
     `);
 
     res.json(result.rows.map(page => ({

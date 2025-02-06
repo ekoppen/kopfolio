@@ -981,6 +981,49 @@ const AdminPhotos = () => {
                 <ListItem>
                   <Box sx={{ width: '100%' }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Beschrijving
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <TextField
+                        size="small"
+                        value={selectedPhoto.description || ''}
+                        onChange={(e) => {
+                          const newDescription = e.target.value;
+                          setSelectedPhoto(prev => ({ ...prev, description: newDescription }));
+                        }}
+                        placeholder="Voeg een beschrijving toe"
+                        multiline
+                        rows={3}
+                        sx={{ flex: 1 }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={async () => {
+                          try {
+                            await api.put(`/photos/${selectedPhoto.id}`, { 
+                              description: selectedPhoto.description 
+                            });
+                            showToast('Beschrijving succesvol opgeslagen', 'success');
+                            setPhotos(prev => prev.map(p => 
+                              p.id === selectedPhoto.id 
+                                ? { ...p, description: selectedPhoto.description }
+                                : p
+                            ));
+                          } catch (error) {
+                            console.error('Error saving description:', error);
+                            showToast('Fout bij opslaan beschrijving', 'error');
+                          }
+                        }}
+                        color="primary"
+                      >
+                        <SaveIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </ListItem>
+                <ListItem>
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       Album
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
