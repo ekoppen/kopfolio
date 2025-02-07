@@ -153,42 +153,50 @@ const PageEditor = () => {
 
   return (
     <Box sx={{ 
-      height: '100vh',
       bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
+      position: 'relative',
+      minHeight: '100vh'
     }}>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar sx={{ gap: 1 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/admin/paginas')}
-          >
-            Terug
-          </Button>
-          <Box sx={{ flex: 1 }} />
-          <Button
-            onClick={() => navigate('/admin/paginas')}
-            sx={{ mr: 1 }}
-          >
-            Annuleren
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<SaveIcon />}
-            onClick={handleSubmit}
-            disabled={saving}
-          >
-            {saving ? 'Opslaan...' : 'Opslaan'}
-          </Button>
-        </Toolbar>
-      </AppBar>
+      {/* Zwevende knoppen */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 76,
+          right: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          zIndex: 1100
+        }}
+      >
+        <Button
+          onClick={() => navigate('/admin/paginas')}
+          sx={{ mr: 1 }}
+        >
+          Annuleren
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSubmit}
+          disabled={saving}
+        >
+          {saving ? 'Opslaan...' : 'Opslaan'}
+        </Button>
+      </Box>
+
+      {/* Terug knop */}
+      <Box sx={{ px: 3, pt: 3, pb: 0 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/admin/paginas')}
+        >
+          Terug
+        </Button>
+      </Box>
 
       <Box sx={{ 
-        flex: 1,
-        overflowY: 'auto',
-        pt: 3,
+        height: '100%',
         px: 3,
         pb: 3
       }}>
@@ -315,7 +323,7 @@ const PageEditor = () => {
           )}
         </Paper>
 
-        {!page.is_parent_only && !page.slug === 'home' && (
+        {!page.is_parent_only && page.slug !== 'home' && (
           <Paper elevation={0} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Inhoud

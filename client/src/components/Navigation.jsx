@@ -92,6 +92,13 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         <IconButton
           component={RouterLink}
           to="/"
+          onClick={(e) => {
+            // Voorkom de standaard navigatie als we al op de home pagina zijn
+            if (location.pathname === '/pagina/home') {
+              e.preventDefault();
+              window.location.href = '/';
+            }
+          }}
           sx={{
             ...buttonStyle,
             width: 36,
