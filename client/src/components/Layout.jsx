@@ -226,23 +226,35 @@ const Layout = () => {
 
   const MenuItem = ({ page, level = 0, selectedPage, onPageSelect }) => {
     const theme = useTheme();
+    const location = useLocation();
+    const isActive = location.pathname.startsWith(`/pagina/${page.slug}`);
     const [isHovered, setIsHovered] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const hasChildren = page.children && page.children.length > 0;
 
-    const getTextColor = () => {
-      if (settings?.logo_position === 'full-left') {
-        return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
+    // Check of een van de subpagina's actief is
+    const hasActiveChild = hasChildren && page.children.some(child => 
+      location.pathname.startsWith(`/pagina/${child.slug}`)
+    );
+
+    // Effect om dropdown open te zetten als een subpagina actief is
+    useEffect(() => {
+      if (hasActiveChild) {
+        setDropdownOpen(true);
       }
-      return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
+    }, [hasActiveChild]);
+
+    const getTextColor = () => {
+      if (isActive || hasActiveChild) {
+        return settings?.accent_color || theme.palette.primary.main;
+      }
+      return theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
     };
 
     const handleClick = (e) => {
-      if (hasChildren) {
+      if (hasChildren && page.is_parent_only) {
         e.preventDefault();
-        if (page.is_parent_only) {
-          setDropdownOpen(!dropdownOpen);
-        }
+        setDropdownOpen(!dropdownOpen);
       }
       if (!page.is_parent_only) {
         onPageSelect(page);
@@ -273,23 +285,28 @@ const Layout = () => {
             color: getTextColor(),
             textAlign: 'left',
             justifyContent: 'flex-start',
-            pl: isExpanded ? 2 + level * 2 : 2,
+            pl: level * 2 + 2,
             py: 1,
             width: '100%',
             fontSize: `${settings?.menu_font_size || 16}px`,
-            fontWeight: selectedPage?.id === page.id ? 500 : 400,
-            opacity: selectedPage?.id === page.id ? 1 : 0.9,
-            textTransform: 'none',
+            fontWeight: isActive ? 500 : 400,
+            bgcolor: isActive 
+              ? theme.palette.mode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'rgba(0, 0, 0, 0.05)'
+              : 'transparent',
             '&:hover': {
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-              opacity: 1
+              bgcolor: theme.palette.mode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.15)' 
+                : 'rgba(0, 0, 0, 0.08)',
+              color: settings?.accent_color || theme.palette.primary.main
             }
           }}
         >
           {page.title}
         </Button>
         
-        {hasChildren && (
+        {page.children && (
           isExpanded ? (
             // Full-left weergave: uitklapbaar menu
             <Box

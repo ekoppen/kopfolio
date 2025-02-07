@@ -36,6 +36,17 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
     }
   };
 
+  const getActiveStyle = (path) => {
+    const isActive = location.pathname === path;
+    return isActive ? {
+      color: settings?.accent_color || theme.palette.primary.main,
+      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+      '&:hover': {
+        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'
+      }
+    } : buttonStyle;
+  };
+
   return (
     <Stack 
       direction="row" 
@@ -47,13 +58,8 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
           width: 36,
           height: 36,
           padding: '8px',
-          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)',
           borderRadius: '8px',
           ...buttonStyle,
-          '&:hover': {
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
-            color: settings?.accent_color || theme.palette.primary.main,
-          },
           '& .MuiSvgIcon-root': {
             fontSize: 20
           }
@@ -88,36 +94,11 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         </IconButton>
       )}
 
-      {!isHome && (
-        <IconButton
-          component={RouterLink}
-          to="/"
-          onClick={(e) => {
-            // Voorkom de standaard navigatie als we al op de home pagina zijn
-            if (location.pathname === '/pagina/home') {
-              e.preventDefault();
-              window.location.href = '/';
-            }
-          }}
-          sx={{
-            ...buttonStyle,
-            width: 36,
-            height: 36,
-          }}
-        >
-          <HomeIcon />
-        </IconButton>
-      )}
-
       {isLoggedIn ? (
         <IconButton
           component={RouterLink}
           to="/admin"
-          sx={{
-            ...buttonStyle,
-            width: 36,
-            height: 36,
-          }}
+          sx={getActiveStyle('/admin')}
         >
           <DashboardIcon />
         </IconButton>
@@ -125,11 +106,7 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         <IconButton
           component={RouterLink}
           to="/login"
-          sx={{
-            ...buttonStyle,
-            width: 36,
-            height: 36,
-          }}
+          sx={getActiveStyle('/login')}
         >
           <LoginIcon />
         </IconButton>

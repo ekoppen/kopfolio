@@ -14,19 +14,7 @@ export const createPage = async (req, res) => {
 
   try {
     // Genereer basis slug van titel
-    const baseSlug = slugify(title, { lower: true, strict: true });
-    let slug = baseSlug;
-
-    // Als er een parent_id is, haal dan de parent slug op
-    if (parent_id) {
-      const parentResult = await pool.query(
-        'SELECT slug FROM pages WHERE id = $1',
-        [parent_id]
-      );
-      if (parentResult.rows.length > 0) {
-        slug = `${parentResult.rows[0].slug}/${baseSlug}`;
-      }
-    }
+    let slug = slugify(title, { lower: true, strict: true });
 
     // Check of slug al bestaat, zo ja, voeg nummer toe
     let counter = 1;
@@ -231,7 +219,8 @@ export const updatePage = async (req, res) => {
   const { id } = req.params;
   const { 
     title, content, slug, is_in_menu, menu_order, 
-    settings, parent_id, description, is_parent_only 
+    settings, parent_id, description, is_parent_only,
+    is_fullscreen_slideshow
   } = req.body;
 
   // Voorkom dat een pagina zichzelf als parent heeft
@@ -242,23 +231,11 @@ export const updatePage = async (req, res) => {
   }
 
   try {
-    // Als er een nieuwe parent is of de titel is gewijzigd, update de slug
+    // Als de titel is gewijzigd, update de slug
     let newSlug = slug;
-    if (title || parent_id !== undefined) {
-      const baseSlug = title ? slugify(title, { lower: true, strict: true }) : slug.split('/').pop();
+    if (title) {
+      newSlug = slugify(title, { lower: true, strict: true });
       
-      if (parent_id) {
-        const parentResult = await pool.query(
-          'SELECT slug FROM pages WHERE id = $1',
-          [parent_id]
-        );
-        if (parentResult.rows.length > 0) {
-          newSlug = `${parentResult.rows[0].slug}/${baseSlug}`;
-        }
-      } else {
-        newSlug = baseSlug;
-      }
-
       // Check of de nieuwe slug al bestaat
       let counter = 1;
       let finalSlug = newSlug;
@@ -340,24 +317,31 @@ export const updatePage = async (req, res) => {
       paramCount++;
     }
 
+    if (parent_id !== undefined) {
+      updateFields.push(`parent_id = $${paramCount}`);
+      values.push(parent_id);
+      paramCount++;
+    }
+
     if (description !== undefined) {
       updateFields.push(`description = $${paramCount}`);
       values.push(description);
       paramCount++;
     }
 
-    // Voeg parent_id altijd toe, zelfs als het null is
-    updateFields.push(`parent_id = $${paramCount}`);
-    values.push(parent_id);
-    paramCount++;
+    if (is_parent_only !== undefined) {
+      updateFields.push(`is_parent_only = $${paramCount}`);
+      values.push(is_parent_only);
+      paramCount++;
+    }
 
-    // Voeg is_parent_only toe
-    updateFields.push(`is_parent_only = $${paramCount}`);
-    values.push(is_parent_only === true);
-    paramCount++;
+    if (is_fullscreen_slideshow !== undefined) {
+      updateFields.push(`is_fullscreen_slideshow = $${paramCount}`);
+      values.push(is_fullscreen_slideshow);
+      paramCount++;
+    }
 
-    // Voeg updated_at toe
-    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
 
     // Voeg het ID toe als laatste parameter
     values.push(id);
@@ -368,9 +352,6 @@ export const updatePage = async (req, res) => {
       WHERE id = $${paramCount}
       RETURNING *
     `;
-
-    console.log('Update query:', query);
-    console.log('Update values:', values);
 
     const result = await pool.query(query, values);
 

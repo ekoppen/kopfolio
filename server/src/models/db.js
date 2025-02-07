@@ -55,7 +55,8 @@ export async function initDb() {
       '015_add_subtitle_shadow.sql',
       '016_add_page_parent.sql',
       '017_add_parent_only.sql',
-      '018_add_font_sizes.sql'
+      '018_add_font_sizes.sql',
+      '019_add_fullscreen_slideshow.sql'
     ];
 
     for (const migration of migrations) {

@@ -50,9 +50,9 @@ export const SettingsProvider = ({ children }) => {
               format = font.type;
           }
 
-          // Bouw de font URL op
+          // Bouw de font URL op en encode deze correct
           const baseUrl = import.meta.env.VITE_API_URL.replace('/api', '');
-          const fontUrl = `${baseUrl}/fonts/${font.file}`;
+          const fontUrl = `${baseUrl}/fonts/${encodeURIComponent(font.file)}`;
           console.log('Loading font from URL:', fontUrl);
 
           const fontFace = `
@@ -85,11 +85,16 @@ export const SettingsProvider = ({ children }) => {
           link.crossOrigin = 'anonymous';
           document.head.appendChild(link);
 
-          // Laad de font direct
-          const loader = new FontFace(font.value, `url(${fontUrl}) format('${format}')`);
-          await loader.load();
-          document.fonts.add(loader);
-          console.log('Successfully loaded font:', font.value);
+          try {
+            // Laad de font direct met een gecodeerde URL
+            const loader = new FontFace(font.value, `url(${fontUrl}) format('${format}')`);
+            const loadedFont = await loader.load();
+            document.fonts.add(loadedFont);
+            console.log('Successfully loaded font:', font.value);
+          } catch (err) {
+            console.error('Error loading specific font:', font.value, err);
+            // Ga door met laden van andere fonts als er één faalt
+          }
         }));
 
         setFontsLoaded(true);

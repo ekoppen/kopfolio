@@ -93,6 +93,16 @@ const getShadowStyle = (showShadow) => showShadow ? {
   }
 } : {};
 
+const getAspectRatioPadding = (ratio) => {
+  switch (ratio) {
+    case '16:9': return '56.25%'; // (9 / 16) * 100
+    case '4:3': return '75%';     // (3 / 4) * 100
+    case '1:1': return '100%';    // (1 / 1) * 100
+    case '3:4': return '133.33%'; // (4 / 3) * 100
+    default: return '56.25%';     // default 16:9
+  }
+};
+
 const ImageEditor = forwardRef(({ image, selectedBlock, updateBlock }, ref) => {
   const [localTitle, setLocalTitle] = useState(image.title || '');
   const [localDescription, setLocalDescription] = useState(image.description || '');
@@ -285,7 +295,43 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
           <Typography variant="h6" gutterBottom>
             Slideshow Instellingen
           </Typography>
-          
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Formaat
+            </Typography>
+            <Select
+              value={block.settings?.size || 'full'}
+              onChange={(e) => onSettingsChange({ size: e.target.value })}
+              fullWidth
+              size="small"
+              displayEmpty
+            >
+              <MenuItem value="small">Klein (25%)</MenuItem>
+              <MenuItem value="medium">Normaal (50%)</MenuItem>
+              <MenuItem value="large">Groot (75%)</MenuItem>
+              <MenuItem value="full">Volledig (100%)</MenuItem>
+            </Select>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Aspect Ratio
+            </Typography>
+            <Select
+              value={block.settings?.aspectRatio || '16:9'}
+              onChange={(e) => onSettingsChange({ aspectRatio: e.target.value })}
+              fullWidth
+              size="small"
+              displayEmpty
+            >
+              <MenuItem value="16:9">16:9 (Breedbeeld)</MenuItem>
+              <MenuItem value="4:3">4:3 (Standaard)</MenuItem>
+              <MenuItem value="1:1">1:1 (Vierkant)</MenuItem>
+              <MenuItem value="3:4">3:4 (Portret)</MenuItem>
+            </Select>
+          </Box>
+
           <Box sx={{ mb: 3 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Transitie Effect
@@ -295,6 +341,7 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
               onChange={(e) => onSettingsChange({ transition: e.target.value })}
               fullWidth
               size="small"
+              displayEmpty
             >
               <MenuItem value="fade">Fade</MenuItem>
               <MenuItem value="slide">Horizontaal Scrollen</MenuItem>
@@ -482,7 +529,7 @@ const BlockEditor = ({ block, onChange, onDelete }) => {
     case 'slideshow':
       return (
         <Box sx={{ 
-          width: '100%',
+          width: getImageWidth(block.settings?.size),
           mx: 'auto'
         }}>
           {block.content && block.content.length > 0 ? (
@@ -490,7 +537,8 @@ const BlockEditor = ({ block, onChange, onDelete }) => {
               <Box 
                 sx={{ 
                   position: 'relative',
-                  height: 500,
+                  width: '100%',
+                  paddingTop: getAspectRatioPadding(block.settings?.aspectRatio),
                   borderRadius: 1,
                   overflow: 'hidden',
                   ...getShadowStyle(block.settings?.showShadow)

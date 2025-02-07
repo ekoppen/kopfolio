@@ -21,11 +21,15 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   Save as SaveIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  Help as HelpIcon,
+  Collections as SlideshowIcon
 } from '@mui/icons-material';
 import api from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
@@ -50,31 +54,69 @@ const PageEditor = () => {
     content: [],
     is_in_menu: false,
     parent_id: null,
+    menu_level: 0,
+    menu_order: 0,
     is_parent_only: false,
+    is_fullscreen_slideshow: false,
     settings: {
-      slideshow: {
-        interval: 5000,
-        transition: 'fade',
-        autoPlay: true
-      }
+      slideshow: null
     }
   });
   const [availableParents, setAvailableParents] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [photos, setPhotos] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         // Laad beschikbare parent pagina's
         const pagesResponse = await api.get('/pages');
-        // Filter de huidige pagina uit de lijst van mogelijke parents
-        const filteredPages = id ? 
-          pagesResponse.data.filter(p => p.id !== parseInt(id)) : 
-          pagesResponse.data;
+        const filteredPages = pagesResponse.data.filter(p => p.id !== parseInt(id));
         setAvailableParents(filteredPages);
+
+        // Laad albums voor slideshow selectie
+        const albumsResponse = await api.get('/albums');
+        setAlbums(albumsResponse.data);
 
         if (id) {
           const response = await api.get(`/pages/id/${id}`);
-          setPage(response.data);
+          console.log('Loaded page data:', response.data);
+          
+          // Bepaal is_fullscreen_slideshow op basis van de aanwezigheid van slideshow settings
+          const hasSlideshow = Boolean(response.data.settings?.slideshow?.albumId);
+          
+          const pageData = {
+            ...response.data,
+            is_fullscreen_slideshow: hasSlideshow,
+            settings: {
+              ...response.data.settings,
+              slideshow: hasSlideshow ? {
+                albumId: response.data.settings?.slideshow?.albumId || '',
+                transition: response.data.settings?.slideshow?.transition || 'fade',
+                speed: response.data.settings?.slideshow?.speed || 1000,
+                interval: response.data.settings?.slideshow?.interval || 5000,
+                autoPlay: response.data.settings?.slideshow?.autoPlay !== false
+              } : null
+            }
+          };
+          console.log('Processed page data:', pageData);
+
+          // Als er een album is geselecteerd voor de slideshow, haal dan de foto's op
+          if (pageData.settings?.slideshow?.albumId) {
+            const photosResponse = await api.get(`/photos/album/${pageData.settings.slideshow.albumId}`);
+            setPhotos(photosResponse.data);
+            
+            // Voeg de foto's toe aan de content array
+            pageData.content = [{
+              id: 'slideshow',
+              type: 'slideshow',
+              content: photosResponse.data,
+              settings: pageData.settings.slideshow
+            }];
+          }
+
+          console.log('Final page data:', pageData);
+          setPage(pageData);
         }
       } catch (error) {
         console.error('Fout bij laden pagina:', error);
@@ -111,6 +153,20 @@ const PageEditor = () => {
         updates.slug = generateSlug(value);
       }
       
+      // Initialiseer slideshow settings als fullscreen slideshow wordt ingeschakeld
+      if (name === 'is_fullscreen_slideshow') {
+        updates.settings = {
+          ...prev.settings,
+          slideshow: newValue ? {
+            albumId: prev.settings?.slideshow?.albumId || '',
+            transition: prev.settings?.slideshow?.transition || 'fade',
+            speed: prev.settings?.slideshow?.speed || 1000,
+            interval: prev.settings?.slideshow?.interval || 5000,
+            autoPlay: prev.settings?.slideshow?.autoPlay !== false
+          } : undefined
+        };
+      }
+      
       return { ...prev, ...updates };
     });
   };
@@ -127,13 +183,35 @@ const PageEditor = () => {
     setSaving(true);
 
     try {
+      // Bepaal is_fullscreen_slideshow op basis van de aanwezigheid van slideshow settings
+      const isFullscreenSlideshow = Boolean(page.settings?.slideshow?.albumId);
+      
+      const pageData = {
+        ...page,
+        is_fullscreen_slideshow: isFullscreenSlideshow,
+        settings: {
+          ...page.settings,
+          slideshow: isFullscreenSlideshow ? {
+            albumId: page.settings?.slideshow?.albumId || '',
+            transition: page.settings?.slideshow?.transition || 'fade',
+            speed: page.settings?.slideshow?.speed || 1000,
+            interval: page.settings?.slideshow?.interval || 5000,
+            autoPlay: page.settings?.slideshow?.autoPlay !== false
+          } : null
+        }
+      };
+
+      console.log('Saving page data:', pageData);
+      
+      let response;
       if (id) {
-        await api.put(`/pages/${id}`, page);
-        showToast('Pagina succesvol bijgewerkt', 'success');
+        response = await api.put(`/pages/${id}`, pageData);
       } else {
-        await api.post('/pages', page);
-        showToast('Pagina succesvol aangemaakt', 'success');
+        response = await api.post('/pages', pageData);
       }
+
+      console.log('Server response:', response.data);
+      showToast(id ? 'Pagina succesvol bijgewerkt' : 'Pagina succesvol aangemaakt', 'success');
       navigate('/admin/paginas');
     } catch (error) {
       console.error('Fout bij opslaan pagina:', error);
@@ -141,6 +219,43 @@ const PageEditor = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSlideshowSettingChange = async (setting, value) => {
+    setPage(prev => {
+      const newSettings = {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          slideshow: {
+            ...prev.settings?.slideshow,
+            [setting]: value
+          }
+        }
+      };
+
+      // Als er een album is geselecteerd, haal dan de foto's op
+      if (setting === 'albumId' && value) {
+        api.get(`/photos/album/${value}`).then(response => {
+          setPhotos(response.data);
+          // Voeg de foto's toe aan de content array
+          setPage(currentPage => ({
+            ...currentPage,
+            content: [{
+              id: 'slideshow',
+              type: 'slideshow',
+              content: response.data,
+              settings: currentPage.settings?.slideshow
+            }]
+          }));
+        }).catch(error => {
+          console.error('Fout bij ophalen album foto\'s:', error);
+          showToast('Fout bij ophalen album foto\'s', 'error');
+        });
+      }
+
+      return newSettings;
+    });
   };
 
   if (loading) {
@@ -262,7 +377,7 @@ const PageEditor = () => {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={page.is_in_menu}
+                      checked={Boolean(page.is_in_menu)}
                       onChange={(e) => setPage(prev => ({ 
                         ...prev, 
                         is_in_menu: e.target.checked,
@@ -321,44 +436,75 @@ const PageEditor = () => {
               </Box>
             </>
           )}
-        </Paper>
 
-        {!page.is_parent_only && page.slug !== 'home' && (
-          <Paper elevation={0} sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Inhoud
-            </Typography>
-            <PageContentEditor
-              initialContent={page.content}
-              onChange={handleContentChange}
+          <Box sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  name="is_fullscreen_slideshow"
+                  checked={Boolean(page.is_fullscreen_slideshow)}
+                  onChange={(e) => {
+                    const isEnabled = e.target.checked;
+                    console.log('Slideshow toggle changed:', isEnabled);
+                    setPage(prev => {
+                      const newPage = {
+                        ...prev,
+                        is_fullscreen_slideshow: isEnabled,
+                        settings: {
+                          ...prev.settings,
+                          slideshow: isEnabled ? {
+                            albumId: prev.settings?.slideshow?.albumId || '',
+                            transition: prev.settings?.slideshow?.transition || 'fade',
+                            speed: prev.settings?.slideshow?.speed || 1000,
+                            interval: prev.settings?.slideshow?.interval || 5000,
+                            autoPlay: prev.settings?.slideshow?.autoPlay !== false
+                          } : null
+                        }
+                      };
+                      console.log('New page state:', newPage);
+                      return newPage;
+                    });
+                  }}
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Fullscreen slideshow
+                  <Tooltip title="Toon een fullscreen slideshow van foto's uit een album">
+                    <IconButton size="small" sx={{ ml: 0.5 }}>
+                      <SlideshowIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              }
             />
-          </Paper>
-        )}
+          </Box>
 
-        {/* Slideshow Settings Dialog */}
-        <Dialog 
-          open={slideshowDialogOpen} 
-          onClose={() => setSlideshowDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Slideshow Instellingen</DialogTitle>
-          <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-              <FormControl fullWidth>
+          {page.is_fullscreen_slideshow && (
+            <Box sx={{ ml: 4 }}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Album</InputLabel>
+                <Select
+                  value={page.settings?.slideshow?.albumId || ''}
+                  onChange={(e) => handleSlideshowSettingChange('albumId', e.target.value)}
+                  label="Album"
+                >
+                  <MenuItem value="">
+                    <em>Selecteer een album</em>
+                  </MenuItem>
+                  {albums.map((album) => (
+                    <MenuItem key={album.id} value={album.id}>
+                      {album.title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Transitie Effect</InputLabel>
                 <Select
                   value={page.settings?.slideshow?.transition || 'fade'}
-                  onChange={(e) => setPage(prev => ({
-                    ...prev,
-                    settings: {
-                      ...prev.settings,
-                      slideshow: {
-                        ...prev.settings?.slideshow,
-                        transition: e.target.value
-                      }
-                    }
-                  }))}
+                  onChange={(e) => handleSlideshowSettingChange('transition', e.target.value)}
                   label="Transitie Effect"
                 >
                   <MenuItem value="fade">Fade</MenuItem>
@@ -374,16 +520,79 @@ const PageEditor = () => {
                 type="number"
                 label="Interval (ms)"
                 value={page.settings?.slideshow?.interval || 5000}
-                onChange={(e) => setPage(prev => ({
-                  ...prev,
-                  settings: {
-                    ...prev.settings,
-                    slideshow: {
-                      ...prev.settings?.slideshow,
-                      interval: parseInt(e.target.value)
-                    }
-                  }
-                }))}
+                onChange={(e) => handleSlideshowSettingChange('interval', parseInt(e.target.value))}
+                inputProps={{ min: 1000, step: 500 }}
+                helperText="Tijd tussen elke slide (in milliseconden)"
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                type="number"
+                label="Effect Duur (ms)"
+                value={page.settings?.slideshow?.speed || 1000}
+                onChange={(e) => handleSlideshowSettingChange('speed', parseInt(e.target.value))}
+                inputProps={{ min: 100, step: 100 }}
+                helperText="Duur van het transitie effect (in milliseconden)"
+                sx={{ mb: 2 }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(page.settings?.slideshow?.autoPlay)}
+                    onChange={(e) => handleSlideshowSettingChange('autoPlay', e.target.checked)}
+                  />
+                }
+                label="Automatisch afspelen"
+              />
+            </Box>
+          )}
+        </Paper>
+
+        {!page.is_parent_only && !page.is_fullscreen_slideshow && page.slug !== 'home' && (
+          <Paper elevation={0} sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Inhoud
+            </Typography>
+            <PageContentEditor
+              initialContent={page.content}
+              onChange={handleContentChange}
+            />
+          </Paper>
+        )}
+
+        {/* Slideshow Settings Dialog - alleen voor home pagina */}
+        <Dialog 
+          open={slideshowDialogOpen} 
+          onClose={() => setSlideshowDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Home Slideshow Instellingen</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <FormControl fullWidth>
+                <InputLabel>Transitie Effect</InputLabel>
+                <Select
+                  value={page.settings?.slideshow?.transition || 'fade'}
+                  onChange={(e) => handleSlideshowSettingChange('transition', e.target.value)}
+                  label="Transitie Effect"
+                >
+                  <MenuItem value="fade">Fade</MenuItem>
+                  <MenuItem value="slide">Horizontaal Scrollen</MenuItem>
+                  <MenuItem value="creative">Creative</MenuItem>
+                  <MenuItem value="cards">Cards</MenuItem>
+                  <MenuItem value="coverflow">Coverflow</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                type="number"
+                label="Interval (ms)"
+                value={page.settings?.slideshow?.interval || 5000}
+                onChange={(e) => handleSlideshowSettingChange('interval', parseInt(e.target.value))}
                 inputProps={{ min: 1000, step: 500 }}
                 helperText="Tijd tussen elke slide (in milliseconden)"
               />
@@ -393,16 +602,7 @@ const PageEditor = () => {
                 type="number"
                 label="Effect Duur (ms)"
                 value={page.settings?.slideshow?.speed || 1000}
-                onChange={(e) => setPage(prev => ({
-                  ...prev,
-                  settings: {
-                    ...prev.settings,
-                    slideshow: {
-                      ...prev.settings?.slideshow,
-                      speed: parseInt(e.target.value)
-                    }
-                  }
-                }))}
+                onChange={(e) => handleSlideshowSettingChange('speed', parseInt(e.target.value))}
                 inputProps={{ min: 100, step: 100 }}
                 helperText="Duur van het transitie effect (in milliseconden)"
               />
@@ -410,17 +610,8 @@ const PageEditor = () => {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={page.settings?.slideshow?.autoPlay !== false}
-                    onChange={(e) => setPage(prev => ({
-                      ...prev,
-                      settings: {
-                        ...prev.settings,
-                        slideshow: {
-                          ...prev.settings?.slideshow,
-                          autoPlay: e.target.checked
-                        }
-                      }
-                    }))}
+                    checked={Boolean(page.settings?.slideshow?.autoPlay)}
+                    onChange={(e) => handleSlideshowSettingChange('autoPlay', e.target.checked)}
                   />
                 }
                 label="Automatisch afspelen"

@@ -1,173 +1,348 @@
 import React, { useState, useEffect } from 'react';
 import {
-  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
+  TextField,
+  FormControlLabel,
+  Switch,
   Box,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Divider,
   Alert,
-  CircularProgress,
-  AppBar,
-  Toolbar,
   IconButton,
-  Container
+  Tooltip,
+  useTheme
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import PageContentEditor from './PageContentEditor';
+import {
+  Help as HelpIcon,
+  Collections as SlideshowIcon
+} from '@mui/icons-material';
 import api from '../utils/api';
 
-const PageEditor = ({ page = null, onSubmitSuccess }) => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    title: '',
-    content: []
-  });
-  const [loading, setLoading] = useState(false);
+const PageEditor = ({ open, onClose, onSave, page }) => {
+  const theme = useTheme();
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [parentId, setParentId] = useState('');
+  const [isParentOnly, setIsParentOnly] = useState(false);
+  const [isFullscreenSlideshow, setIsFullscreenSlideshow] = useState(false);
+  const [settings, setSettings] = useState({});
+  const [pages, setPages] = useState([]);
+  const [albums, setAlbums] = useState([]);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (page) {
-      console.log('Initiële pagina data:', page);
-      setFormData({
-        title: page.title || '',
-        content: Array.isArray(page.content) ? page.content : 
-          typeof page.content === 'string' ? 
-            [{ id: Date.now(), type: 'text', content: page.content }] : 
-            []
-      });
+      setTitle(page.title || '');
+      setSlug(page.slug || '');
+      setParentId(page.parent_id || '');
+      setIsParentOnly(page.is_parent_only || false);
+      setIsFullscreenSlideshow(page.is_fullscreen_slideshow || false);
+      setSettings(page.settings || {});
+    } else {
+      setTitle('');
+      setSlug('');
+      setParentId('');
+      setIsParentOnly(false);
+      setIsFullscreenSlideshow(false);
+      setSettings({});
     }
   }, [page]);
 
-  const handleChange = (e) => {
-    setFormData(prev => ({
+  useEffect(() => {
+    const loadPages = async () => {
+      try {
+        const response = await api.get('/pages');
+        setPages(response.data);
+      } catch (error) {
+        console.error('Fout bij ophalen pagina\'s:', error);
+        setError('Fout bij ophalen pagina\'s');
+      }
+    };
+
+    const loadAlbums = async () => {
+      try {
+        const response = await api.get('/photos/albums');
+        setAlbums(response.data);
+      } catch (error) {
+        console.error('Fout bij ophalen albums:', error);
+        setError('Fout bij ophalen albums');
+      }
+    };
+
+    loadPages();
+    loadAlbums();
+  }, []);
+
+  const handleSave = () => {
+    const pageData = {
+      title,
+      slug,
+      parent_id: parentId || null,
+      is_parent_only: isParentOnly,
+      is_fullscreen_slideshow: isFullscreenSlideshow,
+      settings: {
+        ...settings,
+        slideshow: isFullscreenSlideshow ? {
+          ...settings.slideshow,
+          albumId: settings.slideshow?.albumId || null,
+          transition: settings.slideshow?.transition || 'fade',
+          speed: settings.slideshow?.speed || 1000,
+          interval: settings.slideshow?.interval || 5000,
+          autoPlay: settings.slideshow?.autoPlay !== false
+        } : undefined
+      }
+    };
+    onSave(pageData);
+  };
+
+  const handleAlbumChange = (albumId) => {
+    setSettings(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      slideshow: {
+        ...(prev.slideshow || {}),
+        albumId
+      }
     }));
   };
 
-  const handleContentChange = (newContent) => {
-    console.log('Content gewijzigd:', newContent);
-    setFormData(prev => ({
+  const handleTransitionChange = (transition) => {
+    setSettings(prev => ({
       ...prev,
-      content: newContent
+      slideshow: {
+        ...(prev.slideshow || {}),
+        transition
+      }
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title) {
-      setError('Vul alle verplichte velden in');
-      return;
+  const handleSpeedChange = (speed) => {
+    const value = parseInt(speed, 10);
+    if (!isNaN(value) && value >= 0) {
+      setSettings(prev => ({
+        ...prev,
+        slideshow: {
+          ...(prev.slideshow || {}),
+          speed: value
+        }
+      }));
     }
+  };
 
-    console.log('Versturen van formulier data:', formData);
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      if (page) {
-        console.log('Update pagina met ID:', page.id);
-        const response = await api.put(`/pages/${page.id}`, formData);
-        console.log('Server response:', response.data);
-        setSuccess('Pagina succesvol bijgewerkt');
-      } else {
-        console.log('Nieuwe pagina aanmaken');
-        const response = await api.post('/pages', formData);
-        console.log('Server response:', response.data);
-        setSuccess('Pagina succesvol aangemaakt');
-        setFormData({ title: '', content: [] });
-      }
-
-      if (onSubmitSuccess) {
-        onSubmitSuccess();
-      }
-    } catch (error) {
-      console.error('Fout bij opslaan:', error.response || error);
-      setError(error.response?.data?.message || 'Er is een fout opgetreden');
-    } finally {
-      setLoading(false);
+  const handleIntervalChange = (interval) => {
+    const value = parseInt(interval, 10);
+    if (!isNaN(value) && value >= 0) {
+      setSettings(prev => ({
+        ...prev,
+        slideshow: {
+          ...(prev.slideshow || {}),
+          interval: value
+        }
+      }));
     }
+  };
+
+  const handleAutoPlayChange = (autoPlay) => {
+    setSettings(prev => ({
+      ...prev,
+      slideshow: {
+        ...(prev.slideshow || {}),
+        autoPlay
+      }
+    }));
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Header */}
-      <AppBar 
-        position="sticky" 
-        color="default" 
-        elevation={1}
-      >
-        <Toolbar>
-          <IconButton 
-            edge="start" 
-            onClick={() => navigate('/admin/paginas')}
-            sx={{ mr: 2 }}
-          >
-            <CloseIcon />
-          </IconButton>
-          <TextField
-            label="Titel"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            size="small"
-            sx={{ 
-              flexGrow: 1,
-              maxWidth: 400,
-              mr: 2,
-              bgcolor: 'background.paper',
-              borderRadius: 1
-            }}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <CircularProgress size={24} />
-            ) : page ? (
-              'Pagina Bijwerken'
-            ) : (
-              'Pagina Aanmaken'
-            )}
-          </Button>
-        </Toolbar>
-      </AppBar>
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          bgcolor: theme.palette.mode === 'dark' ? 'rgba(24, 24, 24, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+        }
+      }}
+    >
+      <DialogTitle>
+        {page ? 'Pagina bewerken' : 'Nieuwe pagina'}
+      </DialogTitle>
+      <DialogContent>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Alerts */}
-      {(error || success) && (
-        <Container maxWidth="lg" sx={{ mt: 2 }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {success}
-            </Alert>
-          )}
-        </Container>
-      )}
-
-      {/* Content Editor */}
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
-          py: 4,
-          minHeight: 'calc(100vh - 64px)'
-        }}
-      >
-        <PageContentEditor
-          initialContent={formData.content}
-          onChange={handleContentChange}
+        <TextField
+          autoFocus
+          margin="dense"
+          label="Titel"
+          type="text"
+          fullWidth
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          sx={{ mb: 2 }}
         />
-      </Container>
-    </Box>
+
+        <TextField
+          margin="dense"
+          label="Slug"
+          type="text"
+          fullWidth
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel>Hoofdpagina</InputLabel>
+          <Select
+            value={parentId}
+            label="Hoofdpagina"
+            onChange={(e) => setParentId(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>Geen</em>
+            </MenuItem>
+            {pages
+              .filter(p => p.id !== page?.id)
+              .map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {p.title}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+
+        <Box sx={{ mb: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isParentOnly}
+                onChange={(e) => setIsParentOnly(e.target.checked)}
+              />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                Alleen hoofdpagina
+                <Tooltip title="Deze pagina dient alleen als hoofdpagina voor subpagina's en is zelf niet klikbaar">
+                  <IconButton size="small" sx={{ ml: 0.5 }}>
+                    <HelpIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            }
+          />
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ mb: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isFullscreenSlideshow}
+                onChange={(e) => setIsFullscreenSlideshow(e.target.checked)}
+              />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                Fullscreen slideshow
+                <Tooltip title="Toon een fullscreen slideshow van foto's uit een album">
+                  <IconButton size="small" sx={{ ml: 0.5 }}>
+                    <SlideshowIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            }
+          />
+        </Box>
+
+        {isFullscreenSlideshow && (
+          <Box sx={{ ml: 4 }}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Album</InputLabel>
+              <Select
+                value={settings.slideshow?.albumId || ''}
+                label="Album"
+                onChange={(e) => handleAlbumChange(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Selecteer een album</em>
+                </MenuItem>
+                {albums.map((album) => (
+                  <MenuItem key={album.id} value={album.id}>
+                    {album.title}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Transitie effect</InputLabel>
+              <Select
+                value={settings.slideshow?.transition || 'fade'}
+                label="Transitie effect"
+                onChange={(e) => handleTransitionChange(e.target.value)}
+              >
+                <MenuItem value="fade">Fade</MenuItem>
+                <MenuItem value="creative">Creative</MenuItem>
+                <MenuItem value="cards">Cards</MenuItem>
+                <MenuItem value="coverflow">Coverflow</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              margin="dense"
+              label="Transitie snelheid (ms)"
+              type="number"
+              fullWidth
+              value={settings.slideshow?.speed || 1000}
+              onChange={(e) => handleSpeedChange(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              margin="dense"
+              label="Interval tussen slides (ms)"
+              type="number"
+              fullWidth
+              value={settings.slideshow?.interval || 5000}
+              onChange={(e) => handleIntervalChange(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.slideshow?.autoPlay !== false}
+                  onChange={(e) => handleAutoPlayChange(e.target.checked)}
+                />
+              }
+              label="Automatisch afspelen"
+            />
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Annuleren</Button>
+        <Button onClick={handleSave} variant="contained">
+          Opslaan
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
