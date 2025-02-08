@@ -26,11 +26,11 @@ import 'swiper/css/effect-coverflow';
 
 const getImageWidth = (size) => {
   switch (size) {
-    case 'small': return '25%';
-    case 'medium': return '50%';
-    case 'large': return '75%';
+    case 'small': return '600px';
+    case 'medium': return '800px';
+    case 'large': return '1000px';
     case 'full': return '100%';
-    default: return '50%';
+    default: return '800px';
   }
 };
 
@@ -50,8 +50,8 @@ const getAspectRatioPadding = (ratio) => {
 };
 
 const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
-  const { settings } = useSettings();
   const theme = useTheme();
+  const { settings } = useSettings();
   const [activeSlide, setActiveSlide] = useState(0);
   const [loadedImages, setLoadedImages] = useState(new Set());
   const [barPosition, setBarPosition] = useState(() => {
@@ -78,6 +78,13 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
     };
 
     window.addEventListener('barPositionChanged', updateBarPosition);
+    
+    // Initial position
+    const savedPosition = localStorage.getItem('appBarPosition');
+    if (savedPosition) {
+      setBarPosition(savedPosition);
+    }
+
     return () => window.removeEventListener('barPositionChanged', updateBarPosition);
   }, []);
 
@@ -108,14 +115,18 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
     return (
       <Box
         sx={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
-          left: barPosition === 'full-left' ? '280px' : 0,
+          left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 1000,
-          backgroundColor: 'black',
-          transition: 'left 0.3s ease-in-out'
+          width: '100vw',
+          height: '100vh',
+          bgcolor: 'black',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
         <Swiper
@@ -141,13 +152,10 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
             const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
             return (
               <SwiperSlide 
-                key={photo.id} 
-                style={{ 
-                  width: '100%', 
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                key={photo.id}
+                style={{
+                  width: '100%',
+                  height: '100%'
                 }}
               >
                 <Box
@@ -159,7 +167,7 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
                     backgroundPosition: 'center',
                     backgroundRepeat: 'no-repeat',
                     opacity: loadedImages.has(imageUrl) ? 1 : 0,
-                    transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                    transition: 'opacity 1s ease'
                   }}
                 />
               </SwiperSlide>
@@ -329,15 +337,20 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
       case 'slideshow':
         return (
           <Box sx={{
-            width: '100%',
-            height: content.length === 1 ? '100%' : (block.settings?.height || '500px'),
-            position: content.length === 1 ? 'absolute' : 'relative',
-            ...(content.length === 1 ? {
+            ...(isFullscreenSlideshow ? {
+              position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden'
             } : {
+              width: getImageWidth(block.settings?.size),
+              mx: 'auto',
+              height: block.settings?.height || '500px',
+              position: 'relative',
               mb: 4,
               borderRadius: 2,
               overflow: 'hidden'
@@ -353,21 +366,6 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
                 delay: parseInt(block.settings?.interval) || 5000,
                 disableOnInteraction: false,
                 enabled: block.settings?.autoPlay !== false
-              }}
-              creativeEffect={{
-                prev: {
-                  translate: [0, 0, -400],
-                },
-                next: {
-                  translate: ['100%', 0, 0],
-                },
-              }}
-              coverflowEffect={{
-                rotate: 50,
-                stretch: 0,
-                depth: 100,
-                modifier: 1,
-                slideShadows: true,
               }}
               style={{
                 width: '100%',

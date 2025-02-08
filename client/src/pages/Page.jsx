@@ -150,10 +150,46 @@ const Page = () => {
 
   if (page.is_fullscreen_slideshow) {
     return (
-      <PageContent 
-        content={page.content} 
-        isFullscreenSlideshow={true}
-      />
+      <Box sx={{ 
+        position: 'fixed',
+        top: barPosition === 'top' ? '64px' : 0,
+        left: barPosition === 'full-left' ? '280px' : 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'auto',
+        bgcolor: 'transparent'
+      }}>
+        <Box sx={{ 
+          height: '100%',
+          position: 'relative',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: barPosition === 'full-left' ? '32px' : 0,
+          zIndex: 1
+        }}>
+          <Box sx={{
+            width: barPosition === 'full-left' ? 'calc(100% - 64px)' : '100%',
+            height: '100%',
+            position: 'relative',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            borderRadius: barPosition === 'full-left' ? '16px' : 0,
+            overflow: 'hidden',
+            bgcolor: theme.palette.mode === 'dark' 
+              ? 'rgba(30, 30, 30, 0.95)'
+              : 'rgba(255, 255, 255, 0.95)',
+            boxShadow: barPosition === 'full-left' 
+              ? theme.palette.mode === 'dark'
+                ? '0 8px 32px rgba(0,0,0,0.5)'
+                : '0 8px 32px rgba(0,0,0,0.1)'
+              : 'none',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <PageContent content={page.content} isFullscreenSlideshow={true} />
+          </Box>
+        </Box>
+      </Box>
     );
   }
 
@@ -168,25 +204,30 @@ const Page = () => {
       bgcolor: 'transparent'
     }}>
       <Box sx={{ 
-        p: 4,
-        maxWidth: '1400px',
-        margin: '0 auto',
         height: '100%',
+        position: 'relative',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
-        flexDirection: 'column'
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: barPosition === 'full-left' ? '32px' : 0,
+        zIndex: 1
       }}>
         <Box sx={{
-          flex: 1,
+          width: barPosition === 'full-left' ? 'calc(100% - 64px)' : '100%',
+          height: '100%',
+          position: 'relative',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          borderRadius: barPosition === 'full-left' ? '16px' : 0,
+          overflow: 'hidden',
           bgcolor: theme.palette.mode === 'dark' 
             ? 'rgba(30, 30, 30, 0.95)'
             : 'rgba(255, 255, 255, 0.95)',
-          borderRadius: barPosition === 'full-left' ? 2 : 0,
           boxShadow: barPosition === 'full-left' 
             ? theme.palette.mode === 'dark'
               ? '0 8px 32px rgba(0,0,0,0.5)'
               : '0 8px 32px rgba(0,0,0,0.1)'
             : 'none',
-          overflow: 'hidden',
           backdropFilter: 'blur(10px)'
         }}>
           <PageContent content={page.content} />

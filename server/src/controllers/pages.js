@@ -72,60 +72,57 @@ export const getPages = async (req, res) => {
   try {
     const result = await pool.query(`
       WITH RECURSIVE page_tree AS (
-        -- Base case: top-level pages
         SELECT 
-          p.id,
-          p.title,
-          p.slug,
-          p.description,
-          p.content,
-          p.is_in_menu,
-          p.parent_id,
-          COALESCE(p.menu_order, 9999) as menu_order,
-          p.created_at,
-          p.settings,
-          p.is_parent_only,
-          CAST(NULL AS VARCHAR) as parent_slug,
-          ARRAY[COALESCE(p.menu_order, 9999)] as path,
-          0 as level,
-          ARRAY[]::integer[] as ancestors
-        FROM pages p
-        WHERE p.parent_id IS NULL
-
+          id, title, slug, description, content, 
+          is_in_menu, menu_order, parent_id, 
+          is_parent_only, settings, created_at, updated_at,
+          is_fullscreen_slideshow,
+          ARRAY[]::integer[] as path,
+          0 as level
+        FROM pages
+        WHERE parent_id IS NULL
+        
         UNION ALL
-
-        -- Recursive case: child pages
+        
         SELECT 
-          p.id,
-          p.title,
-          p.slug,
-          p.description,
-          p.content,
-          p.is_in_menu,
-          p.parent_id,
-          COALESCE(p.menu_order, 9999) as menu_order,
-          p.created_at,
-          p.settings,
-          p.is_parent_only,
-          parent.slug as parent_slug,
-          parent.path || COALESCE(p.menu_order, 9999),
-          parent.level + 1,
-          parent.ancestors || parent.id
+          p.id, p.title, p.slug, p.description, p.content, 
+          p.is_in_menu, p.menu_order, p.parent_id, 
+          p.is_parent_only, p.settings, p.created_at, p.updated_at,
+          p.is_fullscreen_slideshow,
+          pt.path || p.parent_id,
+          pt.level + 1
         FROM pages p
-        JOIN page_tree parent ON p.parent_id = parent.id
+        JOIN page_tree pt ON pt.id = p.parent_id
       )
       SELECT 
         pt.*,
-        (
-          SELECT json_agg(children.* ORDER BY children.menu_order NULLS LAST)
-          FROM page_tree children
-          WHERE children.parent_id = pt.id
+        COALESCE(
+          jsonb_agg(
+            json_build_object(
+              'id', c.id,
+              'title', c.title,
+              'slug', c.slug,
+              'description', c.description,
+              'content', c.content,
+              'is_in_menu', c.is_in_menu,
+              'menu_order', c.menu_order,
+              'parent_id', c.parent_id,
+              'is_parent_only', c.is_parent_only,
+              'settings', c.settings,
+              'created_at', c.created_at,
+              'updated_at', c.updated_at,
+              'is_fullscreen_slideshow', c.is_fullscreen_slideshow
+            )
+          ) FILTER (WHERE c.id IS NOT NULL),
+          '[]'::jsonb
         ) as children
       FROM page_tree pt
-      ORDER BY 
-        CASE WHEN pt.slug = 'home' THEN 0 ELSE 1 END,
-        pt.level,
-        pt.menu_order NULLS LAST;
+      LEFT JOIN pages c ON c.parent_id = pt.id
+      GROUP BY pt.id, pt.title, pt.slug, pt.description, pt.content, 
+               pt.is_in_menu, pt.menu_order, pt.parent_id, pt.is_parent_only,
+               pt.settings, pt.created_at, pt.updated_at, pt.path, pt.level,
+               pt.is_fullscreen_slideshow
+      ORDER BY pt.path, pt.menu_order;
     `);
 
     res.json(result.rows.map(page => ({
@@ -147,7 +144,8 @@ export const getPage = async (req, res) => {
       SELECT 
         id, title, slug, content, description, 
         is_in_menu, menu_order, parent_id, 
-        is_parent_only, settings, created_at, updated_at
+        is_parent_only, settings, created_at, updated_at,
+        is_fullscreen_slideshow
       FROM pages WHERE `;
     let params = [];
 
@@ -169,7 +167,8 @@ export const getPage = async (req, res) => {
     const page = {
       ...result.rows[0],
       content: result.rows[0].content ? result.rows[0].content : [],
-      is_parent_only: result.rows[0].is_parent_only || false
+      is_parent_only: result.rows[0].is_parent_only || false,
+      is_fullscreen_slideshow: result.rows[0].is_fullscreen_slideshow || false
     };
 
     console.log('Sending page:', page);
