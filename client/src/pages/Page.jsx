@@ -177,13 +177,15 @@ const Page = () => {
             borderRadius: barPosition === 'full-left' ? '16px' : 0,
             overflow: 'hidden',
             bgcolor: theme.palette.mode === 'dark' 
-              ? 'rgba(30, 30, 30, 0.95)'
+              ? 'rgba(35, 35, 45, 0.98)'
               : 'rgba(255, 255, 255, 0.95)',
             boxShadow: barPosition === 'full-left' 
               ? theme.palette.mode === 'dark'
-                ? '0 8px 32px rgba(0,0,0,0.5)'
+                ? '0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0,0,0,0.5)'
                 : '0 8px 32px rgba(0,0,0,0.1)'
-              : 'none',
+              : theme.palette.mode === 'dark'
+                ? '0 0 0 1px rgba(255, 255, 255, 0.1)'
+                : 'none',
             backdropFilter: 'blur(10px)'
           }}>
             <PageContent content={page.content} isFullscreenSlideshow={true} />
@@ -219,16 +221,24 @@ const Page = () => {
           position: 'relative',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           borderRadius: barPosition === 'full-left' ? '16px' : 0,
-          overflow: 'hidden',
+          overflow: 'auto',
           bgcolor: theme.palette.mode === 'dark' 
-            ? 'rgba(30, 30, 30, 0.95)'
+            ? 'rgba(35, 35, 45, 0.98)'
             : 'rgba(255, 255, 255, 0.95)',
           boxShadow: barPosition === 'full-left' 
             ? theme.palette.mode === 'dark'
-              ? '0 8px 32px rgba(0,0,0,0.5)'
+              ? '0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0,0,0,0.5)'
               : '0 8px 32px rgba(0,0,0,0.1)'
-            : 'none',
-          backdropFilter: 'blur(10px)'
+            : theme.palette.mode === 'dark'
+              ? '0 0 0 1px rgba(255, 255, 255, 0.1)'
+              : 'none',
+          backdropFilter: 'blur(10px)',
+          py: 8,
+          px: {
+            xs: 2,
+            sm: 4,
+            md: 6
+          }
         }}>
           <PageContent content={page.content} />
         </Box>

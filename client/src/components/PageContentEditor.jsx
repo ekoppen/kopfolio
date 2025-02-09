@@ -400,7 +400,7 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
 };
 
 const BlockEditor = ({ block, onChange, onDelete }) => {
-  switch (block.type) {
+    switch (block.type) {
     case 'spacer':
       return (
         <Box sx={{ 
@@ -420,155 +420,155 @@ const BlockEditor = ({ block, onChange, onDelete }) => {
           </Typography>
         </Box>
       );
-    case 'text':
-      return (
-        <Box sx={{ 
-          position: 'relative',
-          '& .quill': {
-            '& .ql-toolbar': {
-              position: 'sticky',
-              top: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: 'background.paper',
-              borderColor: 'transparent',
-              borderRadius: 1,
-              opacity: 0,
-              transition: 'opacity 0.2s',
-              boxShadow: 1,
-              zIndex: 100,
-              marginBottom: 1
-            },
-            '& .ql-container': {
-              border: 'none',
-              fontSize: '1rem',
-              lineHeight: 1.75,
-              '& .ql-editor': {
-                padding: '1rem 0',
-                minHeight: 100,
-                '&:focus': {
-                  outline: 'none'
-                },
-                '& p': {
-                  marginBottom: '1rem'
-                },
-                '& h1, & h2, & h3': {
-                  marginBottom: '1.5rem',
-                  marginTop: '2rem',
-                  fontWeight: 600,
-                  color: 'text.primary'
-                }
-              }
-            },
-            '&:hover .ql-toolbar': {
-              opacity: 1
-            }
-          }
-        }}>
-          <ReactQuill
-            theme="snow"
-            value={block.content}
-            onChange={(value) => onChange(block.id, { content: value })}
-            modules={modules}
-            formats={formats}
-          />
-        </Box>
-      );
-    case 'image':
-      return (
-        <Box sx={{ 
-          width: getImageWidth(block.settings?.size),
-          mx: 'auto'
-        }}>
-          {block.content ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Box
-                component="img"
-                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${block.content.filename}`}
-                alt={block.content.title || 'Afbeelding'}
-                sx={{ 
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: 1,
-                  boxShadow: block.content.showShadow ? 3 : 0
-                }}
-              />
-              {block.content.showTitle && (
-                <Box sx={{ textAlign: 'right', mt: 0.5 }}>
-                  {block.content.title && (
-                    <Typography variant="h6" color="text.primary">
-                      {block.content.title}
-                    </Typography>
-                  )}
-                  {block.content.description && (
-                    <Typography variant="body1" color="text.secondary">
-                      {block.content.description}
-                    </Typography>
-                  )}
-                </Box>
-              )}
-            </Box>
-          ) : (
-            <Box 
-              sx={{ 
-                p: 4, 
-                textAlign: 'center',
-                bgcolor: 'grey.50',
+      case 'text':
+        return (
+          <Box sx={{ 
+            position: 'relative',
+            '& .quill': {
+              '& .ql-toolbar': {
+                position: 'sticky',
+                top: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: 'background.paper',
+                borderColor: 'transparent',
                 borderRadius: 1,
-                border: '2px dashed',
-                borderColor: 'grey.300'
-              }}
-            >
-              <Typography color="text.secondary">
-                Klik op het tandwiel icoon om een afbeelding te selecteren
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      );
-    case 'slideshow':
-      return (
-        <Box sx={{ 
-          width: getImageWidth(block.settings?.size),
-          mx: 'auto'
-        }}>
-          {block.content && block.content.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                opacity: 0,
+                transition: 'opacity 0.2s',
+                boxShadow: 1,
+                zIndex: 100,
+                marginBottom: 1
+              },
+              '& .ql-container': {
+                border: 'none',
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                '& .ql-editor': {
+                  padding: '1rem 0',
+                  minHeight: 100,
+                  '&:focus': {
+                    outline: 'none'
+                  },
+                  '& p': {
+                    marginBottom: '1rem'
+                  },
+                  '& h1, & h2, & h3': {
+                    marginBottom: '1.5rem',
+                    marginTop: '2rem',
+                    fontWeight: 600,
+                    color: 'text.primary'
+                  }
+                }
+              },
+              '&:hover .ql-toolbar': {
+                opacity: 1
+              }
+            }
+          }}>
+            <ReactQuill
+              theme="snow"
+              value={block.content}
+            onChange={(value) => onChange(block.id, { content: value })}
+              modules={modules}
+              formats={formats}
+            />
+          </Box>
+        );
+      case 'image':
+        return (
+          <Box sx={{ 
+            width: getImageWidth(block.settings?.size),
+            mx: 'auto'
+          }}>
+            {block.content ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box
+                  component="img"
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${block.content.filename}`}
+                  alt={block.content.title || 'Afbeelding'}
+                  sx={{ 
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: 1,
+                    boxShadow: block.content.showShadow ? 3 : 0
+                  }}
+                />
+                {block.content.showTitle && (
+                  <Box sx={{ textAlign: 'right', mt: 0.5 }}>
+                    {block.content.title && (
+                      <Typography variant="h6" color="text.primary">
+                        {block.content.title}
+                      </Typography>
+                    )}
+                    {block.content.description && (
+                      <Typography variant="body1" color="text.secondary">
+                        {block.content.description}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            ) : (
               <Box 
                 sx={{ 
-                  position: 'relative',
+                  p: 4, 
+                  textAlign: 'center',
+                  bgcolor: 'grey.50',
+                  borderRadius: 1,
+                  border: '2px dashed',
+                  borderColor: 'grey.300'
+                }}
+              >
+                <Typography color="text.secondary">
+                  Klik op het tandwiel icoon om een afbeelding te selecteren
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        );
+      case 'slideshow':
+        return (
+          <Box sx={{ 
+            width: getImageWidth(block.settings?.size),
+            mx: 'auto'
+          }}>
+            {block.content && block.content.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box 
+                  sx={{ 
+                    position: 'relative',
                   width: '100%',
                   paddingTop: getAspectRatioPadding(block.settings?.aspectRatio),
-                  borderRadius: 1,
-                  overflow: 'hidden',
+                    borderRadius: 1,
+                    overflow: 'hidden',
                   ...getShadowStyle(block.settings?.showShadow)
                 }}
               >
-                {block.content.map((photo, photoIndex) => (
-                  <Box
-                    key={photo.id}
-                    sx={{
+                    {block.content.map((photo, photoIndex) => (
+                      <Box
+                        key={photo.id}
+                        sx={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       width: '100%',
-                      height: '100%',
+                          height: '100%',
                       opacity: photoIndex === 0 ? 1 : 0,
                       transition: `opacity ${block.settings?.speed || 1000}ms ease-in-out`,
                       transform: block.settings?.transition === 'creative' ? 'scale(1.2)' : 'none',
                       '&:hover': {
                         transform: block.settings?.transition === 'creative' ? 'scale(1)' : 'none',
                       }
-                    }}
-                  >
-                    <Box
-                      component="img"
-                      src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
-                      alt={photo.title || `Foto ${photoIndex + 1}`}
-                      sx={{ 
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
+                          alt={photo.title || `Foto ${photoIndex + 1}`}
+                          sx={{ 
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
                         transition: `transform ${block.settings?.speed || 1000}ms ease-in-out`,
                         ...(block.settings?.transition === 'coverflow' && {
                           transform: 'perspective(1000px) rotateY(45deg)',
@@ -582,34 +582,34 @@ const BlockEditor = ({ block, onChange, onDelete }) => {
                             transform: 'translateX(0) scale(1)'
                           }
                         })
-                      }}
-                    />
-                  </Box>
-                ))}
+                          }}
+                        />
+                      </Box>
+                    ))}
+                </Box>
               </Box>
-            </Box>
-          ) : (
-            <Box 
-              sx={{ 
-                p: 4, 
-                textAlign: 'center',
-                bgcolor: 'grey.50',
-                borderRadius: 1,
-                border: '2px dashed',
-                borderColor: 'grey.300'
-              }}
-            >
-              <Typography color="text.secondary">
-                Klik op het tandwiel icoon om foto's te selecteren
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      );
-    default:
-      return null;
-  }
-};
+            ) : (
+              <Box 
+                sx={{ 
+                  p: 4, 
+                  textAlign: 'center',
+                  bgcolor: 'grey.50',
+                  borderRadius: 1,
+                  border: '2px dashed',
+                  borderColor: 'grey.300'
+                }}
+              >
+                <Typography color="text.secondary">
+                  Klik op het tandwiel icoon om foto's te selecteren
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        );
+      default:
+        return null;
+    }
+  };
 
 const PageContentEditor = ({ initialContent = [], onChange }) => {
   const theme = useTheme();
@@ -686,7 +686,7 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
         return {
           ...block,
           ...updates,
-          settings: {
+                    settings: {
             ...block.settings,
             ...(updates.settings || {})
           }
@@ -760,162 +760,162 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="content">
-          {(provided) => (
-            <Box
-              {...provided.droppableProps}
-              ref={provided.innerRef}
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="content">
+            {(provided) => (
+              <Box
+                {...provided.droppableProps}
+                ref={provided.innerRef}
               sx={{ width: '100%' }}
-            >
-              {content.map((block, index) => (
-                <Draggable
-                  key={block.id}
-                  draggableId={block.id.toString()}
-                  index={index}
-                >
-                  {(provided) => (
-                    <Box
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      sx={{ 
-                        mb: 4,
-                        position: 'relative',
-                        '&:hover .block-controls': {
-                          opacity: 1
-                        }
-                      }}
-                    >
+              >
+                {content.map((block, index) => (
+                  <Draggable
+                    key={block.id}
+                    draggableId={block.id.toString()}
+                    index={index}
+                  >
+                    {(provided) => (
                       <Box
-                        className="block-controls"
-                        sx={{
-                          position: 'absolute',
-                          right: -50,
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        sx={{ 
+                        mb: 4,
+                          position: 'relative',
+                          '&:hover .block-controls': {
+                            opacity: 1
+                          }
+                        }}
+                      >
+                        <Box
+                          className="block-controls"
+                          sx={{
+                            position: 'absolute',
+                            right: -50,
                           top: 0,
                           bottom: 0,
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center',
-                          opacity: 0,
-                          transition: 'opacity 0.2s',
-                          bgcolor: 'background.paper',
-                          borderRadius: 1,
-                          boxShadow: 1,
-                          gap: 0.5,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            bgcolor: 'background.paper',
+                            borderRadius: 1,
+                            boxShadow: 1,
+                            gap: 0.5,
                           p: 0.5
-                        }}
-                      >
-                        <Tooltip title="Omhoog">
-                          <IconButton
-                            size="small"
-                            onClick={() => moveBlock(block.id, 'up')}
-                            disabled={index === 0}
-                          >
-                            <ArrowUpIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Omlaag">
-                          <IconButton
-                            size="small"
-                            onClick={() => moveBlock(block.id, 'down')}
-                            disabled={index === content.length - 1}
-                          >
-                            <ArrowDownIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Instellingen">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedBlock(block);
-                              setBlockPropertiesOpen(true);
-                            }}
-                          >
-                            <SettingsIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Verwijderen">
-                          <IconButton
-                            size="small"
-                            onClick={() => deleteBlock(block.id)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Box
-                          {...provided.dragHandleProps}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'grab'
                           }}
                         >
+                        <Tooltip title="Omhoog">
+                            <IconButton
+                              size="small"
+                              onClick={() => moveBlock(block.id, 'up')}
+                              disabled={index === 0}
+                            >
+                            <ArrowUpIcon />
+                            </IconButton>
+                          </Tooltip>
+                        <Tooltip title="Omlaag">
+                            <IconButton
+                              size="small"
+                              onClick={() => moveBlock(block.id, 'down')}
+                              disabled={index === content.length - 1}
+                            >
+                            <ArrowDownIcon />
+                            </IconButton>
+                          </Tooltip>
+                        <Tooltip title="Instellingen">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedBlock(block);
+                                setBlockPropertiesOpen(true);
+                              }}
+                            >
+                            <SettingsIcon />
+                            </IconButton>
+                          </Tooltip>
+                        <Tooltip title="Verwijderen">
+                            <IconButton
+                              size="small"
+                              onClick={() => deleteBlock(block.id)}
+                            >
+                            <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Box
+                            {...provided.dragHandleProps}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            cursor: 'grab'
+                            }}
+                          >
                           <DragIcon />
+                          </Box>
                         </Box>
-                      </Box>
 
                       <BlockEditor
                         block={block}
                         onChange={updateBlock}
                         onDelete={() => deleteBlock(block.id)}
                       />
-                    </Box>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
+                      </Box>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
             </Box>
           )}
         </Droppable>
       </DragDropContext>
 
-      <Box
-        sx={{
+                <Box
+                  sx={{
           mt: 4,
           p: 3,
-          border: '2px dashed',
-          borderColor: 'grey.300',
-          borderRadius: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+                    border: '2px dashed',
+                    borderColor: 'grey.300',
+                    borderRadius: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
           gap: 2
         }}
       >
         <Typography variant="subtitle1" color="text.secondary">
-          Voeg een nieuw blok toe
-        </Typography>
+                    Voeg een nieuw blok toe
+                  </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
+                    <Button
+                      variant="outlined"
             startIcon={<TextIcon />}
-            onClick={() => addBlock('text')}
-          >
-            Tekst
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<ImageIcon />}
-            onClick={() => addBlock('image')}
-          >
-            Afbeelding
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SlideshowIcon />}
-            onClick={() => addBlock('slideshow')}
-          >
-            Slideshow
-          </Button>
+                      onClick={() => addBlock('text')}
+                    >
+                      Tekst
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ImageIcon />}
+                      onClick={() => addBlock('image')}
+                    >
+                      Afbeelding
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<SlideshowIcon />}
+                      onClick={() => addBlock('slideshow')}
+                    >
+                      Slideshow
+                    </Button>
           <Button
             variant="outlined"
             startIcon={<SpacerIcon />}
             onClick={() => addBlock('spacer')}
           >
             Ruimte
-          </Button>
-        </Box>
+                    </Button>
+                  </Box>
       </Box>
 
       <Dialog
@@ -982,33 +982,33 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
           {selectedTab === 'albums' && (
             <Grid container spacing={2}>
               {albums.map((album) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={album.id}>
-                  <Card
-                    onClick={() => handleAlbumSelect(album)}
-                    sx={{
-                      cursor: 'pointer',
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={album.id}>
+                    <Card
+                      onClick={() => handleAlbumSelect(album)}
+                      sx={{
+                        cursor: 'pointer',
                       transition: 'all 0.2s'
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height={140}
+                      }}
+                    >
+                      <CardMedia
+                        component="img"
+                        height={140}
                       image={album.cover_photo ? 
                         `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${album.cover_photo}` :
                         'placeholder.jpg'
                       }
-                      alt={album.title || 'Album'}
-                    />
-                    <CardContent>
+                        alt={album.title || 'Album'}
+                      />
+                      <CardContent>
                       <Typography variant="subtitle1">
-                        {album.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                          {album.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
                         {album.photo_count} foto's
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
               ))}
             </Grid>
           )}

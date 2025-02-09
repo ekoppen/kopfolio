@@ -17,11 +17,6 @@ const App = () => {
             styles={{
               'body': {
                 backgroundColor: 'transparent !important'
-              },
-              '.MuiAppBar-root': {
-                backgroundColor: 'transparent !important',
-                boxShadow: 'none !important',
-                borderBottom: 'none !important'
               }
             }}
           />

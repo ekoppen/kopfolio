@@ -239,10 +239,10 @@ const Layout = () => {
 
     // Effect om dropdown open te zetten als een subpagina actief is
     useEffect(() => {
-      if (hasActiveChild) {
+      if (hasActiveChild && barPosition === 'full-left') {
         setDropdownOpen(true);
       }
-    }, [hasActiveChild]);
+    }, [hasActiveChild, barPosition]);
 
     const getTextColor = () => {
       if (isActive || hasActiveChild) {
@@ -444,226 +444,144 @@ const Layout = () => {
         }
       })
     }}>
-      {/* Fixed Logo Container */}
-      {settings.logo && (
-        <Box sx={{
-          position: 'fixed',
-          top: `${settings.logo_margin_top}px`,
-          left: `${settings.logo_margin_left}px`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: 1,
-          zIndex: 2000,
-        }}>
-          <Box
-            component="img"
-            src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
-            alt="Logo"
-            sx={{
-              height: settings.logo_size || 60,
-              width: 'auto',
-              maxWidth: settings.logo_size * 2 || 120,
-              objectFit: 'contain',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              pointerEvents: 'none',
-              filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.2))'
-            }}
-          />
-          {settings.site_subtitle && (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontFamily: settings.subtitle_font,
-                fontSize: `${settings.subtitle_size}px`,
-                color: settings.subtitle_color,
-                mt: `${settings.subtitle_margin_top}px`,
-                ml: `${settings.subtitle_margin_left}px`,
-                textShadow: settings.subtitle_shadow_enabled ? 
-                  `${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)}` : 
-                  'none'
-              }}
-            >
-              {settings.site_subtitle}
-            </Typography>
-          )}
-        </Box>
-      )}
-
       {/* Main Layout Container */}
       <AppBar 
         position={barPosition === 'full-left' ? 'relative' : "sticky"}
         elevation={0}
         sx={{ 
-          bgcolor: 'transparent',
-          backdropFilter: 'none',
+          bgcolor: barPosition === 'full-left' ? 'transparent' : theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          borderBottom: barPosition !== 'full-left' ? 'none' : 'none',
+          backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
           zIndex: barPosition === 'full-left' ? 200 : 1800,
           width: barPosition === 'full-left' ? '280px' : '100%',
           height: barPosition === 'full-left' ? '100vh' : 'auto',
-          position: 'relative',
-          overflow: 'visible',
-          borderBottom: barPosition === 'full-left' 
-            ? 'none' 
-            : `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-          boxShadow: barPosition === 'full-left'
-            ? 'none'
-            : theme.palette.mode === 'dark'
-              ? '0 4px 30px rgba(0, 0, 0, 0.5)'
-              : '0 4px 30px rgba(0, 0, 0, 0.1)',
-          ...(barPosition === 'full-left' && {
-            backdropFilter: 'none',
-            boxShadow: 'none'
-          })
+          display: 'flex',
+          flexDirection: barPosition === 'full-left' ? 'column' : 'row'
         }}
       >
-        <Toolbar sx={{ 
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 2,
-          px: barPosition === 'full-left' ? 2 : { xs: 2, sm: 3, md: 4 },
-          position: 'relative',
-          height: barPosition === 'full-left' ? '100%' : 64,
-          flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-          zIndex: 2,
-          width: '100%',
-          bgcolor: barPosition === 'full-left' 
-            ? 'transparent'
-            : theme.palette.mode === 'dark' 
-              ? 'rgba(18, 18, 18, 0.6)'
-              : 'rgba(255, 255, 255, 0.4)',
-          backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(6px)'
-        }}>
-          {/* Logo en Menu Box */}
-          <Box
-            sx={{
-              bgcolor: 'transparent',
-              borderRadius: 0,
-              p: 0,
-              boxShadow: 'none',
-              display: 'flex',
-              flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-              gap: 4,
-              alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              height: barPosition === 'full-left' ? '100%' : '65px',
-              position: 'relative',
-              zIndex: 1200,
-              ml: barPosition === 'full-left' ? 0 : `${settings.logo_size * 1.5 + settings.logo_margin_left + 80}px`
-            }}>
-
-            {barPosition === 'full-left' ? (
-              <Box sx={{ 
-                display: 'flex',
-                flexDirection: 'column',
-                flex: 1,
+        <Toolbar 
+          sx={{ 
+            width: '100%',
+            height: barPosition === 'full-left' ? '100%' : '64px',
+            minHeight: '64px !important',
+            px: 3,
+            py: 1,
+            display: 'flex',
+            flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+            alignItems: 'center',
+            justifyContent: barPosition === 'full-left' ? 'space-between' : 'space-between',
+            gap: 2
+          }}
+        >
+          <Box sx={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 0.5,
+            width: barPosition === 'full-left' ? '100%' : 'auto',
+            height: barPosition === 'full-left' ? 'auto' : '100%'
+          }}>
+            <Box
+              component="img"
+              src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+              alt={settings.site_title}
+              sx={{
+                height: 'auto',
+                width: `${settings.logo_size || 60}px`,
+                maxWidth: '100%',
+                objectFit: 'contain',
+                filter: settings.logo_shadow_enabled ? 
+                  `drop-shadow(${settings.logo_shadow_x}px ${settings.logo_shadow_y}px ${settings.logo_shadow_blur}px ${hexToRgba(settings.logo_shadow_color, settings.logo_shadow_opacity)})` : 
+                  'none'
+              }}
+            />
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: settings.subtitle_color || 'text.primary',
+                fontFamily: settings.subtitle_font || 'system-ui',
+                fontSize: `${settings.subtitle_size || 14}px`,
+                textAlign: 'left',
                 width: '100%',
-                justifyContent: 'space-between',
-                pl: 1,
-                mt: `${settings.logo_size + 40}px`,
-                position: 'relative',
-                zIndex: 1500
-              }}>
-                {/* Menu Items */}
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onDragCancel={handleDragCancel}
-                >
-                  <SortableContext
-                    items={pages.filter(page => !page.parent_id).map(p => p.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      gap: 0.5,
-                      pt: 1,
-                      alignItems: 'flex-start',
-                      width: '100%',
-                      zIndex: 1400,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}>
-                      {pages
-                        .filter(page => !page.parent_id)
-                        .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
-                        .map(page => (
-                          <MenuItem
-                            key={page.id}
-                            page={page}
-                            selectedPage={selectedPage}
-                            onPageSelect={setSelectedPage}
-                          />
-                        ))}
-                    </Box>
-                  </SortableContext>
-                </DndContext>
+                whiteSpace: 'nowrap',
+                filter: settings.subtitle_shadow_enabled ? 
+                  `drop-shadow(${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)})` : 
+                  'none'
+              }}
+            >
+              {settings.site_subtitle}
+            </Typography>
+          </Box>
 
-                {/* Navigation */}
+          {/* Menu en Navigatie Container */}
+          <Box sx={{ 
+            display: 'flex',
+            flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+            alignItems: barPosition === 'full-left' ? 'stretch' : 'center',
+            justifyContent: barPosition === 'full-left' ? 'space-between' : 'flex-end',
+            flex: 1,
+            width: '100%',
+            height: barPosition === 'full-left' ? 'calc(100vh - 200px)' : '100%',
+            ml: barPosition === 'full-left' ? 0 : 'auto'
+          }}>
+            {/* Menu Items */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <SortableContext
+                items={pages.filter(page => !page.parent_id).map(p => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 <Box sx={{ 
+                  display: 'flex',
+                  flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+                  gap: barPosition === 'full-left' ? 0.5 : 3,
+                  alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
+                  flex: barPosition === 'full-left' ? 1 : 'unset',
+                  mt: barPosition === 'full-left' ? 4 : 0,
+                  mr: barPosition === 'full-left' ? 0 : 2,
                   width: '100%',
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  mt: 'auto',
-                  pb: 2,
-                  pl: 1,
-                  zIndex: 1500
+                  overflow: barPosition === 'full-left' ? 'auto' : 'visible'
                 }}>
-                  <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+                  {pages
+                    .filter(page => !page.parent_id)
+                    .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
+                    .map(page => (
+                      <MenuItem
+                        key={page.id}
+                        page={page}
+                        selectedPage={selectedPage}
+                        onPageSelect={setSelectedPage}
+                      />
+                    ))}
                 </Box>
-              </Box>
-            ) : (
-              <>
-                {/* Menu Items - Horizontaal */}
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onDragCancel={handleDragCancel}
-                >
-                  <SortableContext
-                    items={pages.filter(page => !page.parent_id).map(p => p.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'row',
-                      gap: 3,
-                      alignItems: 'center',
-                      zIndex: 1400,
-                      flex: 1
-                    }}>
-                      {pages
-                        .filter(page => !page.parent_id)
-                        .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
-                        .map(page => (
-                          <MenuItem
-                            key={page.id}
-                            page={page}
-                            selectedPage={selectedPage}
-                            onPageSelect={setSelectedPage}
-                          />
-                        ))}
-                    </Box>
-                  </SortableContext>
-                </DndContext>
+              </SortableContext>
+            </DndContext>
 
-                {/* Navigation - Horizontaal */}
-                <Box sx={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  position: 'relative',
-                  zIndex: 1500,
-                  mr: 2
-                }}>
-                  <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
-                </Box>
-              </>
+            {/* Navigation Buttons */}
+            {barPosition === 'full-left' && (
+              <Box sx={{ 
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'flex-start',
+                borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                pt: 2,
+                mt: 'auto'
+              }}>
+                <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+              </Box>
             )}
           </Box>
+
+          {barPosition !== 'full-left' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
+            </Box>
+          )}
         </Toolbar>
       </AppBar>
 
@@ -699,29 +617,34 @@ const Layout = () => {
             <Outlet />
           </Box>
         </Container>
-        <Box
-          component="footer"
-          sx={{
-            py: 2,
-            px: 4,
+        <Box 
+          component="footer" 
+          sx={{ 
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
             bgcolor: 'transparent',
-            zIndex: 2,
             position: 'fixed',
-            bottom: 32,
-            right: 64,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            bottom: 0,
+            left: barPosition === 'full-left' ? '280px' : 0,
+            right: 0,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            backdropFilter: 'none',
+            zIndex: 1000
           }}
         >
           <Typography 
             variant="body2" 
             sx={{ 
-              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-              fontSize: '0.75rem',
-              textAlign: 'right',
+              color: settings.footer_color || (theme.palette.mode === 'dark' ? '#fff' : '#000'),
+              fontSize: `${settings.footer_size || 14}px`,
+              fontFamily: settings.footer_font || 'system-ui',
+              textAlign: settings.logo_position === 'center' ? 'center' : 'right',
               position: 'relative',
               zIndex: 1,
-              width: 'auto',
-              whiteSpace: 'nowrap'
+              width: settings.logo_position === 'center' ? '100%' : 'auto',
+              px: 3
             }}
           >
             {settings.footer_text}

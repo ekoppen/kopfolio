@@ -242,110 +242,93 @@ const importBackup = async (req, res) => {
 
       // Drop alle tabellen
       updateStatus('Database voorbereiden', 50);
-      const dropCommand = `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`;
+      const dropCommand = `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;"`;
       await execAsync(dropCommand);
       
       // Wacht even om er zeker van te zijn dat alle connecties weg zijn
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Herstel database
-      updateStatus('Database herstellen', 60);
-      const restoreCommand = `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${tempDumpFile}`;
-      const { stdout, stderr } = await execAsync(restoreCommand);
-      if (stderr) console.log('Database restore stderr:', stderr);
+      // Importeer de database dump
+      updateStatus('Database importeren', 60);
+      const importCommand = `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${tempDumpFile}`;
+      await execAsync(importCommand);
 
-      // Wacht even om de database tijd te geven om te herstellen
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Herstel het admin wachtwoord als deze bestond
+      if (currentAdminPassword) {
+        updateStatus('Admin account herstellen', 70);
+        client = await pool.connect();
+        try {
+          await client.query(
+            'UPDATE users SET password = $1 WHERE username = $2',
+            [currentAdminPassword, 'admin']
+          );
+        } catch (pwError) {
+          console.error('Error restoring admin password:', pwError);
+        } finally {
+          if (client) {
+            await client.release();
+            client = null;
+          }
+        }
+      }
 
-      // Herstel admin account
-      updateStatus('Admin account herstellen', 70);
+      // Zorg ervoor dat de settings tabel de nieuwe kolommen heeft
+      updateStatus('Settings tabel controleren', 75);
       client = await pool.connect();
       try {
-        if (currentAdminPassword) {
-          await client.query(`
-            UPDATE users 
-            SET password = $1 
-            WHERE username = 'admin'`,
-            [currentAdminPassword]
-          );
-        } else {
-          const hashedPassword = await bcrypt.hash('admin123', 10);
-          await client.query(`
-            INSERT INTO users (username, password)
-            VALUES ('admin', $1)
-            ON CONFLICT (username) 
-            DO UPDATE SET password = $1`,
-            [hashedPassword]
-          );
+        // Controleer of de nieuwe kolommen bestaan en voeg ze toe indien nodig
+        const columns = ['footer_font', 'footer_size', 'footer_color'];
+        const columnTypes = {
+          'footer_font': 'VARCHAR(255)',
+          'footer_size': 'INTEGER',
+          'footer_color': 'VARCHAR(255)'
+        };
+        
+        for (const column of columns) {
+          const columnExists = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'settings' 
+            AND column_name = $1
+          `, [column]);
+
+          if (columnExists.rows.length === 0) {
+            await client.query(`
+              ALTER TABLE settings 
+              ADD COLUMN ${column} ${columnTypes[column]}
+            `);
+          }
         }
-      } catch (adminError) {
-        console.error('Error restoring admin account:', adminError);
-        const hashedPassword = await bcrypt.hash('admin123', 10);
-        await client.query(`
-          INSERT INTO users (username, password)
-          VALUES ('admin', $1)
-          ON CONFLICT (username) 
-          DO UPDATE SET password = $1`,
-          [hashedPassword]
-        );
+      } catch (settingsError) {
+        console.error('Error checking/updating settings table:', settingsError);
       } finally {
         if (client) {
           await client.release();
           client = null;
         }
       }
+
+      // Kopieer de uploads map
+      updateStatus('Uploads kopiëren', 80);
+      const uploadsDir = path.join(__dirname, '../../public/uploads');
+      const extractedUploadsDir = path.join(extractDir, 'uploads');
       
+      // Verwijder de bestaande uploads map
+      if (fs.existsSync(uploadsDir)) {
+        fs.rmSync(uploadsDir, { recursive: true, force: true });
+      }
+      
+      // Maak een nieuwe uploads map aan
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      
+      // Kopieer de geëxtraheerde uploads als deze bestaan
+      if (fs.existsSync(extractedUploadsDir)) {
+        fs.cpSync(extractedUploadsDir, uploadsDir, { recursive: true });
+      }
+
     } catch (restoreError) {
       console.error('Error restoring database:', restoreError);
       throw new Error('Database restore failed: ' + restoreError.message);
-    }
-
-    // Vervang uploads map
-    updateStatus('Uploads herstellen', 80);
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
-    const backupUploadsDir = path.join(extractDir, 'uploads');
-    
-    if (fs.existsSync(uploadsDir)) {
-      try {
-        const files = fs.readdirSync(uploadsDir);
-        for (const file of files) {
-          const curPath = path.join(uploadsDir, file);
-          try {
-            if (fs.lstatSync(curPath).isDirectory()) {
-              fs.rmSync(curPath, { recursive: true, force: true });
-            } else {
-              fs.unlinkSync(curPath);
-            }
-          } catch (err) {
-            console.error(`Error removing ${curPath}:`, err);
-          }
-        }
-      } catch (readError) {
-        console.error('Error reading uploads directory:', readError);
-      }
-    } else {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    if (fs.existsSync(backupUploadsDir)) {
-      try {
-        const files = fs.readdirSync(backupUploadsDir);
-        for (const file of files) {
-          const srcPath = path.join(backupUploadsDir, file);
-          const destPath = path.join(uploadsDir, file);
-          try {
-            if (fs.lstatSync(srcPath).isDirectory()) {
-              fs.cpSync(srcPath, destPath, { recursive: true, force: true });
-            } else {
-              fs.copyFileSync(srcPath, destPath);
-            }
-          } catch (err) {
-            console.error(`Error copying ${srcPath} to ${destPath}:`, err);
-          }
-        }
-      } catch (readError) {
-        console.error('Error reading backup uploads directory:', readError);
-      }
     }
 
     // Ruim op

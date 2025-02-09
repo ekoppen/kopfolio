@@ -67,8 +67,9 @@
         <Typography 
           variant="body2" 
           sx={{ 
-            color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-            fontSize: '0.9rem',
+            color: settings.footer_color || (theme.palette.mode === 'dark' ? '#fff' : '#000'),
+            fontSize: `${settings.footer_size || 14}px`,
+            fontFamily: settings.footer_font || 'system-ui',
             fontWeight: 500,
             letterSpacing: '0.02em',
             textAlign: settings.logo_position === 'center' ? 'center' : 'right',

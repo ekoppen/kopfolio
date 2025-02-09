@@ -27,10 +27,10 @@ app.use(cors({
 app.use(express.json());
 
 // Serve static files first, before any other middleware
-const baseUploadDir = '/app/public/uploads';
+const baseUploadDir = process.env.NODE_ENV === 'production' ? '/app/public/uploads' : './uploads';
 app.use('/uploads', express.static(baseUploadDir));
-app.use('/patterns', express.static('/app/public/patterns'));
-app.use('/fonts', express.static('/app/public/fonts', {
+app.use('/patterns', express.static(process.env.NODE_ENV === 'production' ? '/app/public/patterns' : './patterns'));
+app.use('/fonts', express.static(process.env.NODE_ENV === 'production' ? '/app/public/fonts' : './fonts', {
   setHeaders: (res, filePath) => {
     console.log('Serving font file:', filePath);
     

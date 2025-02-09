@@ -1,7 +1,6 @@
 import { pool } from '../models/db.js';
 import path from 'path';
 import { promises as fs } from 'fs';
-import fs_sync from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { uploadDirs, getUploadPath } from '../middleware/upload.js';
@@ -45,7 +44,9 @@ export const getSettings = async (req, res) => {
               pattern_opacity, pattern_scale, pattern_color, logo_size,
               subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
               subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
-              menu_font_size, content_font_size
+              menu_font_size, content_font_size, footer_font, footer_size, footer_color,
+              logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
+              logo_shadow_color, logo_shadow_opacity
        FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
@@ -84,7 +85,16 @@ export const updateSettings = async (req, res) => {
       subtitle_shadow_color,
       subtitle_shadow_opacity,
       menu_font_size,
-      content_font_size
+      content_font_size,
+      footer_font,
+      footer_size,
+      footer_color,
+      logo_shadow_enabled,
+      logo_shadow_x,
+      logo_shadow_y,
+      logo_shadow_blur,
+      logo_shadow_color,
+      logo_shadow_opacity
     } = req.body;
 
     // Parse numerieke waarden
@@ -102,7 +112,12 @@ export const updateSettings = async (req, res) => {
       subtitle_shadow_x: subtitle_shadow_x !== undefined ? Number(subtitle_shadow_x) : undefined,
       subtitle_shadow_y: subtitle_shadow_y !== undefined ? Number(subtitle_shadow_y) : undefined,
       subtitle_shadow_blur: subtitle_shadow_blur !== undefined ? Number(subtitle_shadow_blur) : undefined,
-      subtitle_shadow_opacity: subtitle_shadow_opacity !== undefined ? Number(subtitle_shadow_opacity) : undefined
+      subtitle_shadow_opacity: subtitle_shadow_opacity !== undefined ? Number(subtitle_shadow_opacity) : undefined,
+      footer_size: footer_size !== undefined ? Number(footer_size) : undefined,
+      logo_shadow_x: logo_shadow_x !== undefined ? Number(logo_shadow_x) : undefined,
+      logo_shadow_y: logo_shadow_y !== undefined ? Number(logo_shadow_y) : undefined,
+      logo_shadow_blur: logo_shadow_blur !== undefined ? Number(logo_shadow_blur) : undefined,
+      logo_shadow_opacity: logo_shadow_opacity !== undefined ? Number(logo_shadow_opacity) : undefined
     };
 
     let query = `
@@ -132,7 +147,16 @@ export const updateSettings = async (req, res) => {
           subtitle_shadow_color = COALESCE($23, subtitle_shadow_color),
           subtitle_shadow_opacity = COALESCE($24, subtitle_shadow_opacity),
           menu_font_size = COALESCE($25, menu_font_size),
-          content_font_size = COALESCE($26, content_font_size)
+          content_font_size = COALESCE($26, content_font_size),
+          footer_font = COALESCE($27, footer_font),
+          footer_size = COALESCE($28, footer_size),
+          footer_color = COALESCE($29, footer_color),
+          logo_shadow_enabled = COALESCE($30, logo_shadow_enabled),
+          logo_shadow_x = COALESCE($31, logo_shadow_x),
+          logo_shadow_y = COALESCE($32, logo_shadow_y),
+          logo_shadow_blur = COALESCE($33, logo_shadow_blur),
+          logo_shadow_color = COALESCE($34, logo_shadow_color),
+          logo_shadow_opacity = COALESCE($35, logo_shadow_opacity)
     `;
 
     const values = [
@@ -161,7 +185,16 @@ export const updateSettings = async (req, res) => {
       subtitle_shadow_color,
       parsedValues.subtitle_shadow_opacity,
       parsedValues.menu_font_size,
-      parsedValues.content_font_size
+      parsedValues.content_font_size,
+      footer_font,
+      parsedValues.footer_size,
+      footer_color,
+      logo_shadow_enabled,
+      parsedValues.logo_shadow_x,
+      parsedValues.logo_shadow_y,
+      parsedValues.logo_shadow_blur,
+      logo_shadow_color,
+      parsedValues.logo_shadow_opacity
     ];
 
     // Als er een logo is geüpload
@@ -192,7 +225,7 @@ export const updateSettings = async (req, res) => {
         await logoFile.mv(filepath);
         
         // Update de query om het nieuwe logo op te slaan
-        query += ', logo = $27';
+        query += ', logo = $36';
         values.push(filename);
 
         // Verwijder het oude logo bestand als het bestaat
@@ -237,9 +270,9 @@ export const updateLogo = async (req, res) => {
     }
 
     // Valideer bestandstype
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
     if (!allowedTypes.includes(logoFile.mimetype)) {
-      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen JPG, PNG en GIF zijn toegestaan.' });
+      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen JPG, PNG, GIF en SVG zijn toegestaan.' });
     }
 
     // Genereer unieke bestandsnaam
@@ -249,6 +282,9 @@ export const updateLogo = async (req, res) => {
     if (!uploadDir) {
       throw new Error('Upload directory niet gevonden');
     }
+
+    // Zorg dat de upload directory bestaat
+    await fs.mkdir(uploadDir, { recursive: true });
     
     const filepath = path.join(uploadDir, filename);
 
@@ -286,7 +322,9 @@ export const getFonts = async (req, res) => {
     console.log('Zoeken naar fonts in:', fontsDir);
     
     // Maak de fonts directory aan als deze nog niet bestaat
-    if (!fs_sync.existsSync(fontsDir)) {
+    try {
+      await fs.access(fontsDir);
+    } catch {
       await fs.mkdir(fontsDir, { recursive: true });
     }
 
