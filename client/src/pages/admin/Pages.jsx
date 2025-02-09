@@ -100,7 +100,7 @@ const SortablePageCard = ({ page, onEdit, onDelete, level = 0 }) => {
             <Box {...attributes} {...listeners} sx={{ 
               cursor: 'grab',
               color: 'text.secondary',
-              '&:hover': { color: 'primary.main' }
+              '&:active': { cursor: 'grabbing' }
             }}>
               <DragIcon />
             </Box>
@@ -138,6 +138,18 @@ const SortablePageCard = ({ page, onEdit, onDelete, level = 0 }) => {
                     }
                   }}
                 />
+                {page.is_fullscreen_slideshow && (
+                  <Chip 
+                    label="Fullscreen slideshow" 
+                    size="small" 
+                    color="secondary" 
+                    variant="outlined"
+                    sx={{ 
+                      borderColor: theme.palette.mode === 'dark' ? 'secondary.dark' : 'secondary.light',
+                      color: theme.palette.mode === 'dark' ? 'secondary.light' : 'secondary.dark'
+                    }}
+                  />
+                )}
               </Box>
             </Box>
           </Box>

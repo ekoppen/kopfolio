@@ -63,6 +63,12 @@ const Page = () => {
         const response = await api.get(`/pages/${slug}`);
         setPage(response.data);
 
+        // Als het een fullscreen slideshow is, laad dan de foto's
+        if (response.data.is_fullscreen_slideshow && response.data.settings?.slideshow?.albumId) {
+          const photosResponse = await api.get(`/photos/album/${response.data.settings.slideshow.albumId}`);
+          setPhotos(photosResponse.data);
+        }
+
         // Preload afbeeldingen uit de content
         const imageUrls = response.data.content
           .filter(block => block.type === 'image' || block.type === 'slideshow')
@@ -188,7 +194,87 @@ const Page = () => {
                 : 'none',
             backdropFilter: 'blur(10px)'
           }}>
-            <PageContent content={page.content} isFullscreenSlideshow={true} />
+            <Swiper
+              modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay]}
+              effect={page.settings?.transition || 'fade'}
+              speed={page.settings?.speed || 1000}
+              slidesPerView={1}
+              loop={true}
+              autoplay={{
+                delay: page.settings?.interval || 5000,
+                disableOnInteraction: false,
+                enabled: page.settings?.autoPlay !== false
+              }}
+              pagination={false}
+              navigation={false}
+              onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
+            >
+              {photos.map((photo, index) => (
+                <SwiperSlide key={index}>
+                  <img
+                    src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
+                    alt={photo.title || 'Geen titel'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+            {/* Foto informatie in fullscreen slideshow */}
+            {page.settings?.slideshow?.show_info && photos[activeSlide] && 
+             (photos[activeSlide].title || photos[activeSlide].description) && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: 32,
+                  bottom: 32,
+                  width: 280,
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? 'rgba(0, 0, 0, 0.85)' 
+                    : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid',
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 8px 32px rgba(0,0,0,0.5)'
+                    : '0 8px 32px rgba(0,0,0,0.25)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  zIndex: 3
+                }}
+              >
+                {photos[activeSlide].title && (
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      fontSize: '1.1rem',
+                      fontWeight: 500,
+                      mb: 1,
+                      color: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.95)' 
+                        : 'rgba(0, 0, 0, 0.95)'
+                    }}
+                  >
+                    {photos[activeSlide].title}
+                  </Typography>
+                )}
+                {photos[activeSlide].description && (
+                  <Typography 
+                    variant="body2" 
+                    sx={{
+                      fontSize: '0.9rem',
+                      lineHeight: 1.5,
+                      color: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.7)' 
+                        : 'rgba(0, 0, 0, 0.7)'
+                    }}
+                  >
+                    {photos[activeSlide].description}
+                  </Typography>
+                )}
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>
@@ -221,7 +307,7 @@ const Page = () => {
           position: 'relative',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           borderRadius: barPosition === 'full-left' ? '16px' : 0,
-          overflow: 'auto',
+          overflow: 'hidden',
           bgcolor: theme.palette.mode === 'dark' 
             ? 'rgba(35, 35, 45, 0.98)'
             : 'rgba(255, 255, 255, 0.95)',
@@ -232,15 +318,70 @@ const Page = () => {
             : theme.palette.mode === 'dark'
               ? '0 0 0 1px rgba(255, 255, 255, 0.1)'
               : 'none',
-          backdropFilter: 'blur(10px)',
-          py: 8,
-          px: {
-            xs: 2,
-            sm: 4,
-            md: 6
-          }
+          backdropFilter: 'blur(10px)'
         }}>
-          <PageContent content={page.content} />
+          <PageContent 
+            content={page.content} 
+            isFullscreenSlideshow={page.is_fullscreen_slideshow}
+            onSlideChange={setActiveSlide}
+            photos={photos}
+          />
+          {/* Foto informatie in fullscreen slideshow */}
+          {page.settings?.slideshow?.show_info && photos[activeSlide] && 
+           (photos[activeSlide].title || photos[activeSlide].description) && (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: 32,
+                bottom: 32,
+                width: 280,
+                p: 2.5,
+                borderRadius: 2,
+                bgcolor: theme.palette.mode === 'dark' 
+                  ? 'rgba(0, 0, 0, 0.85)' 
+                  : 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 32px rgba(0,0,0,0.5)'
+                  : '0 8px 32px rgba(0,0,0,0.25)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                zIndex: 3
+              }}
+            >
+              {photos[activeSlide].title && (
+                <Typography 
+                  variant="h6" 
+                  gutterBottom 
+                  sx={{ 
+                    fontSize: '1.1rem',
+                    fontWeight: 500,
+                    mb: 1,
+                    color: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.95)' 
+                      : 'rgba(0, 0, 0, 0.95)'
+                  }}
+                >
+                  {photos[activeSlide].title}
+                </Typography>
+              )}
+              {photos[activeSlide].description && (
+                <Typography 
+                  variant="body2" 
+                  sx={{
+                    fontSize: '0.9rem',
+                    lineHeight: 1.5,
+                    color: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.7)' 
+                      : 'rgba(0, 0, 0, 0.7)'
+                  }}
+                >
+                  {photos[activeSlide].description}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
       </Box>
     </Box>

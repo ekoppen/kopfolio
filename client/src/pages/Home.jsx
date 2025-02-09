@@ -195,7 +195,8 @@ const Home = () => {
             </Swiper>
 
             {/* Foto informatie in full-left weergave */}
-            {barPosition === 'full-left' && photos[activeSlide] && (
+            {barPosition === 'full-left' && photos[activeSlide] && 
+             (photos[activeSlide].title || photos[activeSlide].description) && (
               <Box
                 sx={{
                   position: 'absolute',
@@ -217,20 +218,22 @@ const Home = () => {
                   zIndex: 3
                 }}
               >
-                <Typography 
-                  variant="h6" 
-                  gutterBottom 
-                  sx={{ 
-                    fontSize: '1.1rem',
-                    fontWeight: 500,
-                    mb: 1,
-                    color: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.95)' 
-                      : 'rgba(0, 0, 0, 0.95)'
-                  }}
-                >
-                  {photos[activeSlide].title || 'Geen titel'}
-                </Typography>
+                {photos[activeSlide].title && (
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      fontSize: '1.1rem',
+                      fontWeight: 500,
+                      mb: 1,
+                      color: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.95)' 
+                        : 'rgba(0, 0, 0, 0.95)'
+                    }}
+                  >
+                    {photos[activeSlide].title}
+                  </Typography>
+                )}
                 {photos[activeSlide].description && (
                   <Typography 
                     variant="body2" 

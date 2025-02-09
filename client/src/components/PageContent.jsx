@@ -49,7 +49,12 @@ const getAspectRatioPadding = (ratio) => {
   }
 };
 
-const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
+const PageContent = ({ 
+  content = [], 
+  isFullscreenSlideshow = false,
+  onSlideChange,
+  photos: externalPhotos
+}) => {
   const theme = useTheme();
   const { settings } = useSettings();
   const [activeSlide, setActiveSlide] = useState(0);
@@ -91,26 +96,24 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
   // Preload images voor betere performance
   useEffect(() => {
     if (isFullscreenSlideshow) {
-      const slideshowBlock = content.find(block => block.type === 'slideshow');
-      if (slideshowBlock) {
-        const imageUrls = slideshowBlock.content.map(photo =>
-          `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`
-        );
-        imageUrls.forEach(url => {
-          const img = new Image();
-          img.onload = () => {
-            setLoadedImages(prev => new Set([...prev, url]));
-          };
-          img.src = url;
-        });
-      }
+      const photos = externalPhotos || content.find(block => block.type === 'slideshow')?.content || [];
+      const imageUrls = photos.map(photo =>
+        `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`
+      );
+      imageUrls.forEach(url => {
+        const img = new Image();
+        img.onload = () => {
+          setLoadedImages(prev => new Set([...prev, url]));
+        };
+        img.src = url;
+      });
     }
-  }, [content, isFullscreenSlideshow]);
+  }, [content, isFullscreenSlideshow, externalPhotos]);
 
   // Als het een fullscreen slideshow is, toon dan de slideshow
   if (isFullscreenSlideshow) {
-    const slideshowBlock = content.find(block => block.type === 'slideshow');
-    if (!slideshowBlock) return null;
+    const photos = externalPhotos || content.find(block => block.type === 'slideshow')?.content || [];
+    const settings = content.find(block => block.type === 'slideshow')?.settings || {};
 
     return (
       <Box
@@ -120,8 +123,8 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          width: '100vw',
-          height: '100vh',
+          width: '100%',
+          height: '100%',
           bgcolor: 'black',
           zIndex: 1,
           display: 'flex',
@@ -131,24 +134,29 @@ const PageContent = ({ content = [], isFullscreenSlideshow = false }) => {
       >
         <Swiper
           modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay]}
-          effect={slideshowBlock.settings?.transition || 'fade'}
-          speed={slideshowBlock.settings?.speed || 1000}
+          effect={settings?.transition || 'fade'}
+          speed={settings?.speed || 1000}
           slidesPerView={1}
           loop={true}
           autoplay={{
-            delay: slideshowBlock.settings?.interval || 5000,
+            delay: settings?.interval || 5000,
             disableOnInteraction: false,
-            enabled: slideshowBlock.settings?.autoPlay !== false
+            enabled: settings?.autoPlay !== false
           }}
           pagination={false}
           navigation={false}
-          onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
+          onSlideChange={(swiper) => {
+            setActiveSlide(swiper.realIndex);
+            if (onSlideChange) {
+              onSlideChange(swiper.realIndex);
+            }
+          }}
           style={{
             width: '100%',
             height: '100%'
           }}
         >
-          {slideshowBlock.content.map((photo) => {
+          {photos.map((photo) => {
             const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
             return (
               <SwiperSlide 

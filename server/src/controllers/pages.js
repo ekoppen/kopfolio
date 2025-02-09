@@ -2,7 +2,7 @@ import { pool } from '../models/db.js';
 import slugify from 'slugify';
 
 // Maak nieuwe pagina
-export const createPage = async (req, res) => {
+const createPage = async (req, res) => {
   const { 
     title, 
     content, 
@@ -68,7 +68,7 @@ export const createPage = async (req, res) => {
 };
 
 // Haal alle pagina's op
-export const getPages = async (req, res) => {
+const getPages = async (req, res) => {
   try {
     const result = await pool.query(`
       WITH RECURSIVE page_tree AS (
@@ -76,7 +76,7 @@ export const getPages = async (req, res) => {
           id, title, slug, description, content, 
           is_in_menu, menu_order, parent_id, 
           is_parent_only, settings, created_at, updated_at,
-          is_fullscreen_slideshow,
+          is_fullscreen_slideshow, sub_order,
           ARRAY[]::integer[] as path,
           0 as level
         FROM pages
@@ -88,7 +88,7 @@ export const getPages = async (req, res) => {
           p.id, p.title, p.slug, p.description, p.content, 
           p.is_in_menu, p.menu_order, p.parent_id, 
           p.is_parent_only, p.settings, p.created_at, p.updated_at,
-          p.is_fullscreen_slideshow,
+          p.is_fullscreen_slideshow, p.sub_order,
           pt.path || p.parent_id,
           pt.level + 1
         FROM pages p
@@ -96,6 +96,7 @@ export const getPages = async (req, res) => {
       )
       SELECT 
         pt.*,
+        (SELECT slug FROM pages WHERE id = pt.parent_id) as parent_slug,
         COALESCE(
           jsonb_agg(
             json_build_object(
@@ -107,11 +108,13 @@ export const getPages = async (req, res) => {
               'is_in_menu', c.is_in_menu,
               'menu_order', c.menu_order,
               'parent_id', c.parent_id,
+              'parent_slug', (SELECT slug FROM pages WHERE id = c.parent_id),
               'is_parent_only', c.is_parent_only,
               'settings', c.settings,
               'created_at', c.created_at,
               'updated_at', c.updated_at,
-              'is_fullscreen_slideshow', c.is_fullscreen_slideshow
+              'is_fullscreen_slideshow', c.is_fullscreen_slideshow,
+              'sub_order', c.sub_order
             )
           ) FILTER (WHERE c.id IS NOT NULL),
           '[]'::jsonb
@@ -121,8 +124,12 @@ export const getPages = async (req, res) => {
       GROUP BY pt.id, pt.title, pt.slug, pt.description, pt.content, 
                pt.is_in_menu, pt.menu_order, pt.parent_id, pt.is_parent_only,
                pt.settings, pt.created_at, pt.updated_at, pt.path, pt.level,
-               pt.is_fullscreen_slideshow
-      ORDER BY pt.path, pt.menu_order;
+               pt.is_fullscreen_slideshow, pt.sub_order
+      ORDER BY pt.path, 
+               CASE 
+                 WHEN pt.parent_id IS NULL THEN pt.menu_order 
+                 ELSE pt.sub_order 
+               END;
     `);
 
     res.json(result.rows.map(page => ({
@@ -136,16 +143,16 @@ export const getPages = async (req, res) => {
 };
 
 // Haal specifieke pagina op
-export const getPage = async (req, res) => {
+const getPage = async (req, res) => {
   const { slug, id } = req.params;
 
   try {
     let query = `
       SELECT 
         id, title, slug, content, description, 
-        is_in_menu, menu_order, parent_id, 
+        is_in_menu, menu_order, parent_id, sub_order,
         is_parent_only, settings, created_at, updated_at,
-        is_fullscreen_slideshow
+        is_fullscreen_slideshow, menu_font_size
       FROM pages WHERE `;
     let params = [];
 
@@ -181,7 +188,7 @@ export const getPage = async (req, res) => {
 };
 
 // Update menu order
-export const updateMenuOrder = async (req, res) => {
+const updateMenuOrder = async (req, res) => {
   const { pages } = req.body;
   const client = await pool.connect();
 
@@ -214,7 +221,7 @@ export const updateMenuOrder = async (req, res) => {
 };
 
 // Update een pagina
-export const updatePage = async (req, res) => {
+const updatePage = async (req, res) => {
   const { id } = req.params;
   const { 
     title, content, slug, is_in_menu, menu_order, 
@@ -230,6 +237,19 @@ export const updatePage = async (req, res) => {
   }
 
   try {
+    // Haal eerst de bestaande pagina op
+    const existingPage = await pool.query(
+      'SELECT sub_order, parent_id FROM pages WHERE id = $1',
+      [id]
+    );
+
+    if (existingPage.rows.length === 0) {
+      return res.status(404).json({ message: 'Pagina niet gevonden' });
+    }
+
+    const currentSubOrder = existingPage.rows[0].sub_order;
+    const currentParentId = existingPage.rows[0].parent_id;
+
     // Als de titel is gewijzigd, update de slug
     let newSlug = slug;
     if (title) {
@@ -249,30 +269,6 @@ export const updatePage = async (req, res) => {
         counter++;
       }
       newSlug = finalSlug;
-    }
-
-    // Check voor cyclische referenties als er een parent_id is
-    if (parent_id) {
-      const cycleCheck = await pool.query(`
-        WITH RECURSIVE page_tree AS (
-          SELECT id, parent_id, 1 as level
-          FROM pages
-          WHERE id = $1
-          
-          UNION
-          
-          SELECT p.id, p.parent_id, pt.level + 1
-          FROM pages p
-          JOIN page_tree pt ON p.id = pt.parent_id
-        )
-        SELECT COUNT(*) FROM page_tree WHERE id = $2
-      `, [parent_id, id]);
-
-      if (cycleCheck.rows[0].count > 0) {
-        return res.status(400).json({ 
-          message: 'Deze parent-child relatie zou een cyclische referentie creëren' 
-        });
-      }
     }
 
     // Bouw de update query dynamisch op
@@ -304,11 +300,10 @@ export const updatePage = async (req, res) => {
       paramCount++;
     }
 
-    if (menu_order !== undefined) {
-      updateFields.push(`menu_order = $${paramCount}`);
-      values.push(menu_order);
-      paramCount++;
-    }
+    // Behoud de bestaande sub_order
+    updateFields.push(`sub_order = $${paramCount}`);
+    values.push(currentSubOrder);
+    paramCount++;
 
     if (settings !== undefined) {
       updateFields.push(`settings = $${paramCount}::jsonb`);
@@ -369,7 +364,7 @@ export const updatePage = async (req, res) => {
 };
 
 // Verwijder pagina
-export const deletePage = async (req, res) => {
+const deletePage = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -389,45 +384,90 @@ export const deletePage = async (req, res) => {
 };
 
 // Update slideshow settings
-export const updateSlideShowSettings = async (req, res) => {
+const updateSlideShowSettings = async (req, res) => {
   const { id } = req.params;
-  const { interval, transition, autoPlay } = req.body;
+  const { 
+    transition = 'fade',
+    speed = 1000,
+    interval = 5000,
+    autoPlay = true,
+    show_info = false
+  } = req.body;
 
   try {
-    // Controleer of het de home pagina is
-    const page = await pool.query(
-      'SELECT * FROM pages WHERE id = $1',
-      [id]
-    );
-
-    if (!page.rows[0] || page.rows[0].slug !== 'home') {
-      return res.status(400).json({
-        success: false,
-        message: 'Slideshow instellingen kunnen alleen voor de home pagina worden aangepast'
-      });
-    }
-
-    // Update de instellingen
-    await pool.query(
+    const result = await pool.query(
       `UPDATE pages 
        SET settings = jsonb_set(
          COALESCE(settings, '{}'::jsonb),
          '{slideshow}',
          $1::jsonb
        )
-       WHERE id = $2`,
-      [JSON.stringify({ interval, transition, autoPlay }), id]
+       WHERE id = $2
+       RETURNING *`,
+      [JSON.stringify({ transition, speed, interval, autoPlay, show_info }), id]
     );
 
-    res.json({
-      success: true,
-      message: 'Slideshow instellingen bijgewerkt'
-    });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Pagina niet gevonden' });
+    }
+
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error updating slideshow settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Fout bij bijwerken slideshow instellingen'
+    console.error('Fout bij updaten slideshow instellingen:', error);
+    res.status(500).json({ message: 'Fout bij updaten slideshow instellingen' });
+  }
+};
+
+/**
+ * Update de sub_order van pagina's
+ * @param {Object} req Request object
+ * @param {Object} res Response object
+ */
+const updateSubOrder = async (req, res) => {
+  const { pages } = req.body;
+  
+  if (!Array.isArray(pages)) {
+    return res.status(400).json({ message: 'Pages moet een array zijn' });
+  }
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Update de sub_order voor elke pagina
+      for (let i = 0; i < pages.length; i++) {
+        const { id, parent_id } = pages[i];
+        await client.query(
+          'UPDATE pages SET sub_order = $1 WHERE id = $2',
+          [i, id]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ message: 'Sub_order succesvol bijgewerkt' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error updating sub_order:', error);
+    res.status(500).json({ 
+      message: 'Error updating sub_order', 
+      error: error.message 
     });
   }
+};
+
+export {
+  createPage,
+  getPages,
+  getPage,
+  updateMenuOrder,
+  updatePage,
+  deletePage,
+  updateSlideShowSettings,
+  updateSubOrder
 }; 

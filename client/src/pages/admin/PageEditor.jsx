@@ -95,7 +95,8 @@ const PageEditor = () => {
                 transition: response.data.settings?.slideshow?.transition || 'fade',
                 speed: response.data.settings?.slideshow?.speed || 1000,
                 interval: response.data.settings?.slideshow?.interval || 5000,
-                autoPlay: response.data.settings?.slideshow?.autoPlay !== false
+                autoPlay: response.data.settings?.slideshow?.autoPlay !== false,
+                show_info: response.data.settings?.slideshow?.show_info || false
               } : null
             }
           };
@@ -162,7 +163,8 @@ const PageEditor = () => {
             transition: prev.settings?.slideshow?.transition || 'fade',
             speed: prev.settings?.slideshow?.speed || 1000,
             interval: prev.settings?.slideshow?.interval || 5000,
-            autoPlay: prev.settings?.slideshow?.autoPlay !== false
+            autoPlay: prev.settings?.slideshow?.autoPlay !== false,
+            show_info: prev.settings?.slideshow?.show_info || false
           } : undefined
         };
       }
@@ -188,6 +190,7 @@ const PageEditor = () => {
       
       const pageData = {
         ...page,
+        menu_order: page.menu_order || 0, // Behoud de bestaande menu_order
         is_fullscreen_slideshow: isFullscreenSlideshow,
         settings: {
           ...page.settings,
@@ -196,7 +199,8 @@ const PageEditor = () => {
             transition: page.settings?.slideshow?.transition || 'fade',
             speed: page.settings?.slideshow?.speed || 1000,
             interval: page.settings?.slideshow?.interval || 5000,
-            autoPlay: page.settings?.slideshow?.autoPlay !== false
+            autoPlay: page.settings?.slideshow?.autoPlay !== false,
+            show_info: page.settings?.slideshow?.show_info || false
           } : null
         }
       };
@@ -457,7 +461,8 @@ const PageEditor = () => {
                             transition: prev.settings?.slideshow?.transition || 'fade',
                             speed: prev.settings?.slideshow?.speed || 1000,
                             interval: prev.settings?.slideshow?.interval || 5000,
-                            autoPlay: prev.settings?.slideshow?.autoPlay !== false
+                            autoPlay: prev.settings?.slideshow?.autoPlay !== false,
+                            show_info: prev.settings?.slideshow?.show_info || false
                           } : null
                         }
                       };
@@ -482,70 +487,86 @@ const PageEditor = () => {
 
           {page.is_fullscreen_slideshow && (
             <Box sx={{ ml: 4 }}>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Album</InputLabel>
-                <Select
-                  value={page.settings?.slideshow?.albumId || ''}
-                  onChange={(e) => handleSlideshowSettingChange('albumId', e.target.value)}
-                  label="Album"
-                >
-                  <MenuItem value="">
-                    <em>Selecteer een album</em>
-                  </MenuItem>
-                  {albums.map((album) => (
-                    <MenuItem key={album.id} value={album.id}>
-                      {album.title}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Slideshow instellingen
+              </Typography>
 
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Transitie Effect</InputLabel>
-                <Select
-                  value={page.settings?.slideshow?.transition || 'fade'}
-                  onChange={(e) => handleSlideshowSettingChange('transition', e.target.value)}
-                  label="Transitie Effect"
-                >
-                  <MenuItem value="fade">Fade</MenuItem>
-                  <MenuItem value="slide">Horizontaal Scrollen</MenuItem>
-                  <MenuItem value="creative">Creative</MenuItem>
-                  <MenuItem value="cards">Cards</MenuItem>
-                  <MenuItem value="coverflow">Coverflow</MenuItem>
-                </Select>
-              </FormControl>
-
-              <TextField
-                fullWidth
-                type="number"
-                label="Interval (ms)"
-                value={page.settings?.slideshow?.interval || 5000}
-                onChange={(e) => handleSlideshowSettingChange('interval', parseInt(e.target.value))}
-                inputProps={{ min: 1000, step: 500 }}
-                helperText="Tijd tussen elke slide (in milliseconden)"
-                sx={{ mb: 2 }}
-              />
-
-              <TextField
-                fullWidth
-                type="number"
-                label="Effect Duur (ms)"
-                value={page.settings?.slideshow?.speed || 1000}
-                onChange={(e) => handleSlideshowSettingChange('speed', parseInt(e.target.value))}
-                inputProps={{ min: 100, step: 100 }}
-                helperText="Duur van het transitie effect (in milliseconden)"
-                sx={{ mb: 2 }}
-              />
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={Boolean(page.settings?.slideshow?.autoPlay)}
-                    onChange={(e) => handleSlideshowSettingChange('autoPlay', e.target.checked)}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <FormControl>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={page.settings?.slideshow?.show_info || false}
+                        onChange={(e) => handleSlideshowSettingChange('show_info', e.target.checked)}
+                      />
+                    }
+                    label="Toon foto informatie"
                   />
-                }
-                label="Automatisch afspelen"
-              />
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <InputLabel>Overgang effect</InputLabel>
+                  <Select
+                    value={page.settings?.slideshow?.transition || 'fade'}
+                    onChange={(e) => handleSlideshowSettingChange('transition', e.target.value)}
+                    label="Overgang effect"
+                  >
+                    <MenuItem value="fade">Fade</MenuItem>
+                    <MenuItem value="slide">Horizontaal Scrollen</MenuItem>
+                    <MenuItem value="creative">Creative</MenuItem>
+                    <MenuItem value="cards">Cards</MenuItem>
+                    <MenuItem value="coverflow">Coverflow</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <InputLabel>Album</InputLabel>
+                  <Select
+                    value={page.settings?.slideshow?.albumId || ''}
+                    onChange={(e) => handleSlideshowSettingChange('albumId', e.target.value)}
+                    label="Album"
+                  >
+                    <MenuItem value="">
+                      <em>Selecteer een album</em>
+                    </MenuItem>
+                    {albums.map((album) => (
+                      <MenuItem key={album.id} value={album.id}>
+                        {album.title}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Interval (ms)</InputLabel>
+                  <TextField
+                    type="number"
+                    value={page.settings?.slideshow?.interval || 5000}
+                    onChange={(e) => handleSlideshowSettingChange('interval', parseInt(e.target.value))}
+                    inputProps={{ min: 1000, step: 500 }}
+                  />
+                </FormControl>
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Effect Duur (ms)</InputLabel>
+                  <TextField
+                    type="number"
+                    value={page.settings?.slideshow?.speed || 1000}
+                    onChange={(e) => handleSlideshowSettingChange('speed', parseInt(e.target.value))}
+                    inputProps={{ min: 100, step: 100 }}
+                  />
+                </FormControl>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(page.settings?.slideshow?.autoPlay)}
+                      onChange={(e) => handleSlideshowSettingChange('autoPlay', e.target.checked)}
+                    />
+                  }
+                  label="Automatisch afspelen"
+                />
+              </Box>
             </Box>
           )}
         </Paper>

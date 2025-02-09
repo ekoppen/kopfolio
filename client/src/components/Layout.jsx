@@ -272,7 +272,7 @@ const Layout = () => {
       >
         <Button
           component={page.is_parent_only ? 'div' : RouterLink}
-          to={page.is_parent_only ? undefined : `/pagina/${page.slug}`}
+          to={page.is_parent_only ? undefined : page.slug === 'home' ? '/' : `/pagina/${page.slug}`}
           onClick={handleClick}
           endIcon={hasChildren ? (
             isExpanded ? (

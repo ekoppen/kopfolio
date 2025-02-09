@@ -130,6 +130,13 @@ const Settings = () => {
 
   const handleChange = (field, value) => {
     console.log('Veld gewijzigd:', field, 'nieuwe waarde:', value);
+    // Convert string values to numbers for font size fields
+    if (field === 'menu_font_size' || field === 'content_font_size') {
+      value = parseInt(value, 10);
+      // Ensure the value is within bounds
+      if (isNaN(value) || value < 8) value = 8;
+      if (value > 72) value = 72;
+    }
     updateSettingsLocally({ [field]: value });
   };
 
@@ -583,6 +590,38 @@ const Settings = () => {
                 onColorChange={(value) => handleChange('pattern_color', value)}
               />
             </Paper>
+          </Grid>
+
+          <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+            Lettergroottes
+          </Typography>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Menu lettergrootte"
+                value={settings.menu_font_size || 16}
+                onChange={(e) => handleChange('menu_font_size', e.target.value)}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                  inputProps: { min: 8, max: 72 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Content lettergrootte"
+                value={settings.content_font_size || 16}
+                onChange={(e) => handleChange('content_font_size', e.target.value)}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                  inputProps: { min: 8, max: 72 }
+                }}
+              />
+            </Grid>
           </Grid>
 
           <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
