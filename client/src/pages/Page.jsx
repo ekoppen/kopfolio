@@ -33,7 +33,7 @@ import api from '../utils/api';
 
 const Page = () => {
   const theme = useTheme();
-  const { slug } = useParams();
+  const { slug, parentSlug } = useParams();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -57,10 +57,16 @@ const Page = () => {
   };
 
   useEffect(() => {
-    const loadPageContent = async () => {
+    const fetchPage = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/pages/${slug}`);
+        setError('');
+        let response;
+        if (parentSlug) {
+          response = await api.get(`/pages/${parentSlug}/${slug}`);
+        } else {
+          response = await api.get(`/pages/${slug}`);
+        }
         setPage(response.data);
 
         // Als het een fullscreen slideshow is, laad dan de foto's
@@ -91,8 +97,8 @@ const Page = () => {
       }
     };
 
-    loadPageContent();
-  }, [slug]);
+    fetchPage();
+  }, [slug, parentSlug]);
 
   // Luister naar veranderingen in barPosition
   useEffect(() => {

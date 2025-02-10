@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSettings, updateSettings, getPatterns, updateLogo, getFonts } from '../controllers/settings.js';
+import { getSettings, updateSettings, getPatterns, updateLogo, getFonts, uploadFont } from '../controllers/settings.js';
 import { verifyToken } from '../middleware/auth.js';
 import fileUpload from 'express-fileupload';
 import { query } from 'express-validator';
@@ -25,5 +25,8 @@ router.put('/', verifyToken, updateSettings);
 
 // Logo upload route met fileUpload middleware
 router.post('/logo', verifyToken, updateLogo);
+
+// Font upload route
+router.post('/fonts', verifyToken, uploadFont);
 
 export default router;  

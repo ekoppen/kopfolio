@@ -364,4 +364,55 @@ export const getFonts = async (req, res) => {
     console.error('Error getting fonts:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+};
+
+export const uploadFont = async (req, res) => {
+  try {
+    if (!req.files || !req.files.font) {
+      return res.status(400).json({ error: 'Geen font bestand ontvangen' });
+    }
+
+    const fontFile = req.files.font;
+    
+    // Valideer bestandsgrootte (max 5MB voor fonts)
+    if (fontFile.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Font bestand is te groot (max 5MB)' });
+    }
+
+    // Valideer bestandstype
+    const allowedTypes = ['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/x-font-ttf', 'application/x-font-otf', 'application/font-woff', 'application/font-woff2'];
+    if (!allowedTypes.includes(fontFile.mimetype)) {
+      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen TTF, OTF, WOFF en WOFF2 zijn toegestaan.' });
+    }
+
+    // Maak de bestandsnaam veilig
+    const safeName = fontFile.name.toLowerCase().replace(/[^a-z0-9.-]/g, '-');
+    const ext = path.extname(safeName);
+    const baseName = path.basename(safeName, ext);
+    
+    // Genereer unieke bestandsnaam
+    const filename = `${baseName}-${Date.now()}${ext}`;
+    const fontsDir = path.join(__dirname, '../../public/fonts');
+    
+    // Zorg dat de fonts directory bestaat
+    await fs.mkdir(fontsDir, { recursive: true });
+    
+    const filepath = path.join(fontsDir, filename);
+
+    // Verplaats het bestand
+    await fontFile.mv(filepath);
+
+    res.json({ 
+      success: true,
+      font: {
+        name: baseName,
+        value: baseName,
+        file: filename,
+        type: ext.slice(1)
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading font:', error);
+    res.status(500).json({ error: 'Fout bij uploaden font' });
+  }
 }; 

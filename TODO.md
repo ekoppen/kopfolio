@@ -3,5 +3,10 @@
 - [*] backup export en import repareren
 - [] mobiel weergave testen 
 - [*] hiervoor menu kleiner kunnen maken naar alleen iconen en een hamburger menu.
-- [] settings pagina aanpassen/ aanmaken/ weghalen van dashboard
+- [*] settings pagina aanpassen/ aanmaken/ weghalen van dashboard
+- [] image upload voor niet-foto's tbv gewone pagina's
+- [*] font upload mogelijkheid
+- [] mogelijkheid tot contact
+- [] usermanagement
+
 

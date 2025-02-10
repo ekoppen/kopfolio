@@ -144,23 +144,29 @@ const getPages = async (req, res) => {
 
 // Haal specifieke pagina op
 const getPage = async (req, res) => {
-  const { slug, id } = req.params;
+  const { slug, parentSlug, id } = req.params;
 
   try {
     let query = `
       SELECT 
-        id, title, slug, content, description, 
-        is_in_menu, menu_order, parent_id, sub_order,
-        is_parent_only, settings, created_at, updated_at,
-        is_fullscreen_slideshow, menu_font_size
-      FROM pages WHERE `;
+        p.id, p.title, p.slug, p.content, p.description, 
+        p.is_in_menu, p.menu_order, p.parent_id, p.sub_order,
+        p.is_parent_only, p.settings, p.created_at, p.updated_at,
+        p.is_fullscreen_slideshow,
+        parent.slug as parent_slug
+      FROM pages p
+      LEFT JOIN pages parent ON p.parent_id = parent.id
+      WHERE `;
     let params = [];
 
     if (id) {
-      query += 'id = $1';
+      query += 'p.id = $1';
       params = [id];
+    } else if (parentSlug) {
+      query += 'parent.slug = $1 AND p.slug = $2';
+      params = [parentSlug, slug];
     } else {
-      query += 'slug = $1';
+      query += 'p.slug = $1 AND p.parent_id IS NULL';
       params = [slug];
     }
 
@@ -177,8 +183,6 @@ const getPage = async (req, res) => {
       is_parent_only: result.rows[0].is_parent_only || false,
       is_fullscreen_slideshow: result.rows[0].is_fullscreen_slideshow || false
     };
-
-    console.log('Sending page:', page);
 
     res.json(page);
   } catch (error) {

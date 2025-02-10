@@ -45,26 +45,25 @@ const FontPicker = ({
         ];
 
         // Combineer alle fonts
-        const allFonts = [...googleFonts, ...systemFonts, ...serverFonts];
+        const allFonts = [...systemFonts, ...googleFonts, ...serverFonts];
         setFonts(allFonts);
-
       } catch (error) {
-        console.error('Error loading fonts:', error);
-        // Fallback naar system fonts als er iets misgaat
-        setFonts([
-          { name: 'System Default', value: 'system-ui', type: 'system', id: 'system-default' },
-          { name: 'Arial', value: 'Arial', type: 'system', id: 'system-arial' },
-          { name: 'Helvetica', value: 'Helvetica', type: 'system', id: 'system-helvetica' },
-          { name: 'Verdana', value: 'Verdana', type: 'system', id: 'system-verdana' },
-          { name: 'Georgia', value: 'Georgia', type: 'system', id: 'system-georgia' },
-          { name: 'Times New Roman', value: 'Times New Roman', type: 'system', id: 'system-times-new-roman' }
-        ]);
-      } finally {
-        setLoading(false);
+        console.error('Fout bij ophalen fonts:', error);
       }
     };
 
     loadFonts();
+
+    // Luister naar het fontsUpdated event
+    const handleFontsUpdated = () => {
+      loadFonts();
+    };
+
+    window.addEventListener('fontsUpdated', handleFontsUpdated);
+
+    return () => {
+      window.removeEventListener('fontsUpdated', handleFontsUpdated);
+    };
   }, []);
 
   // Laad Google Fonts alleen bij initialisatie

@@ -227,36 +227,26 @@ const Layout = () => {
   const MenuItem = ({ page, level = 0, selectedPage, onPageSelect }) => {
     const theme = useTheme();
     const location = useLocation();
-    const isActive = location.pathname.startsWith(`/pagina/${page.slug}`);
+    const isActive = location.pathname === (page.parent_id ? `/${page.parent_slug}/${page.slug}` : `/${page.slug}`);
     const [isHovered, setIsHovered] = useState(false);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
     const hasChildren = page.children && page.children.length > 0;
-
+    
     // Check of een van de subpagina's actief is
     const hasActiveChild = hasChildren && page.children.some(child => 
-      location.pathname.startsWith(`/pagina/${child.slug}`)
+      location.pathname === `/${page.slug}/${child.slug}`
     );
 
-    // Effect om dropdown open te zetten als een subpagina actief is
-    useEffect(() => {
-      if (hasActiveChild && barPosition === 'full-left') {
-        setDropdownOpen(true);
-      }
-    }, [hasActiveChild, barPosition]);
-
-    const getTextColor = () => {
-      if (isActive || hasActiveChild) {
-        return settings?.accent_color || theme.palette.primary.main;
-      }
-      return theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
-    };
+    // Bepaal of het menu uitgeklapt moet zijn
+    const shouldBeExpanded = barPosition === 'full-left' 
+      ? expandedItems.has(page.id) || isActive || hasActiveChild
+      : isHovered;
 
     const handleClick = (e) => {
-      if (hasChildren && page.is_parent_only) {
+      if (page.is_parent_only || (hasChildren && barPosition === 'full-left')) {
         e.preventDefault();
-        setDropdownOpen(!dropdownOpen);
+        handleToggleSubmenu(page.id);
       }
-      if (!page.is_parent_only) {
+      if (!page.is_parent_only && (!hasChildren || barPosition !== 'full-left')) {
         onPageSelect(page);
       }
     };
@@ -271,90 +261,59 @@ const Layout = () => {
         }}
       >
         <Button
-          component={page.is_parent_only ? 'div' : RouterLink}
-          to={page.is_parent_only ? undefined : page.slug === 'home' ? '/' : `/pagina/${page.slug}`}
+          component={page.is_parent_only ? 'button' : RouterLink}
+          to={page.is_parent_only ? undefined : page.slug === 'home' ? '/' : `/${page.parent_id ? `${page.parent_slug}/${page.slug}` : page.slug}`}
           onClick={handleClick}
-          endIcon={hasChildren ? (
-            isExpanded ? (
-              dropdownOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
-            ) : (
-              <KeyboardArrowDownIcon />
-            )
-          ) : null}
           sx={{
-            color: getTextColor(),
-            textAlign: 'left',
-            justifyContent: 'flex-start',
-            pl: level * 2 + 2,
-            py: 1,
             width: '100%',
+            justifyContent: 'flex-start',
+            pl: 2 + level * 2,
+            pr: 2,
+            py: 1,
+            color: isActive || hasActiveChild 
+              ? (settings?.accent_color || theme.palette.primary.main)
+              : (theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000'),
+            textTransform: 'none',
             fontSize: `${settings?.menu_font_size || 16}px`,
-            fontWeight: isActive ? 500 : 400,
-            bgcolor: isActive 
-              ? theme.palette.mode === 'dark' 
-                ? 'rgba(255, 255, 255, 0.1)' 
-                : 'rgba(0, 0, 0, 0.05)'
-              : 'transparent',
+            fontWeight: isActive || hasActiveChild ? 500 : 400,
             '&:hover': {
-              bgcolor: theme.palette.mode === 'dark' 
-                ? 'rgba(255, 255, 255, 0.15)' 
-                : 'rgba(0, 0, 0, 0.08)',
-              color: settings?.accent_color || theme.palette.primary.main
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
             }
           }}
         >
           {page.title}
+          {hasChildren && (
+            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
+              {shouldBeExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </Box>
+          )}
         </Button>
-        
-        {page.children && (
-          isExpanded ? (
-            // Full-left weergave: uitklapbaar menu
-            <Box
-              sx={{
-                maxHeight: dropdownOpen ? '500px' : '0px',
-                overflow: 'hidden',
-                transition: 'max-height 0.3s ease-in-out',
-                ml: 2
-              }}
-            >
-              {page.children.map((childPage) => (
-                <MenuItem
-                  key={childPage.id}
-                  page={childPage}
-                  level={level + 1}
-                  selectedPage={selectedPage}
-                  onPageSelect={onPageSelect}
-                />
-              ))}
-            </Box>
-          ) : (
-            // Top weergave: dropdown menu
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                minWidth: '200px',
-                bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.paper',
-                boxShadow: theme.shadows[4],
-                borderRadius: 1,
-                opacity: dropdownOpen || isHovered ? 1 : 0,
-                visibility: dropdownOpen || isHovered ? 'visible' : 'hidden',
-                transition: 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
-                zIndex: 1000,
-              }}
-            >
-              {page.children.map((childPage) => (
-                <MenuItem
-                  key={childPage.id}
-                  page={childPage}
-                  level={0}
-                  selectedPage={selectedPage}
-                  onPageSelect={onPageSelect}
-                />
-              ))}
-            </Box>
-          )
+
+        {hasChildren && shouldBeExpanded && (
+          <Box sx={{
+            position: barPosition === 'full-left' ? 'relative' : 'absolute',
+            top: barPosition === 'full-left' ? 'auto' : '100%',
+            left: barPosition === 'full-left' ? 0 : level === 0 ? 0 : '100%',
+            width: '100%',
+            minWidth: 200,
+            zIndex: barPosition === 'full-left' ? 1 : 1900,
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            borderRadius: barPosition === 'full-left' ? 0 : 1,
+            boxShadow: barPosition === 'full-left' ? 'none' : theme.shadows[8],
+            backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
+            border: barPosition === 'full-left' ? 'none' : '1px solid',
+            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+          }}>
+            {page.children.map((childPage) => (
+              <MenuItem
+                key={childPage.id}
+                page={childPage}
+                level={level + 1}
+                selectedPage={selectedPage}
+                onPageSelect={onPageSelect}
+              />
+            ))}
+          </Box>
         )}
       </Box>
     );
