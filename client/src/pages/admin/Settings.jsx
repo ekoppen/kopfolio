@@ -26,7 +26,9 @@ import {
   Palette as PaletteIcon,
   Image as ImageIcon,
   FormatSize as FormatSizeIcon,
-  FontDownload as FontDownloadIcon
+  FontDownload as FontDownloadIcon,
+  People as PeopleIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../utils/api';
@@ -34,6 +36,8 @@ import PatternPicker from '../../components/PatternPicker';
 import FontPicker from '../../components/FontPicker';
 import FontUploader from '../../components/FontUploader';
 import { useSettings } from '../../contexts/SettingsContext';
+import UserManagement from '../../components/UserManagement';
+import EmailSettings from '../../components/EmailSettings';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;
@@ -186,6 +190,8 @@ const Settings = () => {
           <Tab icon={<ImageIcon />} label="Logo" />
           <Tab icon={<PaletteIcon />} label="Achtergrond" />
           <Tab icon={<FormatSizeIcon />} label="Typografie" />
+          <Tab icon={<PeopleIcon />} label="Gebruikers" />
+          <Tab icon={<EmailIcon />} label="E-mail" />
         </Tabs>
       </Box>
 
@@ -323,7 +329,7 @@ const Settings = () => {
                     </Grid>
                   </Grid>
                 )}
-              </Box>
+                  </Box>
             </Grid>
           </Grid>
         </Paper>
@@ -371,13 +377,13 @@ const Settings = () => {
                 id="logo-upload"
               />
               <label htmlFor="logo-upload">
-                <Button
+          <Button
                   variant="outlined"
                   component="span"
                   startIcon={<UploadIcon />}
                 >
                   {settings.logo ? 'Logo Wijzigen' : 'Logo Uploaden'}
-                </Button>
+          </Button>
               </label>
             </Grid>
             <Grid item xs={12}>
@@ -606,6 +612,18 @@ const Settings = () => {
               </Grid>
             </Grid>
           </Grid>
+        </Paper>
+      </TabPanel>
+
+      {/* Gebruikers Beheer */}
+      <TabPanel value={activeTab} index={4}>
+        <UserManagement />
+      </TabPanel>
+
+      {/* E-mail Instellingen */}
+      <TabPanel value={activeTab} index={5}>
+        <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+          <EmailSettings />
         </Paper>
       </TabPanel>
     </Box>

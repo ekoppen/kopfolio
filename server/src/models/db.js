@@ -59,7 +59,8 @@ export async function initDb() {
       '019_add_fullscreen_slideshow.sql',
       '020_add_footer_settings.sql',
       '021_add_logo_shadow.sql',
-      '022_add_sub_order.sql'
+      '022_add_sub_order.sql',
+      '023_add_user_roles.sql'
     ];
 
     for (const migration of migrations) {
@@ -86,8 +87,8 @@ export async function initDb() {
     // Maak een nieuw admin account aan
     const hashedPassword = await bcrypt.hash('admin123', 10);
     await client.query(`
-      INSERT INTO users (username, password)
-      VALUES ($1, $2)
+      INSERT INTO users (username, password, role, email, full_name)
+      VALUES ($1, $2, 'admin', 'admin@example.com', 'Administrator')
     `, ['admin', hashedPassword]);
 
     await client.query('COMMIT');

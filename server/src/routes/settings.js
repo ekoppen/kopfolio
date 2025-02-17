@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSettings, updateSettings, getPatterns, updateLogo, getFonts, uploadFont } from '../controllers/settings.js';
+import { getSettings, updateSettings, getPatterns, updateLogo, getFonts, uploadFont, getEmailSettings, updateEmailSettings, testEmailSettings } from '../controllers/settings.js';
 import { verifyToken } from '../middleware/auth.js';
 import fileUpload from 'express-fileupload';
 import { query } from 'express-validator';
@@ -28,5 +28,10 @@ router.post('/logo', verifyToken, updateLogo);
 
 // Font upload route
 router.post('/fonts', verifyToken, uploadFont);
+
+// E-mail instellingen routes
+router.get('/email', verifyToken, getEmailSettings);
+router.put('/email', verifyToken, updateEmailSettings);
+router.post('/email/test', verifyToken, testEmailSettings);
 
 export default router;  

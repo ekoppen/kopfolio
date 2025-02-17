@@ -99,14 +99,12 @@ const FontPicker = ({
         label={label}
       >
         {fonts.map((font) => {
-          const fontFamily = font.type === 'system' ? font.value : `'${font.value}'`;
-          
           return (
             <MenuItem 
               key={font.id}
               value={font.value}
               sx={{
-                fontFamily: fontFamily,
+                fontFamily: font.type === 'system' ? font.value : `'${font.value}'`,
                 transition: 'opacity 0.3s ease'
               }}
             >
@@ -121,7 +119,7 @@ const FontPicker = ({
                   variant="body1"
                   component="span"
                   sx={{ 
-                    fontFamily: fontFamily,
+                    fontFamily: font.type === 'system' ? font.value : `'${font.value}'`,
                     flex: 1
                   }}
                 >

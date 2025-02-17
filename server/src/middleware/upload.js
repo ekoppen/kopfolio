@@ -7,13 +7,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Base upload directory
-const baseUploadDir = process.env.NODE_ENV === 'production' ? '/app/public/uploads' : './uploads';
+const baseUploadDir = process.env.NODE_ENV === 'production' ? '/app/public' : './public';
 
 // Specifieke directories voor verschillende type uploads
 const uploadDirs = {
-  photos: path.join(baseUploadDir, 'photos'),
-  branding: path.join(baseUploadDir, 'branding'),
-  thumbs: path.join(baseUploadDir, 'thumbs')
+  photos: path.join(baseUploadDir, 'uploads/photos'),
+  branding: path.join(baseUploadDir, 'uploads/branding'),
+  thumbs: path.join(baseUploadDir, 'uploads/thumbs'),
+  images: path.join(baseUploadDir, 'uploads/images'),
+  fonts: path.join(baseUploadDir, 'fonts')  // Directory voor fonts
 };
 
 // Maak alle benodigde directories aan

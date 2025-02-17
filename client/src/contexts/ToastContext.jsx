@@ -34,7 +34,7 @@ export const ToastProvider = ({ children }) => {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{ 
           minWidth: '400px',
-          zIndex: theme.zIndex.modal + 1,
+          zIndex: 9999,
           '& .MuiPaper-root': {
             width: '100%',
             boxShadow: theme.palette.mode === 'dark' 

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Grid
+  Grid,
+  Container
 } from '@mui/material';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -16,6 +17,7 @@ import {
 } from 'swiper/modules';
 import { useSettings } from '../contexts/SettingsContext';
 import { useTheme } from '@mui/material/styles';
+import { ContactForm } from '../pages/Contact';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -405,6 +407,13 @@ const PageContent = ({
               })}
             </Swiper>
           </Box>
+        );
+      
+      case 'contact':
+        return (
+          <Container maxWidth="md" sx={{ py: 4 }}>
+            <ContactForm />
+          </Container>
         );
       
       default:

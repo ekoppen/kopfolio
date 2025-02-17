@@ -4,6 +4,8 @@ import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { uploadDirs, getUploadPath } from '../middleware/upload.js';
+import { sendWelcomeEmail } from '../services/emailService.js';
+import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -366,53 +368,111 @@ export const getFonts = async (req, res) => {
   }
 };
 
+// Upload een font bestand
 export const uploadFont = async (req, res) => {
   try {
     if (!req.files || !req.files.font) {
-      return res.status(400).json({ error: 'Geen font bestand ontvangen' });
+      return res.status(400).json({ error: 'Geen font bestand geüpload' });
     }
 
     const fontFile = req.files.font;
-    
-    // Valideer bestandsgrootte (max 5MB voor fonts)
-    if (fontFile.size > 5 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Font bestand is te groot (max 5MB)' });
-    }
-
-    // Valideer bestandstype
     const allowedTypes = ['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/x-font-ttf', 'application/x-font-otf', 'application/font-woff', 'application/font-woff2'];
+    
     if (!allowedTypes.includes(fontFile.mimetype)) {
-      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen TTF, OTF, WOFF en WOFF2 zijn toegestaan.' });
+      return res.status(400).json({ 
+        error: 'Ongeldig bestandstype. Alleen TTF, OTF, WOFF en WOFF2 zijn toegestaan.' 
+      });
     }
 
-    // Maak de bestandsnaam veilig
-    const safeName = fontFile.name.toLowerCase().replace(/[^a-z0-9.-]/g, '-');
-    const ext = path.extname(safeName);
-    const baseName = path.basename(safeName, ext);
-    
-    // Genereer unieke bestandsnaam
-    const filename = `${baseName}-${Date.now()}${ext}`;
-    const fontsDir = path.join(__dirname, '../../public/fonts');
-    
-    // Zorg dat de fonts directory bestaat
-    await fs.mkdir(fontsDir, { recursive: true });
-    
-    const filepath = path.join(fontsDir, filename);
+    // Genereer een veilige bestandsnaam
+    const filename = fontFile.name.toLowerCase().replace(/[^a-z0-9.-]/g, '-');
+    const uploadPath = getUploadPath('fonts', filename);
+
+    if (!uploadPath) {
+      return res.status(500).json({ error: 'Fout bij bepalen upload pad' });
+    }
 
     // Verplaats het bestand
-    await fontFile.mv(filepath);
+    await fontFile.mv(uploadPath);
 
-    res.json({ 
+    // Bepaal het font type op basis van de extensie
+    const ext = path.extname(filename).slice(1);
+    const fontName = path.basename(filename, path.extname(filename))
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+    res.json({
       success: true,
       font: {
-        name: baseName,
-        value: baseName,
+        name: fontName,
+        value: fontName,
         file: filename,
-        type: ext.slice(1)
+        type: ext
       }
     });
   } catch (error) {
-    console.error('Error uploading font:', error);
+    console.error('Fout bij uploaden font:', error);
     res.status(500).json({ error: 'Fout bij uploaden font' });
+  }
+};
+
+// Haal e-mail instellingen op
+export const getEmailSettings = async (req, res) => {
+  try {
+    res.json({
+      email_user: process.env.EMAIL_USER || '',
+      email_pass: process.env.EMAIL_PASS || '',
+      contact_email: process.env.CONTACT_EMAIL || ''
+    });
+  } catch (error) {
+    console.error('Fout bij ophalen e-mail instellingen:', error);
+    res.status(500).json({ error: 'Fout bij ophalen e-mail instellingen' });
+  }
+};
+
+// Update e-mail instellingen
+export const updateEmailSettings = async (req, res) => {
+  try {
+    const { email_user, email_pass, contact_email } = req.body;
+
+    // Update .env bestand
+    const envPath = '.env';
+    const envContent = await fs.readFile(envPath, 'utf-8');
+    
+    const updatedContent = envContent
+      .replace(/EMAIL_USER=.*/, `EMAIL_USER=${email_user}`)
+      .replace(/EMAIL_PASS=.*/, `EMAIL_PASS=${email_pass}`)
+      .replace(/CONTACT_EMAIL=.*/, `CONTACT_EMAIL=${contact_email}`);
+
+    await fs.writeFile(envPath, updatedContent);
+
+    // Update process.env
+    process.env.EMAIL_USER = email_user;
+    process.env.EMAIL_PASS = email_pass;
+    process.env.CONTACT_EMAIL = contact_email;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Fout bij updaten e-mail instellingen:', error);
+    res.status(500).json({ error: 'Fout bij updaten e-mail instellingen' });
+  }
+};
+
+// Test e-mail instellingen
+export const testEmailSettings = async (req, res) => {
+  try {
+    // Stuur een test e-mail
+    await sendWelcomeEmail({
+      email: process.env.CONTACT_EMAIL,
+      full_name: 'Test Gebruiker',
+      username: 'test',
+      role: 'admin'
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Fout bij testen e-mail instellingen:', error);
+    res.status(500).json({ error: 'Fout bij testen e-mail instellingen' });
   }
 }; 

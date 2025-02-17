@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Album from './pages/Album';
 import Page from './pages/Page';
+import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -23,6 +24,7 @@ const AppRoutes = () => {
         <Route path="album/:id" element={<Album />} />
         <Route path=":parentSlug/:slug" element={<Page />} />
         <Route path=":slug" element={<Page />} />
+        <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />
       </Route>
 

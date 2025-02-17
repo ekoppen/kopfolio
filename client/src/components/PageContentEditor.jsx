@@ -29,7 +29,8 @@ import {
   Switch,
   Tabs,
   Tab,
-  Slider
+  Slider,
+  Alert
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -45,13 +46,15 @@ import {
   Settings as SettingsIcon,
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
-  Height as SpacerIcon
+  Height as SpacerIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import api from '../utils/api';
 import { useTheme } from '@mui/material/styles';
+import { v4 as uuidv4 } from 'uuid';
 
 // Rich text editor configuratie
 const modules = {
@@ -394,6 +397,21 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
           </Box>
         </Box>
       );
+    case 'contact':
+      return (
+        <Paper sx={{ p: 3, mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="subtitle1">Contact Formulier</Typography>
+            <IconButton onClick={onDelete} size="small">
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Dit blok toont een contact formulier waarmee bezoekers je kunnen bereiken.
+            Zorg ervoor dat je de e-mail instellingen hebt geconfigureerd in het admin dashboard.
+          </Alert>
+        </Paper>
+      );
     default:
       return null;
   }
@@ -606,6 +624,21 @@ const BlockEditor = ({ block, onChange, onDelete }) => {
             )}
           </Box>
         );
+      case 'contact':
+        return (
+          <Paper sx={{ p: 3, mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="subtitle1">Contact Formulier</Typography>
+              <IconButton onClick={onDelete} size="small">
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Dit blok toont een contact formulier waarmee bezoekers je kunnen bereiken.
+              Zorg ervoor dat je de e-mail instellingen hebt geconfigureerd in het admin dashboard.
+            </Alert>
+          </Paper>
+        );
       default:
         return null;
     }
@@ -664,12 +697,19 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
 
   const addBlock = (type) => {
     const newBlock = {
-      id: Date.now(),
-      type,
-      content: type === 'text' ? '' : type === 'image' ? null : [],
-      settings: type === 'spacer' ? { height: 32 } : {}
+      id: uuidv4(),
+      type
     };
     
+    switch (type) {
+      case 'contact':
+        // Geen extra configuratie nodig
+        break;
+      default:
+        newBlock.content = type === 'text' ? '' : type === 'image' ? null : [];
+        newBlock.settings = type === 'spacer' ? { height: 32 } : {};
+    }
+
     const newContent = [...content, newBlock];
     setContent(newContent);
     onChange(newContent);
@@ -915,6 +955,15 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
           >
             Ruimte
                     </Button>
+          <Button
+            variant="outlined"
+            startIcon={<EmailIcon />}
+            onClick={() => {
+              addBlock('contact');
+            }}
+          >
+            Contact Formulier
+          </Button>
                   </Box>
       </Box>
 

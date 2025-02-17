@@ -1,23 +1,34 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Container,
+  Box,
   Paper,
   TextField,
   Button,
   Typography,
-  Box,
-  Alert
+  Container,
+  InputAdornment,
+  IconButton,
+  useTheme
 } from '@mui/material';
-import axios from 'axios';
+import {
+  Visibility,
+  VisibilityOff,
+  Login as LoginIcon
+} from '@mui/icons-material';
+import { useToast } from '../contexts/ToastContext';
+import api from '../utils/api';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const theme = useTheme();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -28,65 +39,120 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', formData);
+      const response = await api.post('/auth/login', formData);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      showToast('Succesvol ingelogd', 'success');
       navigate('/admin');
     } catch (error) {
-      setError(error.response?.data?.message || 'Er is een fout opgetreden');
+      console.error('Login fout:', error);
+      showToast(error.userMessage || 'Fout bij inloggen', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
-            Inloggen
-          </Typography>
+    <Box
+      sx={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -60%)',
+        width: '100%'
+      }}
+    >
+      <Container maxWidth="sm">
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+            boxShadow: theme.palette.mode === 'dark' 
+              ? '0 8px 32px rgba(0,0,0,0.5)' 
+              : '0 8px 32px rgba(0,0,0,0.1)',
+            bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.paper',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3
+            }}
+          >
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 500 }}>
+                Inloggen
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Log in om je portfolio te beheren
+              </Typography>
+            </Box>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
               label="Gebruikersnaam"
               name="username"
               value={formData.username}
               onChange={handleChange}
-              margin="normal"
+              variant="outlined"
               required
+              autoFocus
+              sx={{ mb: 2 }}
             />
+
             <TextField
               fullWidth
               label="Wachtwoord"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={handleChange}
-              margin="normal"
+              variant="outlined"
               required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
             />
+
             <Button
               type="submit"
-              fullWidth
               variant="contained"
               size="large"
-              sx={{ mt: 3 }}
+              disabled={loading}
+              startIcon={<LoginIcon />}
+              sx={{
+                mt: 2,
+                height: 48,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1rem'
+              }}
             >
-              Inloggen
+              {loading ? 'Bezig met inloggen...' : 'Inloggen'}
             </Button>
-          </form>
+          </Box>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

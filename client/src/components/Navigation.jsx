@@ -1,10 +1,11 @@
-import React from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { Button, Box, IconButton, Stack } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { Button, Box, IconButton, Stack, Tooltip, Avatar } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { 
   Home as HomeIcon, 
-  Login as LoginIcon, 
+  Login as LoginIcon,
+  Logout as LogoutIcon, 
   Dashboard as DashboardIcon, 
   DarkMode as DarkModeIcon, 
   LightMode as LightModeIcon,
@@ -16,15 +17,47 @@ import { useSettings } from '../contexts/SettingsContext';
 
 const Navigation = ({ isExpanded, onToggleExpand }) => {
   const isLoggedIn = !!localStorage.getItem('token');
+  const [user, setUser] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const theme = useTheme();
   const themeContext = React.useContext(ThemeContext);
   const { settings } = useSettings();
   const isHome = location.pathname === '/';
 
+  useEffect(() => {
+    // Haal gebruikersgegevens op uit localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        setUser(userData);
+      } catch (e) {
+        console.error('Fout bij parsen gebruikersgegevens:', e);
+      }
+    }
+  }, []);
+
+  // Functie om initialen te genereren
+  const getInitials = (fullName) => {
+    if (!fullName) return '?';
+    return fullName
+      .split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   // Bepaal de tekstkleur op basis van de achtergrond in full-left modus
   const getTextColor = () => {
     return theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
   const buttonStyle = {
@@ -51,6 +84,7 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
     <Stack 
       direction="row" 
       spacing={1}
+      alignItems="center"
       sx={{
         '& .MuiIconButton-root': {
           transition: 'all 0.2s ease-in-out',
@@ -75,30 +109,64 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
       </IconButton>
 
       {isLoggedIn ? (
-        <IconButton
-          component={RouterLink}
-          to="/admin"
-          sx={getActiveStyle('/admin')}
-        >
-          <DashboardIcon />
-        </IconButton>
+        <>
+          <Tooltip title="Dashboard">
+            <IconButton
+              component={RouterLink}
+              to="/admin"
+              sx={getActiveStyle('/admin')}
+            >
+              <DashboardIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Uitloggen">
+            <IconButton
+              onClick={handleLogout}
+              sx={buttonStyle}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
+          {user && (
+            <Tooltip title={user.full_name || user.username}>
+              <Avatar 
+                sx={{ 
+                  width: 36, 
+                  height: 36,
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  bgcolor: theme.palette.primary.main,
+                  color: '#fff',
+                  border: '2px solid',
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+                }}
+              >
+                {getInitials(user.full_name || user.username)}
+              </Avatar>
+            </Tooltip>
+          )}
+        </>
       ) : (
-        <IconButton
-          component={RouterLink}
-          to="/login"
-          sx={getActiveStyle('/login')}
-        >
-          <LoginIcon />
-        </IconButton>
+        <Tooltip title="Inloggen">
+          <IconButton
+            component={RouterLink}
+            to="/login"
+            sx={getActiveStyle('/login')}
+          >
+            <LoginIcon />
+          </IconButton>
+        </Tooltip>
       )}
 
-      <IconButton
-        onClick={themeContext.toggleDarkMode}
-        size="medium"
-        sx={buttonStyle}
-      >
-        {themeContext.isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
-      </IconButton>
+      <Tooltip title={themeContext.isDarkMode ? 'Lichte modus' : 'Donkere modus'}>
+        <IconButton
+          onClick={themeContext.toggleDarkMode}
+          size="medium"
+          sx={buttonStyle}
+        >
+          {themeContext.isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
+      </Tooltip>
     </Stack>
   );
 };
