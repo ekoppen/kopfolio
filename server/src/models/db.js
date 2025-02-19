@@ -41,7 +41,9 @@ export async function initDb() {
       '001_create_pages.sql',
       '002_create_settings.sql',
       '003_create_default_settings.sql',
+      '003_create_user_role.sql',
       '004_create_users.sql',
+      '023_add_user_roles.sql',
       '005_create_albums.sql',
       '006_create_photos.sql',
       '007_create_photos_albums.sql',
@@ -50,6 +52,7 @@ export async function initDb() {
       '010_add_menu_fields.sql',
       '011_add_sidebar_pattern.sql',
       '012_add_pattern_opacity.sql',
+      '013_add_pattern_color.sql',
       '013_add_pattern_scale.sql',
       '014_add_logo_size.sql',
       '015_add_subtitle_shadow.sql',
@@ -59,8 +62,7 @@ export async function initDb() {
       '019_add_fullscreen_slideshow.sql',
       '020_add_footer_settings.sql',
       '021_add_logo_shadow.sql',
-      '022_add_sub_order.sql',
-      '023_add_user_roles.sql'
+      '022_add_sub_order.sql'
     ];
 
     for (const migration of migrations) {

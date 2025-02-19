@@ -24,7 +24,9 @@ services:
     volumes:
       - ./server:/app
       - /app/node_modules
-      - ./uploads:/app/public/uploads
+      - ./content/uploads:/app/public/uploads:delegated
+      - ./content/patterns:/app/public/patterns:delegated
+      - ./content/fonts:/app/public/fonts:delegated
     environment:
       - DB_HOST=db
       - DB_USER=kopfolio
