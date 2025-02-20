@@ -54,7 +54,11 @@ const UserManagement = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Fout bij ophalen gebruikers:', error);
-      showToast(error.userMessage || 'Fout bij ophalen gebruikers', 'error');
+      if (error.response?.status === 404) {
+        showToast('Je bent niet ingelogd als administrator. Log uit en log opnieuw in als administrator om gebruikers te beheren.', 'error');
+      } else {
+        showToast(error.userMessage || 'Fout bij ophalen gebruikers', 'error');
+      }
     }
   };
 

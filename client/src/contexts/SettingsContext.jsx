@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Box, CircularProgress } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 const SettingsContext = createContext();
 
@@ -16,6 +17,7 @@ export const SettingsProvider = ({ children }) => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const theme = useTheme();
 
   // Laad eerst de fonts
   useEffect(() => {
@@ -113,7 +115,7 @@ export const SettingsProvider = ({ children }) => {
       try {
         const response = await api.get('/settings');
         const savedPosition = localStorage.getItem('appBarPosition');
-        console.log('Loaded settings from server:', response.data);
+        console.log('Raw settings from server:', response.data);
         
         // Parse en valideer alle numerieke waarden
         const parsedSettings = {
@@ -128,10 +130,11 @@ export const SettingsProvider = ({ children }) => {
           pattern_scale: Number(response.data.pattern_scale) || 1,
           logo_size: Number(response.data.logo_size) || 200,
           menu_font_size: Number(response.data.menu_font_size) || 16,
-          content_font_size: Number(response.data.content_font_size) || 16
+          content_font_size: Number(response.data.content_font_size) || 16,
+          background_color: response.data.background_color || null
         };
 
-        console.log('Parsed settings:', parsedSettings);
+        console.log('Parsed settings before setting state:', parsedSettings);
         setSettings(parsedSettings);
       } catch (error) {
         console.error('Error loading settings:', error);
@@ -157,7 +160,8 @@ export const SettingsProvider = ({ children }) => {
           pattern_color: '#000000',
           logo_size: 200,
           menu_font_size: 16,
-          content_font_size: 16
+          content_font_size: 16,
+          background_color: null
         });
       } finally {
         setLoading(false);
@@ -185,13 +189,25 @@ export const SettingsProvider = ({ children }) => {
         pattern_scale: parseFloat(newSettings.pattern_scale) || prev.pattern_scale,
         logo_size: parseInt(newSettings.logo_size) || prev.logo_size,
         menu_font_size: parseInt(newSettings.menu_font_size) || prev.menu_font_size,
-        content_font_size: parseInt(newSettings.content_font_size) || prev.content_font_size
+        content_font_size: parseInt(newSettings.content_font_size) || prev.content_font_size,
+        background_color: newSettings.background_color || prev.background_color
       }));
     };
 
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
     return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
   }, []);
+
+  // Update body background color when settings change
+  useEffect(() => {
+    if (settings?.background_color) {
+      document.body.style.backgroundColor = settings.background_color;
+    } else {
+      document.body.style.backgroundColor = theme.palette.mode === 'dark' 
+        ? 'rgba(35, 35, 45, 0.98)'
+        : '#ffffff';
+    }
+  }, [settings?.background_color, theme.palette.mode]);
 
   // Render een loading indicator als we nog bezig zijn met laden
   if (loading) {
@@ -216,23 +232,24 @@ export const SettingsProvider = ({ children }) => {
         pattern_scale: Number(newSettings.pattern_scale),
         logo_size: Number(newSettings.logo_size),
         menu_font_size: Number(newSettings.menu_font_size),
-        content_font_size: Number(newSettings.content_font_size)
+        content_font_size: Number(newSettings.content_font_size),
+        background_color: newSettings.background_color
       };
 
-      console.log('Versturen naar server:', settingsToSave);
+      console.log('Settings to save:', settingsToSave);
       
       // Sla de wijzigingen op in de database
       const response = await api.put('/settings', settingsToSave);
-      console.log('Response van server:', response.data);
+      console.log('Response from server after save:', response.data);
       
       // Update de lokale state met de geparseerde waarden
       setSettings(prev => {
-        console.log('Vorige instellingen:', prev);
+        console.log('Previous settings:', prev);
         const newState = {
           ...prev,
           ...settingsToSave
         };
-        console.log('Nieuwe instellingen state:', newState);
+        console.log('New settings state:', newState);
         return newState;
       });
 

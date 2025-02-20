@@ -48,7 +48,7 @@ export const getSettings = async (req, res) => {
               subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
               menu_font_size, content_font_size, footer_font, footer_size, footer_color,
               logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
-              logo_shadow_color, logo_shadow_opacity
+              logo_shadow_color, logo_shadow_opacity, background_color
        FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
@@ -96,7 +96,8 @@ export const updateSettings = async (req, res) => {
       logo_shadow_y,
       logo_shadow_blur,
       logo_shadow_color,
-      logo_shadow_opacity
+      logo_shadow_opacity,
+      background_color
     } = req.body;
 
     // Parse numerieke waarden
@@ -158,7 +159,8 @@ export const updateSettings = async (req, res) => {
           logo_shadow_y = COALESCE($32, logo_shadow_y),
           logo_shadow_blur = COALESCE($33, logo_shadow_blur),
           logo_shadow_color = COALESCE($34, logo_shadow_color),
-          logo_shadow_opacity = COALESCE($35, logo_shadow_opacity)
+          logo_shadow_opacity = COALESCE($35, logo_shadow_opacity),
+          background_color = COALESCE($36, background_color)
     `;
 
     const values = [
@@ -196,7 +198,8 @@ export const updateSettings = async (req, res) => {
       parsedValues.logo_shadow_y,
       parsedValues.logo_shadow_blur,
       logo_shadow_color,
-      parsedValues.logo_shadow_opacity
+      parsedValues.logo_shadow_opacity,
+      background_color
     ];
 
     // Als er een logo is geüpload
@@ -227,7 +230,7 @@ export const updateSettings = async (req, res) => {
         await logoFile.mv(filepath);
         
         // Update de query om het nieuwe logo op te slaan
-        query += ', logo = $36';
+        query += ', logo = $37';
         values.push(filename);
 
         // Verwijder het oude logo bestand als het bestaat

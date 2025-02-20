@@ -30,7 +30,8 @@ import {
   Tabs,
   Tab,
   Slider,
-  Alert
+  Alert,
+  FormGroup
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -418,231 +419,163 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
 };
 
 const BlockEditor = ({ block, onChange, onDelete }) => {
-    switch (block.type) {
-    case 'spacer':
-      return (
-        <Box sx={{ 
-          height: block.settings?.height || 32,
-          width: '100%',
-          border: '1px dashed',
-          borderColor: 'divider',
-          borderRadius: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'action.hover',
-          mb: 2
-        }}>
-          <Typography variant="caption" color="text.secondary">
-            Ruimte: {block.settings?.height || 32}px
-          </Typography>
-        </Box>
-      );
-      case 'text':
-        return (
-          <Box sx={{ 
-            position: 'relative',
-            '& .quill': {
-              '& .ql-toolbar': {
-                position: 'sticky',
-                top: 0,
-                left: 0,
-                right: 0,
-                backgroundColor: 'background.paper',
-                borderColor: 'transparent',
-                borderRadius: 1,
-                opacity: 0,
-                transition: 'opacity 0.2s',
-                boxShadow: 1,
-                zIndex: 100,
-                marginBottom: 1
+  const theme = useTheme();
+  
+  return (
+    <Box sx={{
+      position: 'relative',
+      mb: 2,
+      p: 3,
+      border: '1px solid',
+      borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      borderRadius: 1,
+      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+    }}>
+      {/* Block controls */}
+      <Box sx={{
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        display: 'flex',
+        gap: 1,
+        bgcolor: theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.95)' : '#ffffff',
+        p: 0.5,
+        borderRadius: 1,
+        boxShadow: theme.palette.mode === 'dark' 
+          ? '0 2px 8px rgba(0,0,0,0.5)' 
+          : '0 2px 8px rgba(0,0,0,0.1)',
+      }}>
+        <IconButton 
+          size="small" 
+          onClick={onDelete}
+          sx={{ 
+            color: theme.palette.mode === 'dark' 
+              ? 'rgba(255, 255, 255, 0.7)' 
+              : 'rgba(0, 0, 0, 0.7)' 
+          }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Box>
+
+      {/* Block content */}
+      <Box sx={{ mt: 2 }}>
+        {block.type === 'text' && (
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            value={block.content}
+            onChange={(e) => onChange({ ...block, content: e.target.value })}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                '& fieldset': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                },
+                '&:hover fieldset': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : theme.palette.primary.main,
+                },
               },
-              '& .ql-container': {
-                border: 'none',
-                fontSize: '1rem',
-                lineHeight: 1.75,
-                '& .ql-editor': {
-                  padding: '1rem 0',
-                  minHeight: 100,
-                  '&:focus': {
-                    outline: 'none'
-                  },
-                  '& p': {
-                    marginBottom: '1rem'
-                  },
-                  '& h1, & h2, & h3': {
-                    marginBottom: '1.5rem',
-                    marginTop: '2rem',
-                    fontWeight: 600,
-                    color: 'text.primary'
-                  }
-                }
+              '& .MuiInputBase-input': {
+                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
               },
-              '&:hover .ql-toolbar': {
-                opacity: 1
-              }
-            }
-          }}>
-            <ReactQuill
-              theme="snow"
-              value={block.content}
-            onChange={(value) => onChange(block.id, { content: value })}
-              modules={modules}
-              formats={formats}
-            />
-          </Box>
-        );
-      case 'image':
-        return (
-          <Box sx={{ 
-            width: getImageWidth(block.settings?.size),
-            mx: 'auto'
-          }}>
-            {block.content ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box
-                  component="img"
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${block.content.filename}`}
-                  alt={block.content.title || 'Afbeelding'}
-                  sx={{ 
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: 1,
-                    boxShadow: block.content.showShadow ? 3 : 0
-                  }}
-                />
-                {block.content.showTitle && (
-                  <Box sx={{ textAlign: 'right', mt: 0.5 }}>
-                    {block.content.title && (
-                      <Typography variant="h6" color="text.primary">
-                        {block.content.title}
-                      </Typography>
-                    )}
-                    {block.content.description && (
-                      <Typography variant="body1" color="text.secondary">
-                        {block.content.description}
-                      </Typography>
-                    )}
-                  </Box>
-                )}
-              </Box>
-            ) : (
-              <Box 
-                sx={{ 
-                  p: 4, 
-                  textAlign: 'center',
-                  bgcolor: 'grey.50',
-                  borderRadius: 1,
-                  border: '2px dashed',
-                  borderColor: 'grey.300'
-                }}
-              >
-                <Typography color="text.secondary">
-                  Klik op het tandwiel icoon om een afbeelding te selecteren
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        );
-      case 'slideshow':
-        return (
-          <Box sx={{ 
-            width: getImageWidth(block.settings?.size),
-            mx: 'auto'
-          }}>
-            {block.content && block.content.length > 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box 
-                  sx={{ 
-                    position: 'relative',
-                  width: '100%',
-                  paddingTop: getAspectRatioPadding(block.settings?.aspectRatio),
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                  ...getShadowStyle(block.settings?.showShadow)
-                }}
-              >
-                    {block.content.map((photo, photoIndex) => (
-                      <Box
-                        key={photo.id}
-                        sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                          height: '100%',
-                      opacity: photoIndex === 0 ? 1 : 0,
-                      transition: `opacity ${block.settings?.speed || 1000}ms ease-in-out`,
-                      transform: block.settings?.transition === 'creative' ? 'scale(1.2)' : 'none',
-                      '&:hover': {
-                        transform: block.settings?.transition === 'creative' ? 'scale(1)' : 'none',
+            }}
+          />
+        )}
+
+        {block.type === 'slideshow' && (
+          <FormControl fullWidth>
+            <InputLabel sx={{
+              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'inherit'
+            }}>
+              Album
+            </InputLabel>
+            <Select
+              value={block.albumId || ''}
+              onChange={(e) => onChange({ ...block, albumId: e.target.value })}
+              sx={{
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : theme.palette.primary.main,
+                },
+                '& .MuiSelect-select': {
+                  color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+                },
+              }}
+            >
+              {/* ... existing MenuItems ... */}
+            </Select>
+          </FormControl>
+        )}
+
+        {/* Toggle switches */}
+        <FormGroup sx={{ mt: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch 
+                checked={block.settings?.showInfo || false}
+                onChange={(e) => onChange({
+                  ...block,
+                  settings: { ...block.settings, showInfo: e.target.checked }
+                })}
+                sx={{
+                  '& .MuiSwitch-switchBase': {
+                    color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : undefined,
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main,
+                      '& + .MuiSwitch-track': {
+                        backgroundColor: theme.palette.mode === 'dark' 
+                          ? theme.palette.primary.dark
+                          : theme.palette.primary.main,
+                        opacity: 0.5
                       }
-                        }}
-                      >
-                        <Box
-                          component="img"
-                          src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
-                          alt={photo.title || `Foto ${photoIndex + 1}`}
-                          sx={{ 
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                        transition: `transform ${block.settings?.speed || 1000}ms ease-in-out`,
-                        ...(block.settings?.transition === 'coverflow' && {
-                          transform: 'perspective(1000px) rotateY(45deg)',
-                          '&:hover': {
-                            transform: 'perspective(1000px) rotateY(0deg)'
-                          }
-                        }),
-                        ...(block.settings?.transition === 'cards' && {
-                          transform: 'translateX(100%) scale(0.8)',
-                          '&:hover': {
-                            transform: 'translateX(0) scale(1)'
-                          }
-                        })
-                          }}
-                        />
-                      </Box>
-                    ))}
-                </Box>
-              </Box>
-            ) : (
-              <Box 
-                sx={{ 
-                  p: 4, 
-                  textAlign: 'center',
-                  bgcolor: 'grey.50',
-                  borderRadius: 1,
-                  border: '2px dashed',
-                  borderColor: 'grey.300'
+                    }
+                  },
+                  '& .MuiSwitch-track': {
+                    backgroundColor: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.2)' 
+                      : 'rgba(0, 0, 0, 0.1)'
+                  },
+                  '& .MuiSwitch-thumb': {
+                    boxShadow: theme.palette.mode === 'dark'
+                      ? '0 2px 4px rgba(0,0,0,0.5)'
+                      : undefined
+                  }
                 }}
-              >
-                <Typography color="text.secondary">
-                  Klik op het tandwiel icoon om foto's te selecteren
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        );
-      case 'contact':
-        return (
-          <Paper sx={{ p: 3, mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="subtitle1">Contact Formulier</Typography>
-              <IconButton onClick={onDelete} size="small">
-                <DeleteIcon />
-              </IconButton>
-            </Box>
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Dit blok toont een contact formulier waarmee bezoekers je kunnen bereiken.
-              Zorg ervoor dat je de e-mail instellingen hebt geconfigureerd in het admin dashboard.
-            </Alert>
-          </Paper>
-        );
-      default:
-        return null;
-    }
-  };
+              />
+            }
+            label={
+              <Typography sx={{ 
+                color: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.9)' 
+                  : 'inherit',
+                fontSize: '0.9rem'
+              }}>
+                Toon in menu
+              </Typography>
+            }
+            sx={{
+              '& .MuiFormControlLabel-label': {
+                fontSize: '0.9rem',
+                fontWeight: 400
+              }
+            }}
+          />
+        </FormGroup>
+      </Box>
+    </Box>
+  );
+};
 
 const PageContentEditor = ({ initialContent = [], onChange }) => {
   const theme = useTheme();
@@ -677,10 +610,10 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
 
   const loadAlbums = async () => {
     try {
-      const response = await api.get('/albums');
+      const response = await api.get('/albums?include=photos');
       setAlbums(response.data);
     } catch (error) {
-      console.error('Fout bij ophalen albums:', error);
+      console.error('Error loading albums:', error);
     }
   };
 
@@ -912,60 +845,101 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
 
                 <Box
                   sx={{
-          mt: 4,
-          p: 3,
-                    border: '2px dashed',
-                    borderColor: 'grey.300',
-                    borderRadius: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-          gap: 2
-        }}
-      >
-        <Typography variant="subtitle1" color="text.secondary">
-                    Voeg een nieuw blok toe
-                  </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="outlined"
-            startIcon={<TextIcon />}
-                      onClick={() => addBlock('text')}
-                    >
-                      Tekst
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<ImageIcon />}
-                      onClick={() => addBlock('image')}
-                    >
-                      Afbeelding
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<SlideshowIcon />}
-                      onClick={() => addBlock('slideshow')}
-                    >
-                      Slideshow
-                    </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SpacerIcon />}
-            onClick={() => addBlock('spacer')}
-          >
-            Ruimte
-                    </Button>
-          <Button
-            variant="outlined"
-            startIcon={<EmailIcon />}
-            onClick={() => {
-              addBlock('contact');
-            }}
-          >
-            Contact Formulier
-          </Button>
-                  </Box>
-      </Box>
+            mt: 4,
+            p: 3,
+                      border: '2px dashed',
+                      borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+                      borderRadius: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
+            gap: 2
+          }}
+        >
+          <Typography variant="subtitle1" color={theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'text.secondary'}>
+            Voeg een nieuw blok toe
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<TextIcon />}
+              onClick={() => addBlock('text')}
+              sx={{
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : undefined,
+                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : undefined,
+                '&:hover': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : undefined,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : undefined
+                }
+              }}
+            >
+              Tekst
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ImageIcon />}
+              onClick={() => addBlock('image')}
+              sx={{
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : undefined,
+                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : undefined,
+                '&:hover': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : undefined,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : undefined
+                }
+              }}
+            >
+              Afbeelding
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<SlideshowIcon />}
+              onClick={() => addBlock('slideshow')}
+              sx={{
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : undefined,
+                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : undefined,
+                '&:hover': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : undefined,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : undefined
+                }
+              }}
+            >
+              Slideshow
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<SpacerIcon />}
+              onClick={() => addBlock('spacer')}
+              sx={{
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : undefined,
+                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : undefined,
+                '&:hover': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : undefined,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : undefined
+                }
+              }}
+            >
+              Ruimte
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<EmailIcon />}
+              onClick={() => {
+                addBlock('contact');
+              }}
+              sx={{
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : undefined,
+                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : undefined,
+                '&:hover': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : undefined,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : undefined
+                }
+              }}
+            >
+              Contact Formulier
+            </Button>
+          </Box>
+        </Box>
 
       <Dialog
         open={photoSelectorOpen}

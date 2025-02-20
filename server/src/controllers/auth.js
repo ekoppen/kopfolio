@@ -77,7 +77,7 @@ export const login = async (req, res) => {
     // JWT token genereren
     console.log('Generating JWT token...');
     const token = jwt.sign(
-      { id: result.rows[0].id, username: result.rows[0].username },
+      { id: result.rows[0].id, username: result.rows[0].username, role: result.rows[0].role },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -86,7 +86,11 @@ export const login = async (req, res) => {
     res.json({
       message: 'Succesvol ingelogd',
       token,
-      user: { id: result.rows[0].id, username: result.rows[0].username }
+      user: { 
+        id: result.rows[0].id, 
+        username: result.rows[0].username,
+        role: result.rows[0].role 
+      }
     });
   } catch (error) {
     console.error('Error in login:', error);

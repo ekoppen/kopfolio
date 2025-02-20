@@ -53,16 +53,14 @@ export const createAlbum = async (req, res) => {
 // Haal alle albums op
 export const getAlbums = async (req, res) => {
   try {
-    const result = await pool.query(`
+    // Haal eerst de albums op
+    const albumsResult = await pool.query(`
       SELECT a.*,
              COUNT(DISTINCT pa.photo_id) as photo_count,
              (
                SELECT p.filename
                FROM photos p
-               JOIN photos_albums pa2 ON p.id = pa2.photo_id
-               WHERE pa2.album_id = a.id
-               ORDER BY p.created_at DESC
-               LIMIT 1
+               WHERE p.id = a.cover_photo_id
              ) as cover_photo
       FROM albums a
       LEFT JOIN photos_albums pa ON a.id = pa.album_id
@@ -71,7 +69,29 @@ export const getAlbums = async (req, res) => {
         CASE WHEN a.is_home THEN 0 ELSE 1 END,
         a.created_at DESC
     `);
-    res.json(result.rows);
+
+    // Als de query parameter include=photos is meegegeven, haal dan ook de foto's op
+    if (req.query.include === 'photos') {
+      // Haal voor elk album de foto's op
+      const albums = await Promise.all(albumsResult.rows.map(async (album) => {
+        const photosResult = await pool.query(`
+          SELECT p.*
+          FROM photos p
+          JOIN photos_albums pa ON p.id = pa.photo_id
+          WHERE pa.album_id = $1
+          ORDER BY pa.position ASC
+        `, [album.id]);
+        
+        return {
+          ...album,
+          photos: photosResult.rows
+        };
+      }));
+      
+      res.json(albums);
+    } else {
+      res.json(albumsResult.rows);
+    }
   } catch (error) {
     console.error('Fout bij ophalen albums:', error);
     res.status(500).json({ message: 'Fout bij ophalen albums', error: error.message });

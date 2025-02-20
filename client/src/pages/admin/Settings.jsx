@@ -216,6 +216,23 @@ const Settings = () => {
                 helperText="Bijvoorbeeld: © 2024 Jouw Naam"
               />
             </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="color"
+                label="Accent Kleur"
+                value={settings.accent_color || '#000000'}
+                onChange={(e) => handleChange('accent_color', e.target.value)}
+                sx={{
+                  '& .MuiInputBase-root': { height: 56 },
+                  '& input': { 
+                    cursor: 'pointer',
+                    height: '100%'
+                  }
+                }}
+                helperText="De hoofdkleur van de website (knoppen, links, etc.)"
+              />
+            </Grid>
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
               <Typography variant="subtitle2" gutterBottom>Subtitel</Typography>
@@ -504,6 +521,40 @@ const Settings = () => {
       {/* Achtergrond Instellingen */}
       <TabPanel value={activeTab} index={2}>
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Achtergrondkleur
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <TextField
+                fullWidth
+                type="color"
+                value={settings.background_color || '#FFFFFF'}
+                onChange={(e) => handleChange('background_color', e.target.value)}
+                sx={{
+                  '& .MuiInputBase-root': { height: 56 },
+                  '& input': { 
+                    cursor: 'pointer',
+                    height: '100%',
+                    width: '100%'
+                  }
+                }}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => handleChange('background_color', null)}
+                size="small"
+              >
+                Reset
+              </Button>
+            </Box>
+          </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Typography variant="subtitle2" gutterBottom>
+            Achtergrondpatroon
+          </Typography>
           <PatternPicker
             patterns={patterns}
             selectedPattern={settings.sidebar_pattern || 'none'}
