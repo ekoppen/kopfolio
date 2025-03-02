@@ -18,7 +18,8 @@ import {
   Switch,
   InputAdornment,
   Tabs,
-  Tab
+  Tab,
+  Container
 } from '@mui/material';
 import {
   Upload as UploadIcon,
@@ -65,10 +66,16 @@ const Settings = () => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [useDynamicBackgroundColor, setUseDynamicBackgroundColor] = useState(
+    settings?.use_dynamic_background_color || false
+  );
 
   useEffect(() => {
     loadSettings();
     loadPatterns();
+    if (settings) {
+      setUseDynamicBackgroundColor(settings.use_dynamic_background_color || false);
+    }
   }, []);
 
   const loadSettings = async () => {
@@ -125,7 +132,14 @@ const Settings = () => {
     setSaving(true);
     console.log('Opslaan van instellingen:', settings);
     try {
-      const success = await updateSettings(settings);
+      const updatedSettings = {
+        ...settings,
+        use_dynamic_background_color: useDynamicBackgroundColor
+      };
+      
+      console.log('Bijgewerkte instellingen voor opslaan:', updatedSettings);
+      
+      const success = await updateSettings(updatedSettings);
       if (success) {
         showToast('Instellingen opgeslagen', 'success');
         console.log('Instellingen succesvol opgeslagen');
@@ -133,12 +147,15 @@ const Settings = () => {
         // Dispatch een event voor pattern updates
         window.dispatchEvent(new CustomEvent('patternSettingsUpdated', {
           detail: {
-            sidebar_pattern: settings.sidebar_pattern,
-            pattern_opacity: settings.pattern_opacity,
-            pattern_scale: settings.pattern_scale,
-            pattern_color: settings.pattern_color
+            sidebar_pattern: updatedSettings.sidebar_pattern,
+            pattern_opacity: updatedSettings.pattern_opacity,
+            pattern_scale: updatedSettings.pattern_scale,
+            pattern_color: updatedSettings.pattern_color
           }
         }));
+        
+        // Herlaad de instellingen om zeker te zijn dat we de meest recente hebben
+        loadSettings();
       } else {
         console.error('Fout bij opslaan instellingen: geen success');
         showToast('Fout bij opslaan instellingen', 'error');
@@ -152,16 +169,209 @@ const Settings = () => {
   };
 
   const handleChange = (field, value) => {
-    if (field === 'menu_font_size' || field === 'content_font_size' || field === 'footer_size') {
+    // Zorg ervoor dat numerieke waarden correct worden verwerkt
+    if (field === 'background_opacity' || field === 'pattern_opacity' || field === 'pattern_scale' || 
+        field === 'logo_shadow_opacity') {
+      value = parseFloat(value);
+      if (isNaN(value)) {
+        value = field === 'pattern_scale' ? 1 : 0.5;
+      }
+      
+      // Log de waarde voor debugging
+      console.log(`Verwerking van ${field}:`, value);
+    } else if (field === 'menu_font_size' || field === 'content_font_size' || field === 'footer_size') {
       value = parseInt(value, 10);
       if (isNaN(value) || value < 8) value = 8;
       if (value > 72) value = 72;
     }
-    updateSettingsLocally({ [field]: value });
+    
+    // Update de lokale instellingen
+    const updatedSettings = { ...settings, [field]: value };
+    updateSettingsLocally(updatedSettings);
+    
+    // Log de bijgewerkte instellingen
+    console.log('Bijgewerkte instellingen na handleChange:', updatedSettings);
+    
+    // Dispatch een event voor pattern updates als het een patrooninstelling is
+    if (field === 'sidebar_pattern' || field === 'pattern_opacity' || field === 'pattern_scale' || field === 'pattern_color') {
+      window.dispatchEvent(new CustomEvent('patternSettingsUpdated', {
+        detail: {
+          sidebar_pattern: updatedSettings.sidebar_pattern,
+          pattern_opacity: updatedSettings.pattern_opacity,
+          pattern_scale: updatedSettings.pattern_scale,
+          pattern_color: updatedSettings.pattern_color
+        }
+      }));
+    }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Instellingen
+      </Typography>
+      
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Algemene Instellingen
+        </Typography>
+        
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Site Titel"
+              value={settings.site_title}
+              onChange={(e) => handleChange('site_title', e.target.value)}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Footer Tekst"
+              value={settings.footer_text}
+              onChange={(e) => handleChange('footer_text', e.target.value)}
+              helperText="Bijvoorbeeld: © 2024 Jouw Naam"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              type="color"
+              label="Accent Kleur"
+              value={settings.accent_color || '#000000'}
+              onChange={(e) => handleChange('accent_color', e.target.value)}
+              sx={{
+                '& .MuiInputBase-root': { height: 56 },
+                '& input': { 
+                  cursor: 'pointer',
+                  height: '100%'
+                }
+              }}
+              helperText="De hoofdkleur van de website (knoppen, links, etc.)"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" gutterBottom>Subtitel</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Subtitel"
+                  value={settings.site_subtitle || ''}
+                  onChange={(e) => handleChange('site_subtitle', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FontPicker
+                  value={settings.subtitle_font || 'system-ui'}
+                  onChange={(value) => handleChange('subtitle_font', value)}
+                  label="Subtitel Lettertype"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="color"
+                  label="Tekstkleur"
+                  value={settings.subtitle_color || '#000000'}
+                  onChange={(e) => handleChange('subtitle_color', e.target.value)}
+                  sx={{
+                    '& .MuiInputBase-root': { height: 56 },
+                    '& input': { 
+                      cursor: 'pointer',
+                      height: '100%'
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>Subtitel Schaduw</Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.subtitle_shadow_enabled || false}
+                    onChange={(e) => handleChange('subtitle_shadow_enabled', e.target.checked)}
+                  />
+                }
+                label="Schaduw inschakelen"
+              />
+              {settings.subtitle_shadow_enabled && (
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="X Offset"
+                      value={settings.subtitle_shadow_x || 0}
+                      onChange={(e) => handleChange('subtitle_shadow_x', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Y Offset"
+                      value={settings.subtitle_shadow_y || 0}
+                      onChange={(e) => handleChange('subtitle_shadow_y', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Blur"
+                      value={settings.subtitle_shadow_blur || 0}
+                      onChange={(e) => handleChange('subtitle_shadow_blur', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Spread"
+                      value={settings.subtitle_shadow_spread || 0}
+                      onChange={(e) => handleChange('subtitle_shadow_spread', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Transparantie"
+                      value={settings.subtitle_shadow_opacity || 0.2}
+                      onChange={(e) => handleChange('subtitle_shadow_opacity', e.target.value)}
+                      inputProps={{ step: 0.1, min: 0, max: 1 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      type="color"
+                      label="Schaduw Kleur"
+                      value={settings.subtitle_shadow_color || '#000000'}
+                      onChange={(e) => handleChange('subtitle_shadow_color', e.target.value)}
+                      sx={{
+                        '& .MuiInputBase-root': { height: 56 },
+                        '& input': { 
+                          cursor: 'pointer',
+                          height: '100%'
+                        }
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              )}
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            {/* Verwijder de dynamische achtergrondkleur instelling van hier */}
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* Opslaan knop */}
       <Box sx={{ 
         position: 'fixed',
@@ -199,42 +409,7 @@ const Settings = () => {
       <TabPanel value={activeTab} index={0}>
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Site Titel"
-                value={settings.site_title}
-                onChange={(e) => handleChange('site_title', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Footer Tekst"
-                value={settings.footer_text}
-                onChange={(e) => handleChange('footer_text', e.target.value)}
-                helperText="Bijvoorbeeld: © 2024 Jouw Naam"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="color"
-                label="Accent Kleur"
-                value={settings.accent_color || '#000000'}
-                onChange={(e) => handleChange('accent_color', e.target.value)}
-                sx={{
-                  '& .MuiInputBase-root': { height: 56 },
-                  '& input': { 
-                    cursor: 'pointer',
-                    height: '100%'
-                  }
-                }}
-                helperText="De hoofdkleur van de website (knoppen, links, etc.)"
-              />
-            </Grid>
             <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
               <Typography variant="subtitle2" gutterBottom>Subtitel</Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
@@ -346,7 +521,7 @@ const Settings = () => {
                     </Grid>
                   </Grid>
                 )}
-                  </Box>
+              </Box>
             </Grid>
           </Grid>
         </Paper>
@@ -548,6 +723,37 @@ const Settings = () => {
                 Reset
               </Button>
             </Box>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Achtergrond Transparantie
+              </Typography>
+              <TextField
+                fullWidth
+                type="number"
+                label="Transparantie"
+                value={settings.background_opacity !== undefined ? settings.background_opacity : 1}
+                onChange={(e) => handleChange('background_opacity', parseFloat(e.target.value))}
+                inputProps={{ step: 0.1, min: 0, max: 1 }}
+                helperText="0 = volledig transparant, 1 = volledig dekkend"
+              />
+            </Box>
+            
+            {/* Voeg de dynamische achtergrondkleur instelling hier toe */}
+            <Box sx={{ mt: 3 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={useDynamicBackgroundColor}
+                    onChange={(e) => setUseDynamicBackgroundColor(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Dynamische achtergrondkleur"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Als deze optie is ingeschakeld, wordt de achtergrondkleur automatisch aangepast aan de dominante kleur van de actieve foto in de slideshow.
+              </Typography>
+            </Box>
           </Box>
 
           <Divider sx={{ my: 3 }} />
@@ -677,7 +883,7 @@ const Settings = () => {
           <EmailSettings />
         </Paper>
       </TabPanel>
-    </Box>
+    </Container>
   );
 };
 

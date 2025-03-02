@@ -60,23 +60,28 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
     navigate('/login');
   };
 
+  // Verbeterde stijl voor navigatieknoppen met duidelijkere achtergrond
   const buttonStyle = {
     color: getTextColor(),
-    bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)',
+    bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
     '&:hover': {
       color: settings?.accent_color || theme.palette.primary.main,
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)'
-    }
+      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)'
+    },
+    position: 'relative',
+    zIndex: 100 // Gebruik een redelijke z-index waarde
   };
 
   const getActiveStyle = (path) => {
     const isActive = location.pathname === path;
     return isActive ? {
       color: settings?.accent_color || theme.palette.primary.main,
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
       '&:hover': {
-        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'
-      }
+        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)'
+      },
+      position: 'relative',
+      zIndex: 100 // Gebruik een redelijke z-index waarde
     } : buttonStyle;
   };
 
@@ -97,9 +102,21 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
           '& .MuiSvgIcon-root': {
             fontSize: 20
           }
-        }
+        },
+        position: 'relative',
+        zIndex: 100 // Gebruik een redelijke z-index waarde
       }}
     >
+      <Tooltip title="Home">
+        <IconButton
+          component={RouterLink}
+          to="/"
+          sx={getActiveStyle('/')}
+        >
+          <HomeIcon />
+        </IconButton>
+      </Tooltip>
+
       <IconButton
         onClick={onToggleExpand}
         size="medium"
@@ -138,7 +155,9 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
                   bgcolor: theme.palette.primary.main,
                   color: '#fff',
                   border: '2px solid',
-                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                  position: 'relative',
+                  zIndex: 100
                 }}
               >
                 {getInitials(user.full_name || user.username)}

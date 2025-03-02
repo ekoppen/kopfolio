@@ -42,6 +42,20 @@ export const ThemeProvider = ({ children }) => {
     return () => window.removeEventListener('fontUpdated', handleFontUpdate);
   }, []);
 
+  // Voeg alleen een class toe aan het body element om dark mode te detecteren in CSS
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+    
+    // Dispatch een event zodat andere componenten weten dat de dark mode is veranderd
+    window.dispatchEvent(new CustomEvent('darkModeChanged', { 
+      detail: { isDarkMode } 
+    }));
+  }, [isDarkMode]);
+
   const commonThemeSettings = useMemo(() => ({
     typography: {
       fontFamily: `${settings?.font || 'Inter'}, "Roboto", "Helvetica", "Arial", sans-serif`,
@@ -73,15 +87,35 @@ export const ThemeProvider = ({ children }) => {
     ...commonThemeSettings,
     palette: {
       mode,
-      primary: {
-        main: settings?.accent_color || blue[500],
-      },
-      background: {
-        default: mode === 'dark' ? '#121212' : '#f5f5f5',
-        paper: mode === 'dark' ? '#1e1e1e' : '#ffffff'
-      }
-    }
-  }), [mode, settings?.accent_color, commonThemeSettings, themeVersion]);
+      ...(mode === 'light'
+        ? {
+            // Light mode
+            primary: {
+              main: settings?.accent_color || '#1976d2',
+            },
+            secondary: {
+              main: '#9c27b0',
+            },
+            background: {
+              default: '#ffffff',
+              paper: '#f5f5f5',
+            },
+          }
+        : {
+            // Dark mode
+            primary: {
+              main: settings?.accent_color || '#90caf9',
+            },
+            secondary: {
+              main: '#ce93d8',
+            },
+            background: {
+              default: '#0a0a0a',
+              paper: '#121212',
+            },
+          }),
+    },
+  }), [mode, settings?.accent_color, commonThemeSettings]);
 
   const contextValue = useMemo(() => ({
     isDarkMode,

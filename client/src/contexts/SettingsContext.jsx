@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import { Box, CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -18,6 +18,7 @@ export const SettingsProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const theme = useTheme();
+  const prevSettingsRef = useRef({});
 
   // Laad eerst de fonts
   useEffect(() => {
@@ -131,7 +132,8 @@ export const SettingsProvider = ({ children }) => {
           logo_size: Number(response.data.logo_size) || 200,
           menu_font_size: Number(response.data.menu_font_size) || 16,
           content_font_size: Number(response.data.content_font_size) || 16,
-          background_color: response.data.background_color || null
+          background_color: response.data.background_color || null,
+          background_opacity: Number(response.data.background_opacity) || 1
         };
 
         console.log('Parsed settings before setting state:', parsedSettings);
@@ -161,7 +163,8 @@ export const SettingsProvider = ({ children }) => {
           logo_size: 200,
           menu_font_size: 16,
           content_font_size: 16,
-          background_color: null
+          background_color: null,
+          background_opacity: 1
         });
       } finally {
         setLoading(false);
@@ -190,7 +193,8 @@ export const SettingsProvider = ({ children }) => {
         logo_size: parseInt(newSettings.logo_size) || prev.logo_size,
         menu_font_size: parseInt(newSettings.menu_font_size) || prev.menu_font_size,
         content_font_size: parseInt(newSettings.content_font_size) || prev.content_font_size,
-        background_color: newSettings.background_color || prev.background_color
+        background_color: newSettings.background_color || prev.background_color,
+        background_opacity: parseFloat(newSettings.background_opacity) !== undefined ? parseFloat(newSettings.background_opacity) : prev.background_opacity
       }));
     };
 
@@ -200,14 +204,93 @@ export const SettingsProvider = ({ children }) => {
 
   // Update body background color when settings change
   useEffect(() => {
+    console.log('Achtergrondkleur effect uitgevoerd met:', {
+      background_color: settings?.background_color,
+      background_opacity: settings?.background_opacity
+    });
+    
     if (settings?.background_color) {
-      document.body.style.backgroundColor = settings.background_color;
+      // Functie om hex kleur naar rgba te converteren
+      const hexToRgba = (hex, opacity) => {
+        if (!hex) return 'transparent';
+        
+        // Verwijder # indien aanwezig
+        hex = hex.replace('#', '');
+        
+        // Converteer 3-cijferige hex naar 6-cijferige
+        if (hex.length === 3) {
+          hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        // Converteer hex naar rgb
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        // Retourneer rgba
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      };
+
+      // Pas de achtergrondkleur toe met de juiste transparantie
+      const opacity = settings?.background_opacity !== undefined ? parseFloat(settings.background_opacity) : 1;
+      const bgColor = hexToRgba(settings.background_color, opacity);
+      
+      console.log('Toepassen achtergrondkleur:', bgColor);
+      
+      // Pas de kleur direct toe op meerdere elementen voor betere zichtbaarheid
+      document.body.style.backgroundColor = bgColor;
+      document.documentElement.style.backgroundColor = bgColor;
+      document.getElementById('root').style.backgroundColor = bgColor;
+      
+      // Voeg een CSS variabele toe die we kunnen gebruiken in de hele applicatie
+      document.documentElement.style.setProperty('--background-color', bgColor);
+      
+      // Voeg een inline style toe aan het body element voor debugging
+      document.body.setAttribute('style', `background-color: ${bgColor} !important`);
     } else {
-      document.body.style.backgroundColor = theme.palette.mode === 'dark' 
+      const defaultColor = theme.palette.mode === 'dark' 
         ? 'rgba(35, 35, 45, 0.98)'
         : '#ffffff';
+      
+      console.log('Geen achtergrondkleur ingesteld, gebruik standaard:', defaultColor);
+      
+      document.body.style.backgroundColor = defaultColor;
+      document.documentElement.style.backgroundColor = defaultColor;
+      document.getElementById('root').style.backgroundColor = defaultColor;
+      document.documentElement.style.setProperty('--background-color', defaultColor);
+      document.body.setAttribute('style', `background-color: ${defaultColor} !important`);
     }
-  }, [settings?.background_color, theme.palette.mode]);
+  }, [settings?.background_color, settings?.background_opacity, theme.palette.mode]);
+
+  // Luister naar dark mode veranderingen
+  useEffect(() => {
+    const handleDarkModeChange = (event) => {
+      console.log('Dark mode verandering gedetecteerd:', event.detail.isDarkMode);
+      
+      // Haal de opacity waarde uit het event of gebruik de waarde uit de instellingen
+      const opacity = event.detail.opacity !== undefined 
+        ? event.detail.opacity 
+        : (settings?.background_opacity !== undefined ? parseFloat(settings.background_opacity) : 0.95);
+      
+      // Als er geen expliciete achtergrondkleur is ingesteld, pas dan de standaard dark/light kleur toe
+      if (!settings?.background_color) {
+        const defaultColor = event.detail.isDarkMode 
+          ? `rgba(18, 18, 18, ${opacity})`
+          : '#ffffff';
+        
+        console.log('Geen achtergrondkleur ingesteld, gebruik standaard dark/light kleur:', defaultColor);
+        
+        document.body.style.backgroundColor = defaultColor;
+        document.documentElement.style.backgroundColor = defaultColor;
+        document.getElementById('root').style.backgroundColor = defaultColor;
+        document.documentElement.style.setProperty('--background-color', defaultColor);
+        document.body.setAttribute('style', `background-color: ${defaultColor} !important`);
+      }
+    };
+
+    window.addEventListener('darkModeChanged', handleDarkModeChange);
+    return () => window.removeEventListener('darkModeChanged', handleDarkModeChange);
+  }, [settings?.background_color, settings?.background_opacity]);
 
   // Render een loading indicator als we nog bezig zijn met laden
   if (loading) {
@@ -233,7 +316,9 @@ export const SettingsProvider = ({ children }) => {
         logo_size: Number(newSettings.logo_size),
         menu_font_size: Number(newSettings.menu_font_size),
         content_font_size: Number(newSettings.content_font_size),
-        background_color: newSettings.background_color
+        background_color: newSettings.background_color,
+        background_opacity: parseFloat(newSettings.background_opacity) !== undefined ? parseFloat(newSettings.background_opacity) : settings.background_opacity,
+        use_dynamic_background_color: newSettings.use_dynamic_background_color === true
       };
 
       console.log('Settings to save:', settingsToSave);
@@ -267,25 +352,39 @@ export const SettingsProvider = ({ children }) => {
       window.dispatchEvent(new CustomEvent('settingsUpdated', { 
         detail: settingsToSave
       }));
-      
+
       return true;
     } catch (error) {
-      console.error('Fout bij updaten instellingen:', error);
+      console.error('Fout bij opslaan instellingen:', error);
       return false;
     }
   };
 
   // Functie voor tijdelijke lokale updates (zonder opslaan)
   const updateSettingsLocally = (newSettings) => {
-    console.log('updateSettingsLocally aangeroepen met:', newSettings);
-    setSettings(prev => {
-      const newState = {
-        ...prev,
-        ...newSettings
-      };
-      console.log('Nieuwe lokale instellingen:', newState);
-      return newState;
+    // Controleer of de nieuwe instellingen verschillen van de huidige
+    let hasChanges = false;
+    
+    // Vergelijk elke nieuwe instelling met de huidige waarde
+    Object.keys(newSettings).forEach(key => {
+      if (settings[key] !== newSettings[key]) {
+        hasChanges = true;
+      }
     });
+    
+    // Alleen updaten als er daadwerkelijk iets is veranderd
+    if (hasChanges) {
+      console.log('updateSettingsLocally: Wijzigingen gedetecteerd, instellingen worden bijgewerkt');
+      setSettings(prev => {
+        const newState = {
+          ...prev,
+          ...newSettings
+        };
+        return newState;
+      });
+    } else {
+      console.log('updateSettingsLocally: Geen wijzigingen gedetecteerd, instellingen blijven ongewijzigd');
+    }
   };
 
   return (

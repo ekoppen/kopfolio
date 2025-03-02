@@ -32,11 +32,82 @@ import PageContentEditor from '../components/PageContentEditor';
 import api from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
 
+// Functie om hex kleur naar rgba te converteren
+const hexToRgba = (hex, opacity) => {
+  if (!hex) return 'transparent';
+  
+  // Verwijder # indien aanwezig
+  hex = hex.replace('#', '');
+  
+  // Converteer 3-cijferige hex naar 6-cijferige
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  
+  // Converteer hex naar rgb
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // Retourneer rgba
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
+// Functie om de dominante kleur uit een afbeelding te halen
+const getDominantColor = async (imageUrl) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const colorCounts = {};
+        let maxCount = 0;
+        let dominantColor = '#000000';
+        
+        // Sample pixels (elke 10e pixel voor performance)
+        for (let i = 0; i < imageData.length; i += 40) {
+          const r = imageData[i];
+          const g = imageData[i + 1];
+          const b = imageData[i + 2];
+          
+          // Converteer naar hex
+          const hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+          
+          // Tel de kleur
+          colorCounts[hex] = (colorCounts[hex] || 0) + 1;
+          
+          // Update dominante kleur
+          if (colorCounts[hex] > maxCount) {
+            maxCount = colorCounts[hex];
+            dominantColor = hex;
+          }
+        }
+        
+        resolve(dominantColor);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    img.onerror = (error) => {
+      reject(error);
+    };
+    
+    img.src = imageUrl;
+  });
+};
+
 const Page = () => {
   const theme = useTheme();
-  const { settings } = useSettings();
-  console.log('Current settings in Page:', settings);
-  console.log('Background color from settings:', settings?.background_color);
+  const { settings, updateSettingsLocally } = useSettings();
   const { slug, parentSlug } = useParams();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +178,11 @@ const Page = () => {
   // Luister naar veranderingen in barPosition
   useEffect(() => {
     const updateBarPosition = (event) => {
+      console.log('Bar position changed to:', event.detail.position);
       setBarPosition(event.detail.position);
+      
+      // Force re-render om de achtergrondkleur overlay bij te werken
+      setPage(prevPage => ({...prevPage}));
     };
 
     window.addEventListener('barPositionChanged', updateBarPosition);
@@ -121,28 +196,53 @@ const Page = () => {
     return () => window.removeEventListener('barPositionChanged', updateBarPosition);
   }, []);
 
-  const handleSave = async () => {
-    try {
-      await api.put(`/pages/${page.id}`, {
-        ...page,
-        content: editedContent
-      });
-      setPage(prev => ({ ...prev, content: editedContent }));
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Fout bij opslaan:', error);
-      setError('Fout bij opslaan van de pagina');
-    }
-  };
+  // Update de achtergrondkleur wanneer de actieve slide verandert
+  useEffect(() => {
+    const updateBackgroundColor = async () => {
+      // Controleer of dynamische achtergrondkleur is ingeschakeld
+      if (settings?.use_dynamic_background_color && photos.length > 0 && page?.is_fullscreen_slideshow) {
+        try {
+          const activePhoto = photos[activeSlide];
+          if (activePhoto) {
+            const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${activePhoto.filename}`;
+            const dominantColor = await getDominantColor(imageUrl);
+            
+            console.log('Dominante kleur uit foto (Page):', dominantColor);
+            
+            // Update de achtergrondkleur in de settings
+            updateSettingsLocally({
+              background_color: dominantColor
+            });
+          }
+        } catch (error) {
+          console.error('Fout bij ophalen dominante kleur:', error);
+        }
+      }
+    };
+    
+    updateBackgroundColor();
+  }, [activeSlide, photos, settings?.use_dynamic_background_color, updateSettingsLocally, page?.is_fullscreen_slideshow]);
 
-  const handleCancel = () => {
-    setEditedContent(page.content);
-    setIsEditing(false);
+  const handleSave = async (content) => {
+    try {
+      await api.put(`/pages/${page._id}`, {
+        ...page,
+        content
+      });
+      setPage({
+        ...page,
+        content
+      });
+      setIsEditing(false);
+      setEditedContent(null);
+    } catch (error) {
+      console.error('Fout bij opslaan pagina:', error);
+    }
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
       </Box>
     );
@@ -150,159 +250,16 @@ const Page = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
     );
   }
 
   if (!page) {
     return (
-      <Alert severity="info" sx={{ mt: 2 }}>
-        Pagina niet gevonden
-      </Alert>
-    );
-  }
-
-  if (page.is_fullscreen_slideshow) {
-    const slideshowContent = (
-      <Box sx={{ 
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden'
-      }}>
-        <Swiper
-          modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay]}
-          effect={page.settings?.slideshow?.transition || 'fade'}
-          speed={page.settings?.slideshow?.speed || 1000}
-          slidesPerView={1}
-          loop={true}
-          autoplay={{
-            delay: page.settings?.slideshow?.interval || 5000,
-            disableOnInteraction: false,
-            enabled: page.settings?.slideshow?.autoPlay !== false
-          }}
-          pagination={false}
-          navigation={false}
-          onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
-          style={{ 
-            width: '100%', 
-            height: '100%',
-            position: 'absolute',
-            left: 0,
-            top: 0
-          }}
-        >
-          {photos.map((photo, index) => (
-            <SwiperSlide key={index}>
-              <img
-                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`}
-                alt={photo.title || 'Geen titel'}
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'cover',
-                  backgroundColor: 'transparent'
-                }}
-              />
-            </SwiperSlide>
-          ))}
-        </Swiper>
-        {photos[activeSlide] && (photos[activeSlide].title || photos[activeSlide].description) && (
-          <Box
-            sx={{
-              position: 'absolute',
-              left: 24,
-              bottom: 24,
-              width: 320,
-              p: 2.5,
-              borderRadius: 2,
-              bgcolor: theme.palette.mode === 'dark' 
-                ? 'rgba(0, 0, 0, 0.85)' 
-                : 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-              boxShadow: theme.palette.mode === 'dark'
-                ? '0 8px 32px rgba(0,0,0,0.5)'
-                : '0 8px 32px rgba(0,0,0,0.25)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              zIndex: 3
-            }}
-          >
-            {photos[activeSlide].title && (
-              <Typography 
-                variant="h6" 
-                gutterBottom 
-                sx={{ 
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  mb: 1,
-                  color: theme.palette.mode === 'dark' 
-                    ? 'rgba(255, 255, 255, 0.95)' 
-                    : 'rgba(0, 0, 0, 0.95)'
-                }}
-              >
-                {photos[activeSlide].title}
-              </Typography>
-            )}
-            {photos[activeSlide].description && (
-              <Typography 
-                variant="body2" 
-                sx={{
-                  fontSize: '0.9rem',
-                  lineHeight: 1.5,
-                  color: theme.palette.mode === 'dark' 
-                    ? 'rgba(255, 255, 255, 0.7)' 
-                    : 'rgba(0, 0, 0, 0.7)'
-                }}
-              >
-                {photos[activeSlide].description}
-              </Typography>
-            )}
-          </Box>
-        )}
-      </Box>
-    );
-
-    if (barPosition === 'full-left') {
-      return (
-        <Box sx={{ 
-          position: 'fixed',
-          top: '16px',
-          left: '296px',
-          right: '16px',
-          bottom: '16px',
-          overflow: 'hidden'
-        }}>
-          <Box sx={{ 
-            width: '100%',
-            height: '100%',
-            position: 'relative',
-            borderRadius: 2,
-            overflow: 'hidden',
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0,0,0,0.5)'
-              : '0 8px 32px rgba(0,0,0,0.1)',
-            bgcolor: settings.background_color || page.settings?.background_color || 'transparent'
-          }}>
-            {slideshowContent}
-          </Box>
-        </Box>
-      );
-    }
-
-    return (
-      <Box sx={{ 
-        position: 'fixed',
-        top: barPosition === 'top' ? '64px' : 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflow: 'hidden'
-      }}>
-        {slideshowContent}
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">Pagina niet gevonden</Alert>
       </Box>
     );
   }
@@ -314,11 +271,11 @@ const Page = () => {
       left: barPosition === 'full-left' ? '280px' : 0,
       right: 0,
       bottom: 0,
-      overflow: 'auto',
-      bgcolor: 'transparent',
-      zIndex: 0
+      overflow: 'hidden',
+      bgcolor: 'transparent'
     }}>
-      {!settings.background_color && page.settings?.pattern && (
+      {/* Patroon achtergrond */}
+      {page?.settings?.pattern && (
         <Box
           sx={{
             position: 'absolute',
@@ -332,158 +289,98 @@ const Page = () => {
             backgroundPosition: 'center center',
             opacity: page.settings?.pattern_opacity !== undefined ? page.settings.pattern_opacity : 1,
             pointerEvents: 'none',
-            zIndex: 1
+            zIndex: 0
           }}
         />
       )}
-      {barPosition === 'full-left' ? (
+      
+      {isAdmin && (
         <Box sx={{ 
-          position: 'fixed',
-          top: '16px',
-          left: '296px',
-          right: '16px',
-          bottom: '16px',
-          overflow: 'hidden',
-          zIndex: 2,
-          bgcolor: 'transparent'
+          position: 'fixed', 
+          bottom: 16, 
+          right: 16, 
+          zIndex: 1000 
         }}>
-          <Box sx={{ 
-            width: '100%',
-            height: '100%',
-            position: 'relative',
-            borderRadius: 2,
-            overflow: 'hidden',
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0,0,0,0.5)'
-              : '0 8px 32px rgba(0,0,0,0.1)',
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.98)' : '#ffffff',
-            '& .dashed-border': {
-              border: '2px dashed',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-              borderRadius: 1,
-              p: 4,
-              textAlign: 'center',
-              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)'
-            },
-            '& .block-controls': {
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.95)' : '#ffffff',
-              '& .MuiIconButton-root': {
-                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'
+          <Fab 
+            color="primary" 
+            onClick={() => {
+              if (isEditing) {
+                setIsEditing(false);
+                setEditedContent(null);
+              } else {
+                setIsEditing(true);
+                setEditedContent(page.content);
               }
-            },
-            '& .MuiTextField-root, & .MuiSelect-root': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'
-              },
-              '& .MuiInputLabel-root': {
-                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'
-              },
-              '& .MuiInputBase-input': {
-                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)'
-              }
-            },
-            '& .spacer-block': {
-              border: '1px dashed',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
-            }
-          }}>
-            <PageContent 
-              content={page.content} 
-              isFullscreenSlideshow={page.is_fullscreen_slideshow}
-              onSlideChange={setActiveSlide}
-              photos={photos}
-            />
-          </Box>
-        </Box>
-      ) : (
-        <Box sx={{ 
-          height: '100%',
-          position: 'relative',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 0,
-          zIndex: 2,
-          bgcolor: 'transparent'
-        }}>
-          <Box sx={{
-            width: '100%',
-            height: '100%',
-            position: 'relative',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            borderRadius: 0,
-            overflow: 'hidden',
-            bgcolor: theme.palette.mode === 'dark' 
-              ? 'rgba(35, 35, 45, 0.98)'
-              : '#ffffff',
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 0 0 1px rgba(255, 255, 255, 0.1)'
-              : 'none'
-          }}>
-            <PageContent 
-              content={page.content} 
-              isFullscreenSlideshow={page.is_fullscreen_slideshow}
-              onSlideChange={setActiveSlide}
-              photos={photos}
-            />
-          </Box>
+            }}
+          >
+            {isEditing ? <CloseIcon /> : <EditIcon />}
+          </Fab>
         </Box>
       )}
-      {/* Foto informatie in fullscreen slideshow */}
-      {page.settings?.slideshow?.show_info && photos[activeSlide] && 
-       (photos[activeSlide].title || photos[activeSlide].description) && (
-        <Box
-          sx={{
-            position: 'absolute',
-            left: 24,
-            bottom: 24,
-            width: 320,
-            p: 2.5,
-            borderRadius: 2,
-            bgcolor: theme.palette.mode === 'dark' 
-              ? 'rgba(0, 0, 0, 0.85)' 
-              : 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid',
-            borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 8px 32px rgba(0,0,0,0.5)'
-              : '0 8px 32px rgba(0,0,0,0.25)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            zIndex: 3
+
+      {isEditing ? (
+        <PageContentEditor 
+          initialContent={page.content} 
+          onSave={handleSave} 
+          onCancel={() => {
+            setIsEditing(false);
+            setEditedContent(null);
           }}
-        >
-          {photos[activeSlide].title && (
-            <Typography 
-              variant="h6" 
-              gutterBottom 
-              sx={{ 
-                fontSize: '1.1rem',
-                fontWeight: 500,
-                mb: 1,
-                color: theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.95)' 
-                  : 'rgba(0, 0, 0, 0.95)'
-              }}
-            >
-              {photos[activeSlide].title}
-            </Typography>
-          )}
-          {photos[activeSlide].description && (
-            <Typography 
-              variant="body2" 
-              sx={{
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
-                color: theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.7)' 
-                  : 'rgba(0, 0, 0, 0.7)'
-              }}
-            >
-              {photos[activeSlide].description}
-            </Typography>
+        />
+      ) : (
+        <Box sx={{ 
+          position: 'relative',
+          height: '100%',
+          width: '100%',
+          zIndex: 2
+        }}>
+          {barPosition === 'full-left' ? (
+            <Box sx={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '32px',
+              bgcolor: 'transparent'
+            }}>
+              <Box sx={{
+                width: 'calc(100% - 64px)',
+                height: '100%',
+                position: 'relative',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 32px rgba(0,0,0,0.5)'
+                  : '0 8px 32px rgba(0,0,0,0.25)',
+                bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#ffffff',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}>
+                <PageContent 
+                  content={page.content} 
+                  isFullscreenSlideshow={page.is_fullscreen_slideshow}
+                  photos={photos}
+                  onSlideChange={setActiveSlide}
+                />
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ 
+              height: '100%',
+              width: '100%',
+              position: 'relative'
+            }}>
+              <PageContent 
+                content={page.content} 
+                isFullscreenSlideshow={page.is_fullscreen_slideshow}
+                photos={photos}
+                onSlideChange={setActiveSlide}
+              />
+            </Box>
           )}
         </Box>
       )}

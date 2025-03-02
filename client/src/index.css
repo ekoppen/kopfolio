@@ -1,0 +1,160 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  position: relative;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Quill editor styling */
+.ql-editor {
+  min-height: 200px;
+  font-size: 16px;
+}
+
+.ql-toolbar {
+  background-color: #f8f8f8;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.ql-container {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+/* Dark mode styling for Quill */
+.dark-mode .ql-toolbar {
+  background-color: #333;
+  border-color: #555;
+}
+
+.dark-mode .ql-container {
+  border-color: #555;
+}
+
+.dark-mode .ql-editor {
+  color: #eee;
+}
+
+.dark-mode .ql-picker {
+  color: #eee;
+}
+
+.dark-mode .ql-stroke {
+  stroke: #eee;
+}
+
+.dark-mode .ql-fill {
+  fill: #eee;
+}
+
+.dark-mode .ql-picker-options {
+  background-color: #333;
+}
+
+.dark-mode .ql-picker-item {
+  color: #eee;
+}
+
+/* Algemene stijlen */
+a {
+  text-decoration: none;
+}
+
+/* Animaties */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Zorg ervoor dat de achtergrondkleur altijd zichtbaar is */
+html, body, #root {
+  position: relative;
+}
+
+/* Dark mode specifieke stijlen */
+.dark-mode html, 
+.dark-mode body, 
+.dark-mode #root {
+  color: rgba(255, 255, 255, 0.87);
+}
+
+/* Zorg ervoor dat de achtergrondkleur ook zichtbaar is in de Layout component */
+.MuiBox-root, .MuiContainer-root, .MuiAppBar-root {
+  background-color: transparent !important;
+}
+
+/* Voeg extra stijlen toe om ervoor te zorgen dat de achtergrondkleur zichtbaar is */
+.MuiPaper-root {
+  background-color: transparent !important;
+}
+
+/* Zorg ervoor dat navigatieknoppen altijd klikbaar zijn */
+.MuiIconButton-root, .MuiButton-root {
+  position: relative;
+  z-index: 2000 !important;
+  pointer-events: auto !important;
+}
+
+/* Zorg ervoor dat de navigatieknoppen een duidelijke achtergrond hebben bij hover */
+.MuiIconButton-root:hover, .MuiButton-root:hover {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark-mode .MuiIconButton-root:hover, .dark-mode .MuiButton-root:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Zorg ervoor dat alle menu-items en navigatie-elementen klikbaar zijn */
+.MuiAppBar-root, .MuiToolbar-root, .MuiStack-root {
+  z-index: 2000 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+/* Zorg ervoor dat alle links en knoppen klikbaar zijn */
+a, button, .MuiButtonBase-root {
+  position: relative;
+  z-index: 2000 !important;
+  pointer-events: auto !important;
+}
+
+/* Zorg ervoor dat RouterLink elementen altijd klikbaar zijn */
+a[href], a[href]:visited, a[href]:hover, a[href]:active {
+  position: relative;
+  z-index: 2000 !important;
+  pointer-events: auto !important;
+} 

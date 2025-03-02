@@ -48,7 +48,8 @@ export const getSettings = async (req, res) => {
               subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
               menu_font_size, content_font_size, footer_font, footer_size, footer_color,
               logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
-              logo_shadow_color, logo_shadow_opacity, background_color
+              logo_shadow_color, logo_shadow_opacity, background_color, background_opacity,
+              use_dynamic_background_color
        FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
@@ -97,8 +98,13 @@ export const updateSettings = async (req, res) => {
       logo_shadow_blur,
       logo_shadow_color,
       logo_shadow_opacity,
-      background_color
+      background_color,
+      background_opacity,
+      use_dynamic_background_color
     } = req.body;
+
+    console.log('Ontvangen instellingen in server controller:', req.body);
+    console.log('use_dynamic_background_color waarde:', use_dynamic_background_color);
 
     // Parse numerieke waarden
     const parsedValues = {
@@ -120,87 +126,66 @@ export const updateSettings = async (req, res) => {
       logo_shadow_x: logo_shadow_x !== undefined ? Number(logo_shadow_x) : undefined,
       logo_shadow_y: logo_shadow_y !== undefined ? Number(logo_shadow_y) : undefined,
       logo_shadow_blur: logo_shadow_blur !== undefined ? Number(logo_shadow_blur) : undefined,
-      logo_shadow_opacity: logo_shadow_opacity !== undefined ? Number(logo_shadow_opacity) : undefined
+      logo_shadow_opacity: logo_shadow_opacity !== undefined ? Number(logo_shadow_opacity) : undefined,
+      background_opacity: background_opacity !== undefined ? Number(background_opacity) : undefined
     };
 
-    let query = `
-      UPDATE settings 
-      SET site_title = COALESCE($1, site_title),
-          site_subtitle = COALESCE($2, site_subtitle),
-          subtitle_font = COALESCE($3, subtitle_font),
-          subtitle_size = COALESCE($4, subtitle_size),
-          subtitle_color = COALESCE($5, subtitle_color),
-          accent_color = COALESCE($6, accent_color),
-          font = COALESCE($7, font),
-          logo_position = COALESCE($8, logo_position),
-          logo_margin_top = COALESCE($9, logo_margin_top),
-          logo_margin_left = COALESCE($10, logo_margin_left),
-          subtitle_margin_top = COALESCE($11, subtitle_margin_top),
-          subtitle_margin_left = COALESCE($12, subtitle_margin_left),
-          footer_text = COALESCE($13, footer_text),
-          sidebar_pattern = COALESCE($14, sidebar_pattern),
-          pattern_opacity = COALESCE($15, pattern_opacity),
-          pattern_scale = COALESCE($16, pattern_scale),
-          pattern_color = COALESCE($17, pattern_color),
-          logo_size = COALESCE($18, logo_size),
-          subtitle_shadow_enabled = COALESCE($19, subtitle_shadow_enabled),
-          subtitle_shadow_x = COALESCE($20, subtitle_shadow_x),
-          subtitle_shadow_y = COALESCE($21, subtitle_shadow_y),
-          subtitle_shadow_blur = COALESCE($22, subtitle_shadow_blur),
-          subtitle_shadow_color = COALESCE($23, subtitle_shadow_color),
-          subtitle_shadow_opacity = COALESCE($24, subtitle_shadow_opacity),
-          menu_font_size = COALESCE($25, menu_font_size),
-          content_font_size = COALESCE($26, content_font_size),
-          footer_font = COALESCE($27, footer_font),
-          footer_size = COALESCE($28, footer_size),
-          footer_color = COALESCE($29, footer_color),
-          logo_shadow_enabled = COALESCE($30, logo_shadow_enabled),
-          logo_shadow_x = COALESCE($31, logo_shadow_x),
-          logo_shadow_y = COALESCE($32, logo_shadow_y),
-          logo_shadow_blur = COALESCE($33, logo_shadow_blur),
-          logo_shadow_color = COALESCE($34, logo_shadow_color),
-          logo_shadow_opacity = COALESCE($35, logo_shadow_opacity),
-          background_color = COALESCE($36, background_color)
-    `;
+    // Bouw de query op met alleen de velden die zijn meegegeven
+    let query = 'UPDATE settings SET';
+    const values = [];
+    let paramCount = 1;
 
-    const values = [
-      site_title,
-      site_subtitle,
-      subtitle_font,
-      parsedValues.subtitle_size,
-      subtitle_color,
-      accent_color,
-      font,
-      logo_position,
-      parsedValues.logo_margin_top,
-      parsedValues.logo_margin_left,
-      parsedValues.subtitle_margin_top,
-      parsedValues.subtitle_margin_left,
-      footer_text,
-      sidebar_pattern,
-      parsedValues.pattern_opacity,
-      parsedValues.pattern_scale,
-      pattern_color,
-      parsedValues.logo_size,
-      subtitle_shadow_enabled,
-      parsedValues.subtitle_shadow_x,
-      parsedValues.subtitle_shadow_y,
-      parsedValues.subtitle_shadow_blur,
-      subtitle_shadow_color,
-      parsedValues.subtitle_shadow_opacity,
-      parsedValues.menu_font_size,
-      parsedValues.content_font_size,
-      footer_font,
-      parsedValues.footer_size,
-      footer_color,
-      logo_shadow_enabled,
-      parsedValues.logo_shadow_x,
-      parsedValues.logo_shadow_y,
-      parsedValues.logo_shadow_blur,
-      logo_shadow_color,
-      parsedValues.logo_shadow_opacity,
-      background_color
-    ];
+    // Functie om een veld toe te voegen aan de query
+    const addField = (field, value, parser = null) => {
+      if (value !== undefined) {
+        if (paramCount > 1) query += ',';
+        query += ` ${field} = $${paramCount}`;
+        values.push(parser ? parser(value) : value);
+        paramCount++;
+        return true;
+      }
+      return false;
+    };
+
+    // Voeg alle velden toe aan de query
+    addField('site_title', site_title);
+    addField('site_subtitle', site_subtitle);
+    addField('subtitle_font', subtitle_font);
+    addField('subtitle_size', parsedValues.subtitle_size);
+    addField('subtitle_color', subtitle_color);
+    addField('accent_color', accent_color);
+    addField('font', font);
+    addField('logo_position', logo_position);
+    addField('logo_margin_top', parsedValues.logo_margin_top);
+    addField('logo_margin_left', parsedValues.logo_margin_left);
+    addField('subtitle_margin_top', parsedValues.subtitle_margin_top);
+    addField('subtitle_margin_left', parsedValues.subtitle_margin_left);
+    addField('footer_text', footer_text);
+    addField('sidebar_pattern', sidebar_pattern);
+    addField('pattern_opacity', parsedValues.pattern_opacity);
+    addField('pattern_scale', parsedValues.pattern_scale);
+    addField('pattern_color', pattern_color);
+    addField('logo_size', parsedValues.logo_size);
+    addField('subtitle_shadow_enabled', subtitle_shadow_enabled);
+    addField('subtitle_shadow_x', parsedValues.subtitle_shadow_x);
+    addField('subtitle_shadow_y', parsedValues.subtitle_shadow_y);
+    addField('subtitle_shadow_blur', parsedValues.subtitle_shadow_blur);
+    addField('subtitle_shadow_color', subtitle_shadow_color);
+    addField('subtitle_shadow_opacity', parsedValues.subtitle_shadow_opacity);
+    addField('menu_font_size', parsedValues.menu_font_size);
+    addField('content_font_size', parsedValues.content_font_size);
+    addField('footer_font', footer_font);
+    addField('footer_size', parsedValues.footer_size);
+    addField('footer_color', footer_color);
+    addField('logo_shadow_enabled', logo_shadow_enabled);
+    addField('logo_shadow_x', parsedValues.logo_shadow_x);
+    addField('logo_shadow_y', parsedValues.logo_shadow_y);
+    addField('logo_shadow_blur', parsedValues.logo_shadow_blur);
+    addField('logo_shadow_color', logo_shadow_color);
+    addField('logo_shadow_opacity', parsedValues.logo_shadow_opacity);
+    addField('background_color', background_color);
+    addField('background_opacity', parsedValues.background_opacity);
+    addField('use_dynamic_background_color', use_dynamic_background_color);
 
     // Als er een logo is geüpload
     if (req.files && req.files.logo) {
@@ -230,8 +215,9 @@ export const updateSettings = async (req, res) => {
         await logoFile.mv(filepath);
         
         // Update de query om het nieuwe logo op te slaan
-        query += ', logo = $37';
+        query += ', logo = $' + paramCount;
         values.push(filename);
+        paramCount++;
 
         // Verwijder het oude logo bestand als het bestaat
         const oldResult = await pool.query('SELECT logo FROM settings WHERE id = 1');

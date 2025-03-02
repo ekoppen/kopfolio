@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Paper, Typography, Slider, TextField, FormControl, InputLabel, Select, MenuItem, useTheme } from '@mui/material';
 
 const PatternPicker = ({
@@ -14,6 +14,38 @@ const PatternPicker = ({
 }) => {
   const theme = useTheme();
   const selectedPatternObj = patterns.find(p => p.value === selectedPattern);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('PatternPicker props:', {
+      selectedPattern,
+      patternOpacity,
+      patternScale,
+      patternColor,
+      patternsCount: patterns.length
+    });
+  }, [selectedPattern, patternOpacity, patternScale, patternColor, patterns]);
+
+  // Handler functies met extra logging
+  const handlePatternChange = (value) => {
+    console.log('Pattern gewijzigd naar:', value);
+    onPatternChange(value);
+  };
+  
+  const handleOpacityChange = (value) => {
+    console.log('Opacity gewijzigd naar:', value);
+    onOpacityChange(value);
+  };
+  
+  const handleScaleChange = (value) => {
+    console.log('Scale gewijzigd naar:', value);
+    onScaleChange(value);
+  };
+  
+  const handleColorChange = (value) => {
+    console.log('Color gewijzigd naar:', value);
+    onColorChange(value);
+  };
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -21,7 +53,7 @@ const PatternPicker = ({
         <InputLabel>Achtergrondpatroon</InputLabel>
         <Select
           value={selectedPattern}
-          onChange={(e) => onPatternChange(e.target.value)}
+          onChange={(e) => handlePatternChange(e.target.value)}
           label="Achtergrondpatroon"
         >
           {patterns.map((pattern) => (
@@ -100,7 +132,7 @@ const PatternPicker = ({
                 type="color"
                 size="small"
                 value={patternColor}
-                onChange={(e) => onColorChange(e.target.value)}
+                onChange={(e) => handleColorChange(e.target.value)}
                 sx={{
                   width: 150,
                   '& input': { 
@@ -122,7 +154,7 @@ const PatternPicker = ({
                   min={0.1}
                   max={5}
                   step={0.1}
-                  onChange={(e, value) => onScaleChange(value)}
+                  onChange={(e, value) => handleScaleChange(value)}
                   marks={[
                     { value: 0.1, label: 'Klein' },
                     { value: 1, label: 'Normaal' },
@@ -153,7 +185,7 @@ const PatternPicker = ({
                   min={0.01}
                   max={0.8}
                   step={0.01}
-                  onChange={(e, value) => onOpacityChange(value)}
+                  onChange={(e, value) => handleOpacityChange(value)}
                   marks={[
                     { value: 0.01, label: '1%' },
                     { value: 0.4, label: '40%' },

@@ -418,9 +418,22 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
   }
 };
 
-const BlockEditor = ({ block, onChange, onDelete }) => {
+const BlockEditor = ({ block, onChange, onDelete, albums }) => {
   const theme = useTheme();
-  
+  const [showSettings, setShowSettings] = useState(false);
+
+  const handleSettingChange = (setting, value) => {
+    onChange({
+      ...block,
+      settings: { ...block.settings, [setting]: value }
+    });
+
+    // Stuur een event om de slideshow instellingen bij te werken als dit een slideshow is
+    if (block.type === 'slideshow') {
+      window.dispatchEvent(new CustomEvent('slideshowSettingsUpdated'));
+    }
+  };
+
   return (
     <Box sx={{
       position: 'relative',
@@ -571,6 +584,57 @@ const BlockEditor = ({ block, onChange, onDelete }) => {
               }
             }}
           />
+          
+          {block.type === 'slideshow' && (
+            <FormControlLabel
+              control={
+                <Switch 
+                  checked={block.settings?.show_info || false}
+                  onChange={(e) => handleSettingChange('show_info', e.target.checked)}
+                  sx={{
+                    '& .MuiSwitch-switchBase': {
+                      color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : undefined,
+                      '&.Mui-checked': {
+                        color: theme.palette.primary.main,
+                        '& + .MuiSwitch-track': {
+                          backgroundColor: theme.palette.mode === 'dark' 
+                            ? theme.palette.primary.dark
+                            : theme.palette.primary.main,
+                          opacity: 0.5
+                        }
+                      }
+                    },
+                    '& .MuiSwitch-track': {
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.2)' 
+                        : 'rgba(0, 0, 0, 0.1)'
+                    },
+                    '& .MuiSwitch-thumb': {
+                      boxShadow: theme.palette.mode === 'dark'
+                        ? '0 2px 4px rgba(0,0,0,0.5)'
+                        : undefined
+                    }
+                  }}
+                />
+              }
+              label={
+                <Typography sx={{ 
+                  color: theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.9)' 
+                    : 'inherit',
+                  fontSize: '0.9rem'
+                }}>
+                  Toon foto informatie
+                </Typography>
+              }
+              sx={{
+                '& .MuiFormControlLabel-label': {
+                  fontSize: '0.9rem',
+                  fontWeight: 400
+                }
+              }}
+            />
+          )}
         </FormGroup>
       </Box>
     </Box>
@@ -832,6 +896,7 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
                         block={block}
                         onChange={updateBlock}
                         onDelete={() => deleteBlock(block.id)}
+                        albums={albums}
                       />
                       </Box>
                     )}

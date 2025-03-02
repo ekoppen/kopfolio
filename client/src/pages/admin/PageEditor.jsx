@@ -214,6 +214,9 @@ const PageEditor = () => {
         response = await api.post('/pages', pageData);
       }
 
+      // Stuur een event om de slideshow instellingen bij te werken
+      window.dispatchEvent(new CustomEvent('slideshowSettingsUpdated'));
+
       console.log('Server response:', response.data);
       showToast(id ? 'Pagina succesvol bijgewerkt' : 'Pagina succesvol aangemaakt', 'success');
       navigate('/admin/paginas');
@@ -348,30 +351,120 @@ const PageEditor = () => {
               onChange={handleChange}
               required
             />
-            <TextField
-              fullWidth
-              label="URL slug"
-              name="slug"
-              value={page.slug}
-              onChange={handleChange}
-              required
-              helperText="Bijvoorbeeld: over-ons"
-            />
+            {!['home', 'contact'].includes(page.slug) && (
+              <TextField
+                fullWidth
+                label="Slug"
+                name="slug"
+                value={page.slug}
+                onChange={handleChange}
+                required
+                disabled={!isNew}
+                helperText={isNew ? "URL-vriendelijke naam (alleen kleine letters, cijfers en streepjes)" : "Slug kan niet worden gewijzigd"}
+              />
+            )}
           </Box>
-          <TextField
-            fullWidth
-            label="Beschrijving"
-            name="description"
-            value={page.description}
-            onChange={handleChange}
-            multiline
-            rows={2}
-            sx={{ mb: 2 }}
-          />
 
-          <Divider sx={{ my: 3 }} />
+          {/* Achtergrond instellingen */}
+          <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+            Achtergrond Instellingen
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <TextField
+                label="Achtergrondkleur"
+                type="color"
+                value={page.settings?.background_color || '#ffffff'}
+                onChange={(e) => setPage(prev => ({
+                  ...prev,
+                  settings: {
+                    ...prev.settings,
+                    background_color: e.target.value
+                  }
+                }))}
+                sx={{ width: '120px' }}
+              />
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                Achtergrondkleur
+              </Typography>
+              
+              <TextField
+                label="Transparantie"
+                type="number"
+                value={page.settings?.background_opacity !== undefined ? page.settings.background_opacity : 1}
+                onChange={(e) => setPage(prev => ({
+                  ...prev,
+                  settings: {
+                    ...prev.settings,
+                    background_opacity: parseFloat(e.target.value)
+                  }
+                }))}
+                inputProps={{ min: 0, max: 1, step: 0.1 }}
+                sx={{ width: '120px', ml: 2 }}
+              />
+            </Box>
+            
+            <FormControl fullWidth>
+              <InputLabel>Achtergrond Patroon</InputLabel>
+              <Select
+                value={page.settings?.pattern || ''}
+                onChange={(e) => setPage(prev => ({
+                  ...prev,
+                  settings: {
+                    ...prev.settings,
+                    pattern: e.target.value
+                  }
+                }))}
+                label="Achtergrond Patroon"
+              >
+                <MenuItem value="">
+                  <em>Geen patroon</em>
+                </MenuItem>
+                <MenuItem value="pattern1.png">Patroon 1</MenuItem>
+                <MenuItem value="pattern2.png">Patroon 2</MenuItem>
+                <MenuItem value="pattern3.png">Patroon 3</MenuItem>
+                <MenuItem value="pattern4.png">Patroon 4</MenuItem>
+                <MenuItem value="pattern5.png">Patroon 5</MenuItem>
+              </Select>
+            </FormControl>
+            
+            {page.settings?.pattern && (
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <TextField
+                  label="Patroon Schaal"
+                  type="number"
+                  value={page.settings?.pattern_scale || 200}
+                  onChange={(e) => setPage(prev => ({
+                    ...prev,
+                    settings: {
+                      ...prev.settings,
+                      pattern_scale: parseInt(e.target.value)
+                    }
+                  }))}
+                  inputProps={{ min: 50, max: 500, step: 10 }}
+                  sx={{ width: '120px' }}
+                />
+                
+                <TextField
+                  label="Patroon Transparantie"
+                  type="number"
+                  value={page.settings?.pattern_opacity !== undefined ? page.settings.pattern_opacity : 1}
+                  onChange={(e) => setPage(prev => ({
+                    ...prev,
+                    settings: {
+                      ...prev.settings,
+                      pattern_opacity: parseFloat(e.target.value)
+                    }
+                  }))}
+                  inputProps={{ min: 0, max: 1, step: 0.1 }}
+                  sx={{ width: '120px', ml: 2 }}
+                />
+              </Box>
+            )}
+          </Box>
           
-          {page.slug !== 'home' && (
+          {/* Bestaande menu instellingen */}
+          {!['home', 'contact'].includes(page.slug) && (
             <>
               <Typography variant="subtitle1" gutterBottom>
                 Menu instellingen

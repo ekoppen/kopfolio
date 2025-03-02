@@ -160,9 +160,18 @@ const Layout = () => {
     const newPosition = !isExpanded ? 'full-left' : 'top';
     setIsExpanded(!isExpanded);
     localStorage.setItem('appBarPosition', newPosition);
+    
+    // Verstuur een event om alle componenten te informeren over de wijziging
+    window.dispatchEvent(new CustomEvent('barPositionChanged', { 
+      detail: { position: newPosition } 
+    }));
+    
+    // Update ook de settings context
     window.dispatchEvent(new CustomEvent('settingsUpdated', { 
       detail: { logo_position: newPosition } 
     }));
+    
+    console.log('Layout: Bar position changed to:', newPosition);
   };
   
   // Bepaal de tekstkleur op basis van de achtergrond in full-left modus
@@ -257,13 +266,17 @@ const Layout = () => {
         onMouseLeave={() => setIsHovered(false)}
         sx={{
           position: 'relative',
-          width: '100%'
+          width: '100%',
+          zIndex: 200
         }}
       >
         <Button
           component={page.is_parent_only ? 'button' : RouterLink}
           to={page.is_parent_only ? undefined : page.slug === 'home' ? '/' : `/${page.parent_id ? `${page.parent_slug}/${page.slug}` : page.slug}`}
-          onClick={handleClick}
+          onClick={(e) => {
+            console.log('Button clicked', page.title, 'is_parent_only:', page.is_parent_only, 'hasChildren:', hasChildren);
+            handleClick(e);
+          }}
           sx={{
             width: '100%',
             justifyContent: 'flex-start',
@@ -277,8 +290,11 @@ const Layout = () => {
             fontSize: `${settings?.menu_font_size || 16}px`,
             fontWeight: isActive || hasActiveChild ? 500 : 400,
             '&:hover': {
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-            }
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'
+            },
+            position: 'relative',
+            zIndex: 2000,
+            pointerEvents: 'auto'
           }}
         >
           {page.title}
@@ -296,7 +312,7 @@ const Layout = () => {
             left: barPosition === 'full-left' ? 0 : level === 0 ? 0 : '100%',
             width: '100%',
             minWidth: 200,
-            zIndex: barPosition === 'full-left' ? 1 : 1900,
+            zIndex: barPosition === 'full-left' ? 100 : 200,
             bgcolor: theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.95)' : 'rgba(255, 255, 255, 0.95)',
             borderRadius: barPosition === 'full-left' ? 0 : 1,
             boxShadow: barPosition === 'full-left' ? 'none' : theme.shadows[8],
@@ -411,7 +427,7 @@ const Layout = () => {
           bgcolor: barPosition === 'full-left' ? 'transparent' : theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.85)' : 'rgba(255, 255, 255, 0.85)',
           borderBottom: barPosition !== 'full-left' ? 'none' : 'none',
           backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
-          zIndex: barPosition === 'full-left' ? 200 : 1800,
+          zIndex: barPosition === 'full-left' ? 100 : 200,
           width: barPosition === 'full-left' ? '280px' : '100%',
           height: barPosition === 'full-left' ? '100vh' : 'auto',
           display: 'flex',
@@ -481,7 +497,9 @@ const Layout = () => {
             flex: 1,
             width: '100%',
             height: barPosition === 'full-left' ? 'calc(100vh - 200px)' : '100%',
-            ml: barPosition === 'full-left' ? 0 : 'auto'
+            ml: barPosition === 'full-left' ? 0 : 'auto',
+            position: 'relative',
+            zIndex: 100
           }}>
             {/* Menu Items */}
             <DndContext
@@ -504,7 +522,9 @@ const Layout = () => {
                   mt: barPosition === 'full-left' ? 4 : 0,
                   mr: barPosition === 'full-left' ? 0 : 2,
                   width: '100%',
-                  overflow: barPosition === 'full-left' ? 'auto' : 'visible'
+                  overflow: barPosition === 'full-left' ? 'auto' : 'visible',
+                  position: 'relative',
+                  zIndex: 100
                 }}>
                   {pages
                     .filter(page => !page.parent_id)
