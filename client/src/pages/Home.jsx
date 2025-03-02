@@ -204,13 +204,13 @@ const Home = () => {
             if (prevDominantColorRef.current !== dominantColor) {
               console.log('Dominante kleur uit foto gewijzigd van', prevDominantColorRef.current, 'naar', dominantColor);
               
+              // Update de referentie naar de huidige dominante kleur
+              prevDominantColorRef.current = dominantColor;
+              
               // Update de achtergrondkleur in de settings
               updateSettingsLocally({
                 background_color: dominantColor
               });
-              
-              // Sla de nieuwe kleur op in de ref
-              prevDominantColorRef.current = dominantColor;
             }
           }
         } catch (error) {
@@ -220,7 +220,7 @@ const Home = () => {
     };
     
     updateBackgroundColor();
-  }, [activeSlide, photos, settings?.use_dynamic_background_color, updateSettingsLocally]);
+  }, [activeSlide, photos, settings?.use_dynamic_background_color]);
 
   return (
     <Box sx={{ 

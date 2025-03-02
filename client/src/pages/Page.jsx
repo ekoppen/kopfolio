@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Typography, 
@@ -122,6 +122,8 @@ const Page = () => {
     const savedPosition = localStorage.getItem('appBarPosition');
     return savedPosition || 'top';
   });
+  // Referentie voor het bijhouden van de vorige dominante kleur
+  const prevDominantColorRef = useRef(null);
 
   // Preload images voor betere performance
   const preloadImages = (imageUrls) => {
@@ -209,10 +211,16 @@ const Page = () => {
             
             console.log('Dominante kleur uit foto (Page):', dominantColor);
             
-            // Update de achtergrondkleur in de settings
-            updateSettingsLocally({
-              background_color: dominantColor
-            });
+            // Alleen updaten als de kleur is veranderd
+            if (prevDominantColorRef.current !== dominantColor) {
+              // Update de referentie naar de huidige dominante kleur
+              prevDominantColorRef.current = dominantColor;
+              
+              // Update de achtergrondkleur in de settings
+              updateSettingsLocally({
+                background_color: dominantColor
+              });
+            }
           }
         } catch (error) {
           console.error('Fout bij ophalen dominante kleur:', error);
@@ -221,7 +229,7 @@ const Page = () => {
     };
     
     updateBackgroundColor();
-  }, [activeSlide, photos, settings?.use_dynamic_background_color, updateSettingsLocally, page?.is_fullscreen_slideshow]);
+  }, [activeSlide, photos, settings?.use_dynamic_background_color, page?.is_fullscreen_slideshow]);
 
   const handleSave = async (content) => {
     try {

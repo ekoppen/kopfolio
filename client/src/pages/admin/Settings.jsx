@@ -29,7 +29,8 @@ import {
   FormatSize as FormatSizeIcon,
   FontDownload as FontDownloadIcon,
   People as PeopleIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../utils/api';
@@ -39,6 +40,7 @@ import FontUploader from '../../components/FontUploader';
 import { useSettings } from '../../contexts/SettingsContext';
 import UserManagement from '../../components/UserManagement';
 import EmailSettings from '../../components/EmailSettings';
+import ColorPicker from '../../components/ColorPicker';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;
@@ -66,6 +68,7 @@ const Settings = () => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [useDynamicBackgroundColor, setUseDynamicBackgroundColor] = useState(
     settings?.use_dynamic_background_color || false
   );
@@ -205,685 +208,493 @@ const Settings = () => {
     }
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Instellingen
-      </Typography>
-      
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Algemene Instellingen
-        </Typography>
+    <Box sx={{ 
+      p: 2, 
+      maxWidth: '100%',
+      marginLeft: 0,
+      transition: 'margin-left 0.3s',
+      marginTop: '64px'
+    }}>
+      <Container maxWidth="lg">
+        <Typography variant="h4" gutterBottom>Instellingen</Typography>
         
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Site Titel"
-              value={settings.site_title}
-              onChange={(e) => handleChange('site_title', e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Footer Tekst"
-              value={settings.footer_text}
-              onChange={(e) => handleChange('footer_text', e.target.value)}
-              helperText="Bijvoorbeeld: © 2024 Jouw Naam"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="color"
-              label="Accent Kleur"
-              value={settings.accent_color || '#000000'}
-              onChange={(e) => handleChange('accent_color', e.target.value)}
-              sx={{
-                '& .MuiInputBase-root': { height: 56 },
-                '& input': { 
-                  cursor: 'pointer',
-                  height: '100%'
-                }
-              }}
-              helperText="De hoofdkleur van de website (knoppen, links, etc.)"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" gutterBottom>Subtitel</Typography>
-            <Grid container spacing={2}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab icon={<SettingsIcon />} label="Algemeen" />
+            <Tab icon={<ImageIcon />} label="Logo" />
+            <Tab icon={<PaletteIcon />} label="Achtergrond" />
+            <Tab icon={<TextFieldsIcon />} label="Typografie" />
+            <Tab icon={<FormatSizeIcon />} label="Menu" />
+            <Tab icon={<PeopleIcon />} label="Gebruikers" />
+            <Tab icon={<EmailIcon />} label="E-mail" />
+          </Tabs>
+        </Box>
+        
+        {/* Opslaan knop */}
+        <Box sx={{ 
+          position: 'fixed',
+          top: 76,
+          right: 24,
+          zIndex: 1100,
+        }}>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving}
+            sx={{
+              boxShadow: theme.palette.mode === 'dark'
+                ? '0 2px 12px rgba(0,0,0,0.5)'
+                : '0 2px 12px rgba(0,0,0,0.1)'
+            }}
+          >
+            {saving ? 'Opslaan...' : 'Opslaan'}
+          </Button>
+        </Box>
+
+        {/* Algemene Instellingen */}
+        <TabPanel value={activeTab} index={0}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+            <Typography variant="h6" gutterBottom>Algemene Instellingen</Typography>
+            <Divider sx={{ mb: 3 }} />
+            
+            <Grid container spacing={3}>
               <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Website Titel</Typography>
                 <TextField
                   fullWidth
-                  label="Subtitel"
-                  value={settings.site_subtitle || ''}
-                  onChange={(e) => handleChange('site_subtitle', e.target.value)}
+                  label="Website Titel"
+                  value={settings.site_title || ''}
+                  onChange={(e) => handleChange('site_title', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FontPicker
-                  value={settings.subtitle_font || 'system-ui'}
-                  onChange={(value) => handleChange('subtitle_font', value)}
-                  label="Subtitel Lettertype"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  type="color"
-                  label="Tekstkleur"
-                  value={settings.subtitle_color || '#000000'}
-                  onChange={(e) => handleChange('subtitle_color', e.target.value)}
-                  sx={{
-                    '& .MuiInputBase-root': { height: 56 },
-                    '& input': { 
-                      cursor: 'pointer',
-                      height: '100%'
-                    }
-                  }}
-                />
-              </Grid>
-            </Grid>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>Subtitel Schaduw</Typography>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings.subtitle_shadow_enabled || false}
-                    onChange={(e) => handleChange('subtitle_shadow_enabled', e.target.checked)}
-                  />
-                }
-                label="Schaduw inschakelen"
-              />
-              {settings.subtitle_shadow_enabled && (
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="X Offset"
-                      value={settings.subtitle_shadow_x || 0}
-                      onChange={(e) => handleChange('subtitle_shadow_x', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Y Offset"
-                      value={settings.subtitle_shadow_y || 0}
-                      onChange={(e) => handleChange('subtitle_shadow_y', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Blur"
-                      value={settings.subtitle_shadow_blur || 0}
-                      onChange={(e) => handleChange('subtitle_shadow_blur', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Spread"
-                      value={settings.subtitle_shadow_spread || 0}
-                      onChange={(e) => handleChange('subtitle_shadow_spread', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Transparantie"
-                      value={settings.subtitle_shadow_opacity || 0.2}
-                      onChange={(e) => handleChange('subtitle_shadow_opacity', e.target.value)}
-                      inputProps={{ step: 0.1, min: 0, max: 1 }}
-                    />
-                  </Grid>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Subtitel</Typography>
+                <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
-                      type="color"
-                      label="Schaduw Kleur"
-                      value={settings.subtitle_shadow_color || '#000000'}
-                      onChange={(e) => handleChange('subtitle_shadow_color', e.target.value)}
-                      sx={{
-                        '& .MuiInputBase-root': { height: 56 },
-                        '& input': { 
-                          cursor: 'pointer',
-                          height: '100%'
-                        }
-                      }}
+                      label="Subtitel"
+                      value={settings.site_subtitle || ''}
+                      onChange={(e) => handleChange('site_subtitle', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FontPicker
+                      value={settings.subtitle_font || 'system-ui'}
+                      onChange={(value) => handleChange('subtitle_font', value)}
+                      label="Subtitel Lettertype"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <ColorPicker
+                      label="Tekstkleur"
+                      value={settings.subtitle_color || '#000000'}
+                      onChange={(value) => handleChange('subtitle_color', value)}
                     />
                   </Grid>
                 </Grid>
-              )}
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            {/* Verwijder de dynamische achtergrondkleur instelling van hier */}
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Opslaan knop */}
-      <Box sx={{ 
-        position: 'fixed',
-        top: 76,
-        right: 24,
-        zIndex: 1100,
-      }}>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving}
-          sx={{
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 2px 12px rgba(0,0,0,0.5)'
-              : '0 2px 12px rgba(0,0,0,0.1)'
-          }}
-        >
-          {saving ? 'Opslaan...' : 'Opslaan'}
-        </Button>
-      </Box>
-
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', pt: 7, mb: 2 }}>
-        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
-          <Tab icon={<TextFieldsIcon />} label="Algemeen" />
-          <Tab icon={<ImageIcon />} label="Logo" />
-          <Tab icon={<PaletteIcon />} label="Achtergrond" />
-          <Tab icon={<FormatSizeIcon />} label="Typografie" />
-          <Tab icon={<PeopleIcon />} label="Gebruikers" />
-          <Tab icon={<EmailIcon />} label="E-mail" />
-        </Tabs>
-      </Box>
-
-      {/* Algemene Instellingen */}
-      <TabPanel value={activeTab} index={0}>
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Subtitel</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Subtitel"
-                    value={settings.site_subtitle || ''}
-                    onChange={(e) => handleChange('site_subtitle', e.target.value)}
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>Subtitel Schaduw</Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.subtitle_shadow_enabled || false}
+                        onChange={(e) => handleChange('subtitle_shadow_enabled', e.target.checked)}
+                      />
+                    }
+                    label="Schaduw inschakelen"
                   />
+                  {settings.subtitle_shadow_enabled && (
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                      <Grid item xs={6} sm={3}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="X Offset"
+                          value={settings.subtitle_shadow_x || 0}
+                          onChange={(e) => handleChange('subtitle_shadow_x', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Y Offset"
+                          value={settings.subtitle_shadow_y || 0}
+                          onChange={(e) => handleChange('subtitle_shadow_y', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Blur"
+                          value={settings.subtitle_shadow_blur || 0}
+                          onChange={(e) => handleChange('subtitle_shadow_blur', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Spread"
+                          value={settings.subtitle_shadow_spread || 0}
+                          onChange={(e) => handleChange('subtitle_shadow_spread', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Transparantie"
+                          value={settings.subtitle_shadow_opacity || 0.2}
+                          onChange={(e) => handleChange('subtitle_shadow_opacity', e.target.value)}
+                          inputProps={{ step: 0.1, min: 0, max: 1 }}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <ColorPicker
+                          label="Schaduw Kleur"
+                          value={settings.subtitle_shadow_color || '#000000'}
+                          onChange={(value) => handleChange('subtitle_shadow_color', value)}
+                        />
+                      </Grid>
+                    </Grid>
+                  )}
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Accentkleur</Typography>
+                <ColorPicker
+                  label="Accentkleur"
+                  value={settings.accent_color || '#1976d2'}
+                  onChange={(value) => handleChange('accent_color', value)}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Footer</Typography>
+                <TextField
+                  fullWidth
+                  label="Footer Tekst"
+                  value={settings.footer_text || ''}
+                  onChange={(e) => handleChange('footer_text', e.target.value)}
+                />
+              </Grid>
+            </Grid>
+          </Paper>
+        </TabPanel>
+
+        {/* Logo Instellingen */}
+        <TabPanel value={activeTab} index={1}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+            <Typography variant="h6" gutterBottom>Logo Instellingen</Typography>
+            <Divider sx={{ mb: 3 }} />
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  p: 3,
+                  border: '1px dashed',
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.700' : 'grey.300',
+                  borderRadius: 2,
+                  minHeight: 200
+                }}>
+                  {logoPreview ? (
+                    <Box sx={{ position: 'relative', width: '100%', textAlign: 'center' }}>
+                      <img 
+                        src={logoPreview} 
+                        alt="Logo Preview" 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: 150,
+                          objectFit: 'contain'
+                        }} 
+                      />
+                      <IconButton 
+                        sx={{ 
+                          position: 'absolute', 
+                          top: -12, 
+                          right: -12,
+                          bgcolor: theme.palette.background.paper,
+                          boxShadow: 1
+                        }}
+                        onClick={() => {
+                          handleChange('logo', null);
+                          setLogoPreview(null);
+                        }}
+                      >
+                        <UploadIcon />
+                      </IconButton>
+                    </Box>
+                  ) : (
+                    <>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        Sleep een afbeelding hierheen of klik om te uploaden
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<UploadIcon />}
+                        disabled={loading}
+                      >
+                        Logo Uploaden
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                        />
+                      </Button>
+                    </>
+                  )}
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" gutterBottom>Logo Instellingen</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Logo Grootte"
+                      type="number"
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                      }}
+                      value={settings.logo_size || 200}
+                      onChange={(e) => handleChange('logo_size', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Logo Positie</InputLabel>
+                      <Select
+                        value={settings.logo_position || 'left'}
+                        onChange={(e) => handleChange('logo_position', e.target.value)}
+                        label="Logo Positie"
+                      >
+                        <MenuItem value="left">Links</MenuItem>
+                        <MenuItem value="top">Boven</MenuItem>
+                        <MenuItem value="full-left">Volledig Links</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="Marge Boven"
+                      type="number"
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                      }}
+                      value={settings.logo_margin_top || 0}
+                      onChange={(e) => handleChange('logo_margin_top', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="Marge Links"
+                      type="number"
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                      }}
+                      value={settings.logo_margin_left || 0}
+                      onChange={(e) => handleChange('logo_margin_left', e.target.value)}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <FontPicker
-                    value={settings.subtitle_font || 'system-ui'}
-                    onChange={(value) => handleChange('subtitle_font', value)}
-                    label="Subtitel Lettertype"
+                
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>Logo Schaduw</Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.logo_shadow_enabled || false}
+                        onChange={(e) => handleChange('logo_shadow_enabled', e.target.checked)}
+                      />
+                    }
+                    label="Schaduw weergeven"
                   />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    type="color"
-                    label="Tekstkleur"
-                    value={settings.subtitle_color || '#000000'}
-                    onChange={(e) => handleChange('subtitle_color', e.target.value)}
-                    sx={{
-                      '& .MuiInputBase-root': { height: 56 },
-                      '& input': { 
-                        cursor: 'pointer',
-                        height: '100%'
-                      }
-                    }}
-                  />
+                  {settings.logo_shadow_enabled && (
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                      <Grid item xs={6}>
+                        <TextField
+                          fullWidth
+                          label="Schaduw Blur"
+                          type="number"
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                          }}
+                          value={settings.logo_shadow_blur || 5}
+                          onChange={(e) => handleChange('logo_shadow_blur', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <ColorPicker
+                          label="Schaduw Kleur"
+                          value={settings.logo_shadow_color || '#000000'}
+                          onChange={(value) => handleChange('logo_shadow_color', value)}
+                        />
+                      </Grid>
+                    </Grid>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </TabPanel>
+
+        {/* Achtergrond Instellingen */}
+        <TabPanel value={activeTab} index={2}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+            <Typography variant="h6" gutterBottom>Achtergrond Instellingen</Typography>
+            <Divider sx={{ mb: 3 }} />
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Achtergrondkleur</Typography>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item>
+                    <ColorPicker
+                      label="Achtergrondkleur"
+                      value={settings.background_color || '#ffffff'}
+                      onChange={(color) => handleChange('background_color', color)}
+                    />
+                  </Grid>
+                  <Grid item xs>
+                    <TextField
+                      fullWidth
+                      label="Transparantie"
+                      type="number"
+                      inputProps={{ min: 0, max: 1, step: 0.1 }}
+                      value={settings.background_opacity !== undefined ? settings.background_opacity : 1}
+                      onChange={(e) => handleChange('background_opacity', e.target.value)}
+                    />
+                  </Grid>
                 </Grid>
               </Grid>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>Subtitel Schaduw</Typography>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Dynamische Achtergrondkleur</Typography>
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.subtitle_shadow_enabled || false}
-                      onChange={(e) => handleChange('subtitle_shadow_enabled', e.target.checked)}
-                    />
-                  }
-                  label="Schaduw inschakelen"
-                />
-                {settings.subtitle_shadow_enabled && (
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={6} sm={3}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="X Offset"
-                        value={settings.subtitle_shadow_x || 0}
-                        onChange={(e) => handleChange('subtitle_shadow_x', e.target.value)}
-                      />
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Y Offset"
-                        value={settings.subtitle_shadow_y || 0}
-                        onChange={(e) => handleChange('subtitle_shadow_y', e.target.value)}
-                      />
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Blur"
-                        value={settings.subtitle_shadow_blur || 0}
-                        onChange={(e) => handleChange('subtitle_shadow_blur', e.target.value)}
-                      />
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Spread"
-                        value={settings.subtitle_shadow_spread || 0}
-                        onChange={(e) => handleChange('subtitle_shadow_spread', e.target.value)}
-                      />
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Transparantie"
-                        value={settings.subtitle_shadow_opacity || 0.2}
-                        onChange={(e) => handleChange('subtitle_shadow_opacity', e.target.value)}
-                        inputProps={{ step: 0.1, min: 0, max: 1 }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        type="color"
-                        label="Schaduw Kleur"
-                        value={settings.subtitle_shadow_color || '#000000'}
-                        onChange={(e) => handleChange('subtitle_shadow_color', e.target.value)}
-                        sx={{
-                          '& .MuiInputBase-root': { height: 56 },
-                          '& input': { 
-                            cursor: 'pointer',
-                            height: '100%'
-                          }
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      </TabPanel>
-
-      {/* Logo Instellingen */}
-      <TabPanel value={activeTab} index={1}>
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Box sx={{ 
-                width: '200px',
-                height: '100px',
-                position: 'relative',
-                borderRadius: 2,
-                overflow: 'hidden',
-                mb: 2,
-                border: '1px solid',
-                borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
-              }}>
-                {settings.logo && (
-                  <Box
-                    component="img"
-                    src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
-                    alt="Logo preview"
-                    sx={{
-                      position: 'relative',
-                      zIndex: 2,
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      width: 'auto',
-                      height: 'auto',
-                      objectFit: 'contain',
-                      display: 'block',
-                      margin: 'auto'
-                    }}
-                  />
-                )}
-              </Box>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                style={{ display: 'none' }}
-                id="logo-upload"
-              />
-              <label htmlFor="logo-upload">
-          <Button
-                  variant="outlined"
-                  component="span"
-                  startIcon={<UploadIcon />}
-                >
-                  {settings.logo ? 'Logo Wijzigen' : 'Logo Uploaden'}
-          </Button>
-              </label>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Logo Afmetingen</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Grootte (px)"
-                    value={settings.logo_size || 60}
-                    onChange={(e) => handleChange('logo_size', e.target.value)}
-                    InputProps={{ inputProps: { min: 20, max: 400 } }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Marge Boven"
-                    value={settings.logo_margin_top || 0}
-                    onChange={(e) => handleChange('logo_margin_top', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Marge Links"
-                    value={settings.logo_margin_left || 0}
-                    onChange={(e) => handleChange('logo_margin_left', e.target.value)}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Logo Schaduw</Typography>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings.logo_shadow_enabled || false}
-                    onChange={(e) => handleChange('logo_shadow_enabled', e.target.checked)}
-                  />
-                }
-                label="Schaduw inschakelen"
-              />
-              {settings.logo_shadow_enabled && (
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="X Offset"
-                      value={settings.logo_shadow_x || 0}
-                      onChange={(e) => handleChange('logo_shadow_x', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Y Offset"
-                      value={settings.logo_shadow_y || 0}
-                      onChange={(e) => handleChange('logo_shadow_y', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Blur"
-                      value={settings.logo_shadow_blur || 0}
-                      onChange={(e) => handleChange('logo_shadow_blur', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Spread"
-                      value={settings.logo_shadow_spread || 0}
-                      onChange={(e) => handleChange('logo_shadow_spread', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Transparantie"
-                      value={settings.logo_shadow_opacity || 0.2}
-                      onChange={(e) => handleChange('logo_shadow_opacity', e.target.value)}
-                      inputProps={{ step: 0.1, min: 0, max: 1 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      type="color"
-                      label="Schaduw Kleur"
-                      value={settings.logo_shadow_color || '#000000'}
-                      onChange={(e) => handleChange('logo_shadow_color', e.target.value)}
-                      sx={{
-                        '& .MuiInputBase-root': { height: 56 },
-                        '& input': { 
-                          cursor: 'pointer',
-                          height: '100%'
-                        }
+                      checked={useDynamicBackgroundColor}
+                      onChange={(e) => {
+                        setUseDynamicBackgroundColor(e.target.checked);
+                        handleChange('use_dynamic_background_color', e.target.checked);
                       }}
                     />
+                  }
+                  label="Gebruik dynamische achtergrondkleur op basis van foto's"
+                />
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                  Wanneer ingeschakeld, wordt de achtergrondkleur automatisch aangepast aan de dominante kleur van de getoonde foto's.
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Achtergrond Patroon</Typography>
+                <PatternPicker
+                  patterns={patterns}
+                  value={settings.sidebar_pattern || 'none'}
+                  onChange={(value) => handleChange('sidebar_pattern', value)}
+                  patternOpacity={settings.pattern_opacity !== undefined ? settings.pattern_opacity : 0.1}
+                  patternScale={settings.pattern_scale || 1}
+                  patternColor={settings.pattern_color || '#000000'}
+                  onOpacityChange={(value) => handleChange('pattern_opacity', value)}
+                  onScaleChange={(value) => handleChange('pattern_scale', value)}
+                  onColorChange={(value) => handleChange('pattern_color', value)}
+                />
+              </Grid>
+            </Grid>
+          </Paper>
+        </TabPanel>
+
+        {/* Typografie Instellingen */}
+        <TabPanel value={activeTab} index={3}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+            <Typography variant="h6" gutterBottom>Typografie Instellingen</Typography>
+            <Divider sx={{ mb: 3 }} />
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Lettertypen</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <FontPicker
+                      value={settings.font || 'system-ui'}
+                      onChange={(value) => handleChange('font', value)}
+                      label="Primair Lettertype"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FontUploader onUploadSuccess={loadSettings} />
                   </Grid>
                 </Grid>
-              )}
-            </Grid>
-          </Grid>
-        </Paper>
-      </TabPanel>
-
-      {/* Achtergrond Instellingen */}
-      <TabPanel value={activeTab} index={2}>
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Achtergrondkleur
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <TextField
-                fullWidth
-                type="color"
-                value={settings.background_color || '#FFFFFF'}
-                onChange={(e) => handleChange('background_color', e.target.value)}
-                sx={{
-                  '& .MuiInputBase-root': { height: 56 },
-                  '& input': { 
-                    cursor: 'pointer',
-                    height: '100%',
-                    width: '100%'
-                  }
-                }}
-              />
-              <Button
-                variant="outlined"
-                onClick={() => handleChange('background_color', null)}
-                size="small"
-              >
-                Reset
-              </Button>
-            </Box>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Achtergrond Transparantie
-              </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                label="Transparantie"
-                value={settings.background_opacity !== undefined ? settings.background_opacity : 1}
-                onChange={(e) => handleChange('background_opacity', parseFloat(e.target.value))}
-                inputProps={{ step: 0.1, min: 0, max: 1 }}
-                helperText="0 = volledig transparant, 1 = volledig dekkend"
-              />
-            </Box>
-            
-            {/* Voeg de dynamische achtergrondkleur instelling hier toe */}
-            <Box sx={{ mt: 3 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={useDynamicBackgroundColor}
-                    onChange={(e) => setUseDynamicBackgroundColor(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="Dynamische achtergrondkleur"
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                Als deze optie is ingeschakeld, wordt de achtergrondkleur automatisch aangepast aan de dominante kleur van de actieve foto in de slideshow.
-              </Typography>
-            </Box>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="subtitle2" gutterBottom>
-            Achtergrondpatroon
-          </Typography>
-          <PatternPicker
-            patterns={patterns}
-            selectedPattern={settings.sidebar_pattern || 'none'}
-            patternOpacity={settings.pattern_opacity}
-            patternScale={settings.pattern_scale}
-            patternColor={settings.pattern_color}
-            onPatternChange={(value) => handleChange('sidebar_pattern', value)}
-            onOpacityChange={(value) => handleChange('pattern_opacity', value)}
-            onScaleChange={(value) => handleChange('pattern_scale', value)}
-            onColorChange={(value) => handleChange('pattern_color', value)}
-          />
-        </Paper>
-      </TabPanel>
-
-      {/* Typografie Instellingen */}
-      <TabPanel value={activeTab} index={3}>
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>Lettertype Uploaden</Typography>
-                <FontUploader onFontUploaded={() => {
-                  // Herlaad de fonts in de FontPicker
-                  const event = new Event('fontsUpdated');
-                  window.dispatchEvent(event);
-                }} />
-              </Box>
-              <Divider sx={{ my: 2 }} />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Menu & Content</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <FontPicker
-                    value={settings.font || 'system-ui'}
-                    onChange={(value) => handleChange('font', value)}
-                    label="Site Lettertype"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Menu lettergrootte"
-                    value={settings.menu_font_size || 16}
-                    onChange={(e) => handleChange('menu_font_size', e.target.value)}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">px</InputAdornment>,
-                      inputProps: { min: 8, max: 72 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Content lettergrootte"
-                    value={settings.content_font_size || 16}
-                    onChange={(e) => handleChange('content_font_size', e.target.value)}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">px</InputAdornment>,
-                      inputProps: { min: 8, max: 72 }
-                    }}
-                  />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>Tekstgrootte</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Menu Tekstgrootte"
+                      type="number"
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                      }}
+                      value={settings.menu_font_size || 16}
+                      onChange={(e) => handleChange('menu_font_size', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Content Tekstgrootte"
+                      type="number"
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                      }}
+                      value={settings.content_font_size || 16}
+                      onChange={(e) => handleChange('content_font_size', e.target.value)}
+                    />
+                  </Grid>
                 </Grid>
               </Grid>
             </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Footer</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <FontPicker
-                    value={settings.footer_font || 'system-ui'}
-                    onChange={(value) => handleChange('footer_font', value)}
-                    label="Footer lettertype"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Footer tekstgrootte"
-                    value={settings.footer_size || 14}
-                    onChange={(e) => handleChange('footer_size', e.target.value)}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">px</InputAdornment>,
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    type="color"
-                    label="Footer tekstkleur"
-                    value={settings.footer_color || '#666666'}
-                    onChange={(e) => handleChange('footer_color', e.target.value)}
-                    sx={{
-                      '& .MuiInputBase-root': { height: 56 },
-                      '& input': { 
-                        cursor: 'pointer',
-                        height: '100%'
-                      }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Paper>
-      </TabPanel>
+          </Paper>
+        </TabPanel>
 
-      {/* Gebruikers Beheer */}
-      <TabPanel value={activeTab} index={4}>
-        <UserManagement />
-      </TabPanel>
+        {/* Gebruikers Instellingen */}
+        <TabPanel value={activeTab} index={4}>
+          <UserManagement />
+        </TabPanel>
 
-      {/* E-mail Instellingen */}
-      <TabPanel value={activeTab} index={5}>
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+        {/* E-mail Instellingen */}
+        <TabPanel value={activeTab} index={5}>
           <EmailSettings />
-        </Paper>
-      </TabPanel>
-    </Container>
+        </TabPanel>
+      </Container>
+    </Box>
   );
 };
 
