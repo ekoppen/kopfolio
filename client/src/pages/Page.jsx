@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Typography, 
@@ -10,7 +10,8 @@ import {
   Toolbar,
   Button,
   Fab,
-  useTheme
+  useTheme,
+  Paper
 } from '@mui/material';
 import {
   TextFields as TextIcon,
@@ -53,61 +54,9 @@ const hexToRgba = (hex, opacity) => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-// Functie om de dominante kleur uit een afbeelding te halen
-const getDominantColor = async (imageUrl) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        const colorCounts = {};
-        let maxCount = 0;
-        let dominantColor = '#000000';
-        
-        // Sample pixels (elke 10e pixel voor performance)
-        for (let i = 0; i < imageData.length; i += 40) {
-          const r = imageData[i];
-          const g = imageData[i + 1];
-          const b = imageData[i + 2];
-          
-          // Converteer naar hex
-          const hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-          
-          // Tel de kleur
-          colorCounts[hex] = (colorCounts[hex] || 0) + 1;
-          
-          // Update dominante kleur
-          if (colorCounts[hex] > maxCount) {
-            maxCount = colorCounts[hex];
-            dominantColor = hex;
-          }
-        }
-        
-        resolve(dominantColor);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    img.onerror = (error) => {
-      reject(error);
-    };
-    
-    img.src = imageUrl;
-  });
-};
-
 const Page = () => {
   const theme = useTheme();
-  const { settings, updateSettingsLocally } = useSettings();
+  const { settings } = useSettings();
   const { slug, parentSlug } = useParams();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -122,8 +71,6 @@ const Page = () => {
     const savedPosition = localStorage.getItem('appBarPosition');
     return savedPosition || 'top';
   });
-  // Referentie voor het bijhouden van de vorige dominante kleur
-  const prevDominantColorRef = useRef(null);
 
   // Preload images voor betere performance
   const preloadImages = (imageUrls) => {
@@ -157,11 +104,16 @@ const Page = () => {
           .filter(block => block.type === 'image' || block.type === 'slideshow')
           .flatMap(block => {
             if (block.type === 'image') {
-              return [`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${block.photo.filename}`];
-            } else if (block.type === 'slideshow') {
-              return block.content.map(photo => 
-                `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`
-              );
+              // Controleer of block.content bestaat en een filename heeft
+              return block.content && block.content.filename 
+                ? [`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${block.content.filename}`]
+                : [];
+            } else if (block.type === 'slideshow' && Array.isArray(block.content)) {
+              return block.content
+                .filter(photo => photo && photo.filename)
+                .map(photo => 
+                  `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`
+                );
             }
             return [];
           });
@@ -198,39 +150,6 @@ const Page = () => {
     return () => window.removeEventListener('barPositionChanged', updateBarPosition);
   }, []);
 
-  // Update de achtergrondkleur wanneer de actieve slide verandert
-  useEffect(() => {
-    const updateBackgroundColor = async () => {
-      // Controleer of dynamische achtergrondkleur is ingeschakeld
-      if (settings?.use_dynamic_background_color && photos.length > 0 && page?.is_fullscreen_slideshow) {
-        try {
-          const activePhoto = photos[activeSlide];
-          if (activePhoto) {
-            const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${activePhoto.filename}`;
-            const dominantColor = await getDominantColor(imageUrl);
-            
-            console.log('Dominante kleur uit foto (Page):', dominantColor);
-            
-            // Alleen updaten als de kleur is veranderd
-            if (prevDominantColorRef.current !== dominantColor) {
-              // Update de referentie naar de huidige dominante kleur
-              prevDominantColorRef.current = dominantColor;
-              
-              // Update de achtergrondkleur in de settings
-              updateSettingsLocally({
-                background_color: dominantColor
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Fout bij ophalen dominante kleur:', error);
-        }
-      }
-    };
-    
-    updateBackgroundColor();
-  }, [activeSlide, photos, settings?.use_dynamic_background_color, page?.is_fullscreen_slideshow]);
-
   const handleSave = async (content) => {
     try {
       await api.put(`/pages/${page._id}`, {
@@ -247,30 +166,6 @@ const Page = () => {
       console.error('Fout bij opslaan pagina:', error);
     }
   };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
-  }
-
-  if (!page) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">Pagina niet gevonden</Alert>
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ 
@@ -302,94 +197,121 @@ const Page = () => {
         />
       )}
       
-      {isAdmin && (
-        <Box sx={{ 
-          position: 'fixed', 
-          bottom: 16, 
-          right: 16, 
-          zIndex: 1000 
-        }}>
-          <Fab 
-            color="primary" 
-            onClick={() => {
-              if (isEditing) {
-                setIsEditing(false);
-                setEditedContent(null);
-              } else {
-                setIsEditing(true);
-                setEditedContent(page.content);
-              }
-            }}
-          >
-            {isEditing ? <CloseIcon /> : <EditIcon />}
-          </Fab>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
         </Box>
-      )}
-
-      {isEditing ? (
-        <PageContentEditor 
-          initialContent={page.content} 
-          onSave={handleSave} 
-          onCancel={() => {
-            setIsEditing(false);
-            setEditedContent(null);
-          }}
-        />
-      ) : (
-        <Box sx={{ 
-          position: 'relative',
-          height: '100%',
-          width: '100%',
-          zIndex: 2
-        }}>
-          {barPosition === 'full-left' ? (
-            <Box sx={{ 
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '32px',
-              bgcolor: 'transparent'
-            }}>
-              <Box sx={{
-                width: 'calc(100% - 64px)',
-                height: '100%',
-                position: 'relative',
-                borderRadius: '16px',
-                overflow: 'hidden',
-                boxShadow: theme.palette.mode === 'dark'
-                  ? '0 8px 32px rgba(0,0,0,0.5)'
-                  : '0 8px 32px rgba(0,0,0,0.25)',
-                bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#ffffff',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}>
-                <PageContent 
-                  content={page.content} 
-                  isFullscreenSlideshow={page.is_fullscreen_slideshow}
-                  photos={photos}
-                  onSlideChange={setActiveSlide}
-                />
-              </Box>
-            </Box>
+      ) : error ? (
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">{error}</Alert>
+        </Box>
+      ) : page ? (
+        <>
+          {/* Als het een fullscreen slideshow is, toon dan alleen de PageContent component */}
+          {page.is_fullscreen_slideshow ? (
+            <PageContent 
+              content={page.content} 
+              isFullscreenSlideshow={true}
+              photos={photos}
+              onSlideChange={setActiveSlide}
+            />
           ) : (
             <Box sx={{ 
+              position: 'relative',
               height: '100%',
               width: '100%',
-              position: 'relative'
+              zIndex: 2
             }}>
-              <PageContent 
-                content={page.content} 
-                isFullscreenSlideshow={page.is_fullscreen_slideshow}
-                photos={photos}
-                onSlideChange={setActiveSlide}
-              />
+              {barPosition === 'full-left' ? (
+                <Box sx={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '32px',
+                  bgcolor: 'transparent'
+                }}>
+                  <Box sx={{
+                    width: 'calc(100% - 64px)',
+                    height: '100%',
+                    position: 'relative',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    boxShadow: theme.palette.mode === 'dark'
+                      ? '0 8px 32px rgba(0,0,0,0.5)'
+                      : '0 8px 32px rgba(0,0,0,0.25)',
+                    bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f8f8',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}>
+                    <PageContent 
+                      content={page.content} 
+                      isFullscreenSlideshow={page.is_fullscreen_slideshow}
+                      photos={photos}
+                      onSlideChange={setActiveSlide}
+                    />
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ 
+                  height: '100%',
+                  width: '100%',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  pt: 4,
+                  pb: 4,
+                  overflow: 'auto',
+                  bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f0f0f0'
+                }}>
+                  <Container maxWidth="lg" sx={{ width: '100%' }}>
+                    <Paper sx={{
+                      width: '100%',
+                      position: 'relative',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      boxShadow: theme.palette.mode === 'dark'
+                        ? '0 8px 32px rgba(0,0,0,0.5)'
+                        : '0 8px 32px rgba(0,0,0,0.25)',
+                      bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f8f8',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}>
+                      {page.title && (
+                        <Box sx={{ p: 4, borderBottom: 1, borderColor: 'divider' }}>
+                          <Typography variant="h4" component="h1" sx={{ fontWeight: 500 }}>
+                            {page.title}
+                          </Typography>
+                          {page.description && (
+                            <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 1 }}>
+                              {page.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                      <Box sx={{ p: 4 }}>
+                        <PageContent 
+                          content={page.content} 
+                          isFullscreenSlideshow={page.is_fullscreen_slideshow}
+                          photos={photos}
+                          onSlideChange={setActiveSlide}
+                        />
+                      </Box>
+                    </Paper>
+                  </Container>
+                </Box>
+              )}
             </Box>
           )}
+        </>
+      ) : (
+        <Box sx={{ p: 3 }}>
+          <Alert severity="info">Pagina niet gevonden</Alert>
         </Box>
       )}
     </Box>

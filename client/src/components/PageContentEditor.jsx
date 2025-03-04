@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -31,7 +31,29 @@ import {
   Tab,
   Slider,
   Alert,
-  FormGroup
+  FormGroup,
+  Stack,
+  Chip,
+  CardActionArea,
+  CircularProgress,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemButton,
+  Checkbox,
+  Radio,
+  RadioGroup,
+  FormLabel,
+  InputAdornment,
+  Autocomplete,
+  Popper,
+  Fade,
+  Zoom,
+  Grow,
+  Backdrop,
+  Menu
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -56,6 +78,7 @@ import 'react-quill/dist/quill.snow.css';
 import api from '../utils/api';
 import { useTheme } from '@mui/material/styles';
 import { v4 as uuidv4 } from 'uuid';
+import { useSettings } from '../contexts/SettingsContext';
 
 // Rich text editor configuratie
 const modules = {
@@ -78,6 +101,50 @@ const formats = [
   'align',
   'link'
 ];
+
+// Font info component
+const FontInfo = ({ font, fontSize }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      mb: 1, 
+      mt: 1,
+      p: 1,
+      borderRadius: 1,
+      bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+    }}>
+      <Typography variant="caption" sx={{ mr: 1 }}>
+        Huidig lettertype:
+      </Typography>
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          fontFamily: font || 'inherit',
+          fontWeight: 'medium',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+        }}
+      >
+        {font || 'Standaard'}
+      </Typography>
+      {fontSize && (
+        <>
+          <Typography variant="caption" sx={{ mx: 1 }}>|</Typography>
+          <Typography variant="caption" sx={{ mr: 1 }}>
+            Lettergrootte:
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+            {fontSize}px
+          </Typography>
+        </>
+      )}
+    </Box>
+  );
+};
 
 const getImageWidth = (size) => {
   switch (size) {
@@ -418,19 +485,48 @@ const BlockSettings = ({ block, onSettingsChange, updateBlock }) => {
   }
 };
 
-const BlockEditor = ({ block, onChange, onDelete, albums }) => {
+const BlockEditor = ({ block, onChange, onDelete, albums, updateBlock }) => {
   const theme = useTheme();
+  const { settings } = useSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [localContent, setLocalContent] = useState(block.content || '');
+  const quillRef = useRef(null);
 
-  const handleSettingChange = (setting, value) => {
-    onChange({
-      ...block,
-      settings: { ...block.settings, [setting]: value }
-    });
+  // Debug log voor initiële content
+  console.log('BlockEditor initialized with block:', block); // Debug log
 
-    // Stuur een event om de slideshow instellingen bij te werken als dit een slideshow is
-    if (block.type === 'slideshow') {
-      window.dispatchEvent(new CustomEvent('slideshowSettingsUpdated'));
+  // Initialiseer localContent ALLEEN bij eerste render of als block.id verandert
+  useEffect(() => {
+    console.log('Block ID changed, updating localContent:', block); // Debug log
+    setLocalContent(block.content || '');
+  }, [block.id]); // Alleen afhankelijk van block.id, niet de hele block
+
+  const handleTextChange = (value) => {
+    console.log('handleTextChange called with:', value); // Debug log
+    setLocalContent(value);
+    
+    // Wacht even met het updaten van de parent component
+    clearTimeout(window.textUpdateTimeout);
+    window.textUpdateTimeout = setTimeout(() => {
+      const updatedBlock = {
+        ...block,
+        content: value || '' // Zorg ervoor dat content nooit undefined is
+      };
+      console.log('Updating block with new content:', updatedBlock); // Debug log
+      onChange(updatedBlock);
+    }, 300);
+  };
+
+  const handleBlur = () => {
+    console.log('handleBlur called, current content:', localContent); // Debug log
+    // Controleer of de content is gewijzigd en niet undefined is
+    if (localContent !== block.content) {
+      const updatedBlock = {
+        ...block,
+        content: localContent || '' // Zorg ervoor dat content nooit undefined is
+      };
+      console.log('Content changed on blur, updating with:', updatedBlock); // Debug log
+      onChange(updatedBlock);
     }
   };
 
@@ -472,32 +568,49 @@ const BlockEditor = ({ block, onChange, onDelete, albums }) => {
       </Box>
 
       {/* Block content */}
-      <Box sx={{ mt: 2 }}>
+      <Box>
         {block.type === 'text' && (
-          <TextField
-            fullWidth
-            multiline
-            minRows={3}
-            value={block.content}
-            onChange={(e) => onChange({ ...block, content: e.target.value })}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                '& fieldset': {
-                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                },
-                '&:hover fieldset': {
-                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : theme.palette.primary.main,
-                },
+          <Box sx={{ 
+            '& .ql-container': {
+              borderBottomLeftRadius: '4px',
+              borderBottomRightRadius: '4px',
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+              fontFamily: settings?.font || 'inherit',
+            },
+            '& .ql-toolbar': {
+              borderTopLeftRadius: '4px',
+              borderTopRightRadius: '4px',
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f8f8f8',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            },
+            '& .ql-editor': {
+              minHeight: '150px',
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+              fontFamily: settings?.font || 'inherit',
+              fontSize: settings?.content_font_size ? `${settings.content_font_size}px` : 'inherit',
+              '& p': {
+                fontFamily: settings?.font || 'inherit',
               },
-              '& .MuiInputBase-input': {
-                color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
-              },
-            }}
-          />
+              '& h1, & h2, & h3': {
+                fontFamily: settings?.font || 'inherit',
+              }
+            }
+          }}>
+            <FontInfo 
+              font={settings?.font} 
+              fontSize={settings?.content_font_size} 
+            />
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={localContent || ''}
+              onChange={handleTextChange}
+              onBlur={handleBlur}
+              modules={modules}
+              formats={formats}
+            />
+          </Box>
         )}
 
         {block.type === 'slideshow' && (
@@ -533,58 +646,6 @@ const BlockEditor = ({ block, onChange, onDelete, albums }) => {
 
         {/* Toggle switches */}
         <FormGroup sx={{ mt: 2 }}>
-          <FormControlLabel
-            control={
-              <Switch 
-                checked={block.settings?.showInfo || false}
-                onChange={(e) => onChange({
-                  ...block,
-                  settings: { ...block.settings, showInfo: e.target.checked }
-                })}
-                sx={{
-                  '& .MuiSwitch-switchBase': {
-                    color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : undefined,
-                    '&.Mui-checked': {
-                      color: theme.palette.primary.main,
-                      '& + .MuiSwitch-track': {
-                        backgroundColor: theme.palette.mode === 'dark' 
-                          ? theme.palette.primary.dark
-                          : theme.palette.primary.main,
-                        opacity: 0.5
-                      }
-                    }
-                  },
-                  '& .MuiSwitch-track': {
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.2)' 
-                      : 'rgba(0, 0, 0, 0.1)'
-                  },
-                  '& .MuiSwitch-thumb': {
-                    boxShadow: theme.palette.mode === 'dark'
-                      ? '0 2px 4px rgba(0,0,0,0.5)'
-                      : undefined
-                  }
-                }}
-              />
-            }
-            label={
-              <Typography sx={{ 
-                color: theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.9)' 
-                  : 'inherit',
-                fontSize: '0.9rem'
-              }}>
-                Toon in menu
-              </Typography>
-            }
-            sx={{
-              '& .MuiFormControlLabel-label': {
-                fontSize: '0.9rem',
-                fontWeight: 400
-              }
-            }}
-          />
-          
           {block.type === 'slideshow' && (
             <FormControlLabel
               control={
@@ -642,26 +703,30 @@ const BlockEditor = ({ block, onChange, onDelete, albums }) => {
 };
 
 const PageContentEditor = ({ initialContent = [], onChange }) => {
-  const theme = useTheme();
   const [content, setContent] = useState(initialContent);
-  const [selectedBlock, setSelectedBlock] = useState(null);
-  const [photoSelectorOpen, setPhotoSelectorOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [albums, setAlbums] = useState([]);
-  const [selectedPhotos, setSelectedPhotos] = useState([]);
-  const [blockPropertiesOpen, setBlockPropertiesOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState(null);
+  const [showPhotoSelector, setShowPhotoSelector] = useState(false);
+  const [showAlbumSelector, setShowAlbumSelector] = useState(false);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [showSlideshowSettings, setShowSlideshowSettings] = useState(false);
   const [selectedTab, setSelectedTab] = useState('photos');
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const theme = useTheme();
+  const { settings } = useSettings();
 
   useEffect(() => {
     setContent(initialContent);
   }, [initialContent]);
 
   useEffect(() => {
-    if (photoSelectorOpen) {
+    if (showPhotoSelector) {
       loadPhotos();
       loadAlbums();
     }
-  }, [photoSelectorOpen]);
+  }, [showPhotoSelector]);
 
   const loadPhotos = async () => {
     try {
@@ -693,47 +758,81 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
   };
 
   const addBlock = (type) => {
+    console.log('Adding new block of type:', type); // Debug log
+    
     const newBlock = {
       id: uuidv4(),
-      type
+      type,
+      content: '',
+      settings: {}
     };
     
+    // Specifieke initialisatie per type
     switch (type) {
-      case 'contact':
-        // Geen extra configuratie nodig
+      case 'text':
+        newBlock.content = '';
         break;
-      default:
-        newBlock.content = type === 'text' ? '' : type === 'image' ? null : [];
-        newBlock.settings = type === 'spacer' ? { height: 32 } : {};
+      case 'image':
+        newBlock.content = null;
+        break;
+      case 'slideshow':
+        newBlock.content = [];
+        break;
+      case 'spacer':
+        newBlock.settings = { height: 32 };
+        break;
+      case 'contact':
+        // Geen specifieke content nodig
+        break;
     }
 
+    console.log('Created new block:', newBlock); // Debug log
+    
     const newContent = [...content, newBlock];
+    console.log('New content array:', newContent); // Debug log
+    
     setContent(newContent);
     onChange(newContent);
     
     if (type === 'image' || type === 'slideshow') {
       setSelectedBlock(newBlock);
-      setPhotoSelectorOpen(true);
+      setShowPhotoSelector(true);
     }
   };
 
   const updateBlock = (id, updates) => {
+    console.log('updateBlock called with:', { id, updates }); // Debug log
+    
+    // Controleer of updates een geldig object is
+    if (!updates) {
+      console.error('updateBlock called with invalid updates:', updates);
+      return;
+    }
+    
     const newContent = content.map(block => {
       if (block.id === id) {
-        return {
+        // Maak een nieuw block object met de updates
+        const updatedBlock = {
           ...block,
-          ...updates,
-                    settings: {
+          // Zorg ervoor dat content altijd een string is voor tekstblokken
+          content: block.type === 'text' 
+            ? (updates.content !== undefined ? String(updates.content) : block.content || '')
+            : (updates.content !== undefined ? updates.content : block.content),
+          settings: {
             ...block.settings,
             ...(updates.settings || {})
           }
         };
+        
+        console.log('Updated block:', updatedBlock); // Debug log
+        return updatedBlock;
       }
       return block;
     });
     
+    console.log('New content array:', newContent); // Debug log
     setContent(newContent);
-    onChange(newContent);
+    onChange(newContent); // Geef de nieuwe content door aan de parent
   };
 
   const deleteBlock = (id) => {
@@ -763,7 +862,7 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
 
     if (selectedBlock.type === 'image') {
       updateBlock(selectedBlock.id, { content: photo });
-      setPhotoSelectorOpen(false);
+      setShowPhotoSelector(false);
       setSelectedBlock(null);
     } else if (selectedBlock.type === 'slideshow') {
       const isSelected = selectedPhotos.some(p => p.id === photo.id);
@@ -790,7 +889,7 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
     if (selectedBlock && selectedBlock.type === 'slideshow') {
       updateBlock(selectedBlock.id, { content: selectedPhotos });
     }
-    setPhotoSelectorOpen(false);
+    setShowPhotoSelector(false);
     setSelectedBlock(null);
     setSelectedPhotos([]);
   };
@@ -843,29 +942,33 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
                           }}
                         >
                         <Tooltip title="Omhoog">
+                          <span>
                             <IconButton
                               size="small"
                               onClick={() => moveBlock(block.id, 'up')}
                               disabled={index === 0}
                             >
-                            <ArrowUpIcon />
+                              <ArrowUpIcon />
                             </IconButton>
-                          </Tooltip>
+                          </span>
+                        </Tooltip>
                         <Tooltip title="Omlaag">
+                          <span>
                             <IconButton
                               size="small"
                               onClick={() => moveBlock(block.id, 'down')}
                               disabled={index === content.length - 1}
                             >
-                            <ArrowDownIcon />
+                              <ArrowDownIcon />
                             </IconButton>
-                          </Tooltip>
+                          </span>
+                        </Tooltip>
                         <Tooltip title="Instellingen">
                             <IconButton
                               size="small"
                               onClick={() => {
                                 setSelectedBlock(block);
-                                setBlockPropertiesOpen(true);
+                                setShowSlideshowSettings(true);
                               }}
                             >
                             <SettingsIcon />
@@ -894,9 +997,10 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
 
                       <BlockEditor
                         block={block}
-                        onChange={updateBlock}
+                        onChange={(updatedBlock) => updateBlock(updatedBlock.id, updatedBlock)}
                         onDelete={() => deleteBlock(block.id)}
                         albums={albums}
+                        updateBlock={updateBlock}
                       />
                       </Box>
                     )}
@@ -1007,9 +1111,9 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
         </Box>
 
       <Dialog
-        open={photoSelectorOpen}
+        open={showPhotoSelector}
         onClose={() => {
-          setPhotoSelectorOpen(false);
+          setShowPhotoSelector(false);
           setSelectedBlock(null);
           setSelectedPhotos([]);
         }}
@@ -1104,7 +1208,7 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
         <DialogActions>
           <Button
             onClick={() => {
-              setPhotoSelectorOpen(false);
+              setShowPhotoSelector(false);
               setSelectedBlock(null);
               setSelectedPhotos([]);
             }}
@@ -1124,9 +1228,9 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
       </Dialog>
 
       <Dialog
-        open={blockPropertiesOpen}
+        open={showSlideshowSettings}
         onClose={() => {
-          setBlockPropertiesOpen(false);
+          setShowSlideshowSettings(false);
           setSelectedBlock(null);
         }}
         maxWidth="sm"
@@ -1153,7 +1257,7 @@ const PageContentEditor = ({ initialContent = [], onChange }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => {
-            setBlockPropertiesOpen(false);
+            setShowSlideshowSettings(false);
             setSelectedBlock(null);
           }}>
             Sluiten

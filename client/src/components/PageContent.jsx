@@ -406,8 +406,6 @@ const PageContent = ({
           <Box 
             sx={{ 
               mb: 4,
-              maxWidth: '1200px',
-              margin: '0 auto',
               '& .ql-align-center': {
                 textAlign: 'center'
               },
@@ -460,88 +458,82 @@ const PageContent = ({
       
       case 'image':
         const imageContent = Array.isArray(block.content) ? block.content : block.content ? [block.content] : [];
-        console.log('Image content:', imageContent);
         return (
-          <Box sx={{ 
-            mb: 4,
-            width: getImageWidth(block.settings?.size),
-            maxWidth: '1400px',
-            margin: '0 auto'
-          }}>
-            {imageContent.map((image) => {
-              console.log('Rendering image:', image);
-              console.log('showTitle:', image.showTitle);
-              console.log('title:', image.title);
-              console.log('description:', image.description);
-              return (
+          <Box sx={{ mb: 4 }}>
+            {imageContent.map((image) => (
+              <Box
+                key={image.id}
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  paddingTop: getAspectRatioPadding(block.settings?.aspectRatio),
+                  overflow: 'hidden',
+                  borderRadius: 2,
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 4px 20px rgba(0,0,0,0.4)'
+                    : '0 4px 20px rgba(0,0,0,0.15)',
+                  mb: 2
+                }}
+              >
                 <Box
-                  key={image.id}
+                  component="img"
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
+                  alt={image.title || 'Afbeelding'}
+                  onContextMenu={handleContextMenu}
+                  onDragStart={handleDragStart}
                   sx={{
-                    position: 'relative',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
                     width: '100%',
-                    borderRadius: 1,
-                    overflow: 'hidden'
+                    height: '100%',
+                    objectFit: 'cover',
+                    boxShadow: image.showShadow ? 3 : 0,
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    pointerEvents: 'none'
                   }}
-                >
-                  <Box
-                    component="img"
-                    src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${image.filename}`}
-                    alt={image.title || 'Afbeelding'}
-                    onContextMenu={handleContextMenu}
-                    onDragStart={handleDragStart}
+                />
+                {image.showTitle && (
+                  <Box 
                     sx={{ 
-                      display: 'block',
-                      width: '100%',
-                      height: 'auto',
-                      objectFit: 'cover',
-                      boxShadow: image.showShadow ? 3 : 0,
-                      userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                      pointerEvents: 'none'
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      p: 2,
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                      color: 'white'
                     }}
-                  />
-                  {image.showTitle && (
-                    <Box 
-                      sx={{ 
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                        color: 'white',
-                        p: 2,
-                        zIndex: 2
-                      }}
-                    >
-                      {image.title && (
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            color: 'white',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.6)',
-                            fontWeight: 500
-                          }}
-                        >
-                          {image.title}
-                        </Typography>
-                      )}
-                      {image.description && (
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
-                            color: 'rgba(255,255,255,0.9)',
-                            textShadow: '0 1px 1px rgba(0,0,0,0.4)',
-                            mt: 0.5
-                          }}
-                        >
-                          {image.description}
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </Box>
-              );
-            })}
+                  >
+                    {image.title && (
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          color: 'white',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+                          fontWeight: 500
+                        }}
+                      >
+                        {image.title}
+                      </Typography>
+                    )}
+                    {image.description && (
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          color: 'rgba(255,255,255,0.9)',
+                          textShadow: '0 1px 1px rgba(0,0,0,0.4)',
+                          mt: 0.5
+                        }}
+                      >
+                        {image.description}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            ))}
           </Box>
         );
       
@@ -550,9 +542,7 @@ const PageContent = ({
       
       case 'contact':
         return (
-          <Container maxWidth="md" sx={{ py: 4 }}>
-            <ContactForm />
-          </Container>
+          <ContactForm />
         );
       
       default:
@@ -573,7 +563,11 @@ const PageContent = ({
         overflow: 'hidden'
       })
     }}>
-      {content.map((block, index) => renderBlock(block, index))}
+      {content.map((block, index) => (
+        <Box key={block.id || `block-${index}`}>
+          {renderBlock(block, index)}
+        </Box>
+      ))}
     </Box>
   );
 };

@@ -174,10 +174,42 @@ const PageEditor = () => {
   };
 
   const handleContentChange = (newContent) => {
-    setPage(prev => ({
-      ...prev,
-      content: newContent
-    }));
+    console.log('handleContentChange called with:', newContent); // Debug log
+    console.log('Current page state before update:', page); // Debug log
+    
+    // Zorg ervoor dat de content altijd een array is
+    const contentArray = Array.isArray(newContent) ? newContent : [newContent];
+    
+    // Filter eventuele null of undefined waarden en zorg ervoor dat tekstblokken altijd een string content hebben
+    const validContent = contentArray.filter(item => {
+      if (!item) return false;
+      
+      // Voor tekstblokken, zorg ervoor dat de content bestaat en een string is
+      if (item.type === 'text') {
+        // Als content undefined of null is, maak er een lege string van
+        if (item.content === undefined || item.content === null) {
+          item.content = '';
+        }
+        // Zorg ervoor dat content altijd een string is
+        if (typeof item.content !== 'string') {
+          item.content = String(item.content);
+        }
+        return true;
+      }
+      
+      return true;
+    });
+    
+    console.log('Processed content array:', validContent); // Debug log
+    
+    setPage(prev => {
+      const updatedPage = {
+        ...prev,
+        content: validContent
+      };
+      console.log('Updated page state:', updatedPage); // Debug log
+      return updatedPage;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -188,9 +220,26 @@ const PageEditor = () => {
       // Bepaal is_fullscreen_slideshow op basis van de aanwezigheid van slideshow settings
       const isFullscreenSlideshow = Boolean(page.settings?.slideshow?.albumId);
       
+      // Zorg ervoor dat de content een geldige array is en dat tekstblokken altijd een string content hebben
+      let validContent = Array.isArray(page.content) ? [...page.content] : [];
+      
+      // Verwerk elk content item om ervoor te zorgen dat het geldig is
+      validContent = validContent.map(item => {
+        if (item.type === 'text') {
+          return {
+            ...item,
+            content: item.content !== undefined && item.content !== null ? String(item.content) : ''
+          };
+        }
+        return item;
+      });
+      
+      console.log('Content being saved:', validContent); // Debug log
+      
       const pageData = {
         ...page,
-        menu_order: page.menu_order || 0, // Behoud de bestaande menu_order
+        content: validContent,
+        menu_order: page.menu_order || 0,
         is_fullscreen_slideshow: isFullscreenSlideshow,
         settings: {
           ...page.settings,
@@ -205,11 +254,12 @@ const PageEditor = () => {
         }
       };
 
-      console.log('Saving page data:', pageData);
+      console.log('Submitting page data:', pageData); // Debug log
       
       let response;
       if (id) {
         response = await api.put(`/pages/${id}`, pageData);
+        console.log('Server response:', response.data); // Debug log
       } else {
         response = await api.post('/pages', pageData);
       }
