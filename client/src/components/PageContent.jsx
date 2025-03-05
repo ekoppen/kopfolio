@@ -14,7 +14,9 @@ import {
   EffectCreative, 
   EffectCards, 
   EffectCoverflow,
-  Autoplay 
+  Autoplay,
+  Pagination,
+  Navigation
 } from 'swiper/modules';
 import { useSettings } from '../contexts/SettingsContext';
 import { ContactForm } from '../pages/Contact';
@@ -98,7 +100,9 @@ const PageContent = ({
   // Preload images voor betere performance
   useEffect(() => {
     if (isFullscreenSlideshow) {
+      console.log('Fullscreen slideshow detected, photos:', externalPhotos);
       const photos = externalPhotos || content.find(block => block.type === 'slideshow')?.content || [];
+      console.log('Photos to display:', photos);
       const imageUrls = photos.map(photo =>
         `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`
       );
@@ -111,82 +115,6 @@ const PageContent = ({
       });
     }
   }, [content, isFullscreenSlideshow, externalPhotos]);
-
-  // Als het een fullscreen slideshow is, toon dan de slideshow
-  if (isFullscreenSlideshow) {
-    const photos = externalPhotos || content.find(block => block.type === 'slideshow')?.content || [];
-    const settings = content.find(block => block.type === 'slideshow')?.settings || {};
-
-    return (
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100%',
-          height: '100%',
-          bgcolor: 'black',
-          zIndex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <Swiper
-          modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay]}
-          effect={settings?.transition || 'fade'}
-          speed={settings?.speed || 1000}
-          slidesPerView={1}
-          loop={true}
-          autoplay={{
-            delay: settings?.interval || 5000,
-            disableOnInteraction: false,
-            enabled: settings?.autoPlay !== false
-          }}
-          pagination={false}
-          navigation={false}
-          onSlideChange={(swiper) => {
-            setActiveSlide(swiper.realIndex);
-            if (onSlideChange) {
-              onSlideChange(swiper.realIndex);
-            }
-          }}
-          style={{
-            width: '100%',
-            height: '100%'
-          }}
-        >
-          {photos.map((photo) => {
-            const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
-            return (
-              <SwiperSlide 
-                key={photo.id}
-                style={{
-                  width: '100%',
-                  height: '100%'
-                }}
-              >
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    opacity: loadedImages.has(imageUrl) ? 1 : 0,
-                    transition: 'opacity 1s ease'
-                  }}
-                />
-              </SwiperSlide>
-            );
-          })}
-        </Swiper>
-      </Box>
-    );
-  }
 
   // Render een slideshow blok
   const renderSlideshow = (block, index) => {
@@ -251,51 +179,74 @@ const PageContent = ({
       return () => window.removeEventListener('barPositionChanged', updateBarPosition);
     }, []);
 
+    // Als er geen foto's zijn, toon dan niets
+    if (!photos.length && !externalPhotos?.length) {
+      return null;
+    }
+
+    // Gebruik externe foto's als die beschikbaar zijn, anders gebruik de opgehaalde foto's
+    const displayPhotos = externalPhotos || photos;
+
+    // Bepaal de hoogte van de slideshow
+    const slideshowHeight = isFullscreenSlideshow 
+      ? '100vh' 
+      : blockSettings?.height 
+        ? `${blockSettings.height}px` 
+        : '500px';
+
     return (
       <Box 
-        key={index} 
         sx={{ 
-          width: barPosition === 'full-left' ? '100%' : 'calc(100% - 32px)', 
-          height: barPosition === 'full-left' ? '100%' : 'auto',
-          mx: barPosition === 'full-left' ? 0 : 'auto',
-          my: 2,
-          borderRadius: barPosition === 'full-left' ? 0 : '16px',
-          overflow: 'hidden',
-          boxShadow: barPosition === 'full-left' ? 'none' : theme.shadows[4],
+          height: slideshowHeight,
+          width: '100%',
           position: 'relative',
-          zIndex: 5 // Verhoog de z-index zodat de slideshow boven de achtergrondkleur overlay wordt weergegeven
+          overflow: 'hidden',
+          borderRadius: isFullscreenSlideshow ? 0 : 2,
+          boxShadow: isFullscreenSlideshow 
+            ? 'none' 
+            : theme.palette.mode === 'dark'
+              ? '0 4px 20px rgba(0,0,0,0.4)'
+              : '0 4px 20px rgba(0,0,0,0.15)',
+          mb: isFullscreenSlideshow ? 0 : 4
         }}
       >
         <Swiper
-          ref={swiperRef}
-          modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay]}
-          effect={blockSettings?.transition || 'fade'}
+          modules={[EffectFade, Autoplay, Pagination, Navigation]}
+          effect={blockSettings?.transition === 'fade' ? 'fade' : 'slide'}
           speed={blockSettings?.speed || 1000}
+          autoplay={blockSettings?.autoplay ? {
+            delay: (blockSettings?.delay || 5) * 1000,
+            disableOnInteraction: false
+          } : false}
+          pagination={blockSettings?.pagination ? {
+            clickable: true,
+            dynamicBullets: true
+          } : false}
+          navigation={blockSettings?.navigation}
+          loop={blockSettings?.loop}
           slidesPerView={1}
-          loop={true}
-          autoplay={{
-            delay: blockSettings?.interval || 5000,
-            disableOnInteraction: false,
-            enabled: blockSettings?.autoPlay !== false
-          }}
-          pagination={false}
-          navigation={false}
-          onSlideChange={(swiper) => {
-            setActiveSlide(swiper.realIndex);
+          onSwiper={(swiper) => {
+            swiperRef.current = swiper;
             if (onSlideChange) {
-              onSlideChange(swiper.realIndex);
+              onSlideChange(0);
             }
           }}
-          style={{
-            width: '100%',
-            height: barPosition === 'full-left' ? '100%' : '500px'
+          onSlideChange={(swiper) => {
+            if (onSlideChange) {
+              onSlideChange(swiper.activeIndex);
+            }
+          }}
+          style={{ 
+            width: '100%', 
+            height: '100%' 
           }}
         >
-          {photos.map((photo) => {
+          {displayPhotos.map((photo, photoIndex) => {
             const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
+            
             return (
               <SwiperSlide 
-                key={photo.id}
+                key={photo.id || `photo-${photoIndex}`}
                 style={{
                   width: '100%',
                   height: '100%'
@@ -436,20 +387,54 @@ const PageContent = ({
                   textAlign: 'justify'
                 }
               },
-              '& h1': { 
-                fontSize: '2em', 
-                fontWeight: 600,
-                fontFamily: settings?.font 
+              '& h1, & h2, & h3, & h4, & h5, & h6': {
+                fontWeight: 500,
+                lineHeight: 1.2,
+                marginBottom: '0.5em',
+                marginTop: '0.5em'
               },
-              '& h2': { 
-                fontSize: '1.5em', 
-                fontWeight: 600,
-                fontFamily: settings?.font 
+              '& h1': { fontSize: '2em' },
+              '& h2': { fontSize: '1.5em' },
+              '& h3': { fontSize: '1.17em' },
+              '& h4': { fontSize: '1em' },
+              '& h5': { fontSize: '0.83em' },
+              '& h6': { fontSize: '0.67em' },
+              '& a': {
+                color: theme.palette.primary.main,
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline'
+                }
               },
-              '& h3': { 
-                fontSize: '1.17em', 
-                fontWeight: 600,
-                fontFamily: settings?.font 
+              '& img': {
+                maxWidth: '100%',
+                height: 'auto'
+              },
+              '& ul, & ol': {
+                paddingLeft: '2em',
+                marginBottom: '1em'
+              },
+              '& li': {
+                marginBottom: '0.5em'
+              },
+              '& blockquote': {
+                borderLeft: `4px solid ${theme.palette.divider}`,
+                paddingLeft: '1em',
+                margin: '1em 0',
+                color: theme.palette.text.secondary
+              },
+              '& pre': {
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)',
+                padding: '1em',
+                borderRadius: '4px',
+                overflowX: 'auto',
+                fontSize: '0.9em'
+              },
+              '& code': {
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)',
+                padding: '0.2em 0.4em',
+                borderRadius: '3px',
+                fontSize: '0.9em'
               }
             }}
             dangerouslySetInnerHTML={{ __html: block.content }}
@@ -549,6 +534,188 @@ const PageContent = ({
         return null;
     }
   };
+
+  // Als het een fullscreen slideshow is, toon dan de slideshow
+  if (isFullscreenSlideshow) {
+    console.log('Rendering fullscreen slideshow');
+    console.log('External photos:', externalPhotos);
+    console.log('Content:', content);
+    
+    // Gebruik externe foto's als die beschikbaar zijn, anders zoek in de content
+    let photos = [];
+    if (externalPhotos && externalPhotos.length > 0) {
+      photos = externalPhotos;
+      console.log('Using external photos:', photos);
+    } else {
+      // Zoek naar slideshow blok in de content
+      const slideshowBlock = content.find(block => block.type === 'slideshow');
+      if (slideshowBlock && slideshowBlock.content) {
+        photos = Array.isArray(slideshowBlock.content) ? slideshowBlock.content : [slideshowBlock.content];
+        console.log('Using photos from slideshow block:', photos);
+      }
+    }
+    
+    const slideshowSettings = content.find(block => block.type === 'slideshow')?.settings || {};
+    console.log('Slideshow settings:', slideshowSettings);
+    
+    // Als er geen foto's zijn, toon dan een melding
+    if (!photos || photos.length === 0) {
+      console.log('No photos found for fullscreen slideshow');
+      return (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          bgcolor: 'black'
+        }}>
+          <Typography variant="h5" color="white">
+            Geen foto's gevonden voor deze slideshow
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          bgcolor: 'black',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Swiper
+          modules={[EffectFade, Autoplay, Pagination, Navigation]}
+          effect={slideshowSettings?.transition === 'fade' ? 'fade' : 'slide'}
+          speed={slideshowSettings?.speed || 1000}
+          autoplay={slideshowSettings?.autoplay !== false ? {
+            delay: (slideshowSettings?.delay || 5) * 1000,
+            disableOnInteraction: false
+          } : false}
+          pagination={slideshowSettings?.pagination ? {
+            clickable: true,
+            dynamicBullets: true
+          } : false}
+          navigation={slideshowSettings?.navigation}
+          loop={slideshowSettings?.loop !== false}
+          slidesPerView={1}
+          onSlideChange={(swiper) => {
+            setActiveSlide(swiper.activeIndex);
+            if (onSlideChange) {
+              onSlideChange(swiper.activeIndex);
+            }
+          }}
+          style={{
+            width: '100%',
+            height: '100%'
+          }}
+        >
+          {photos.map((photo, photoIndex) => {
+            const imageUrl = `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/photos/${photo.filename}`;
+            return (
+              <SwiperSlide 
+                key={photo.id || `photo-${photoIndex}`}
+                style={{
+                  width: '100%',
+                  height: '100%'
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${imageUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    opacity: loadedImages.has(imageUrl) ? 1 : 0,
+                    transition: 'opacity 1s ease'
+                  }}
+                />
+                {slideshowSettings?.show_info && (photo.title || photo.description) && (
+                  <Box 
+                    sx={{ 
+                      position: 'absolute',
+                      bottom: barPosition === 'full-left' ? 32 : 0,
+                      left: barPosition === 'full-left' ? 32 : 0,
+                      right: barPosition === 'full-left' ? 'auto' : 0,
+                      width: barPosition === 'full-left' ? 280 : '100%',
+                      p: barPosition === 'full-left' ? 2.5 : 2,
+                      borderRadius: barPosition === 'full-left' ? 2 : 0,
+                      bgcolor: barPosition === 'full-left'
+                        ? theme.palette.mode === 'dark' 
+                          ? 'rgba(0, 0, 0, 0.85)' 
+                          : 'rgba(255, 255, 255, 0.95)'
+                        : 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                      backdropFilter: barPosition === 'full-left' ? 'blur(10px)' : 'none',
+                      border: barPosition === 'full-left' ? '1px solid' : 'none',
+                      borderColor: barPosition === 'full-left'
+                        ? theme.palette.mode === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.1)' 
+                          : 'rgba(0, 0, 0, 0.1)'
+                        : 'transparent',
+                      boxShadow: barPosition === 'full-left'
+                        ? theme.palette.mode === 'dark'
+                          ? '0 8px 32px rgba(0,0,0,0.5)'
+                          : '0 8px 32px rgba(0,0,0,0.25)'
+                        : 'none',
+                      zIndex: 2
+                    }}
+                  >
+                    {photo.title && (
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          color: barPosition === 'full-left'
+                            ? theme.palette.mode === 'dark' 
+                              ? 'rgba(255, 255, 255, 0.95)' 
+                              : 'rgba(0, 0, 0, 0.95)'
+                            : 'white',
+                          textShadow: barPosition === 'full-left' ? 'none' : '0 1px 2px rgba(0,0,0,0.6)',
+                          fontWeight: 500,
+                          fontSize: barPosition === 'full-left' ? '1.1rem' : undefined,
+                          mb: barPosition === 'full-left' ? 1 : undefined
+                        }}
+                      >
+                        {photo.title}
+                      </Typography>
+                    )}
+                    {photo.description && (
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          color: barPosition === 'full-left'
+                            ? theme.palette.mode === 'dark' 
+                              ? 'rgba(255, 255, 255, 0.7)' 
+                              : 'rgba(0, 0, 0, 0.7)'
+                            : 'rgba(255,255,255,0.9)',
+                          textShadow: barPosition === 'full-left' ? 'none' : '0 1px 1px rgba(0,0,0,0.4)',
+                          mt: barPosition === 'full-left' ? undefined : 0.5,
+                          fontSize: barPosition === 'full-left' ? '0.9rem' : undefined,
+                          lineHeight: barPosition === 'full-left' ? 1.5 : undefined
+                        }}
+                      >
+                        {photo.description}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </SwiperSlide>
+            );
+          })}
+        </Swiper>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ 

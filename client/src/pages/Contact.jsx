@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -14,6 +14,7 @@ import { Send as SendIcon } from '@mui/icons-material';
 import { useToast } from '../contexts/ToastContext';
 import api from '../utils/api';
 import PageContent from '../components/PageContent';
+import { useSettings } from '../contexts/SettingsContext';
 
 const ContactForm = ({ className }) => {
   const theme = useTheme();
@@ -130,16 +131,117 @@ export { ContactForm };
 
 // De hoofdpagina component
 const Contact = () => {
+  const theme = useTheme();
+  const { settings } = useSettings();
+  const [barPosition, setBarPosition] = useState(() => {
+    const savedPosition = localStorage.getItem('appBarPosition');
+    return savedPosition || 'top';
+  });
+
+  // Luister naar veranderingen in barPosition
+  useEffect(() => {
+    const updateBarPosition = (event) => {
+      setBarPosition(event.detail.position);
+    };
+
+    window.addEventListener('barPositionChanged', updateBarPosition);
+    
+    // Initial position
+    const savedPosition = localStorage.getItem('appBarPosition');
+    if (savedPosition) {
+      setBarPosition(savedPosition);
+    }
+
+    return () => window.removeEventListener('barPositionChanged', updateBarPosition);
+  }, []);
+
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%' }}>
-      <PageContent
-        content={[
-          {
-            type: 'contact',
-            id: 'contact-form'
-          }
-        ]}
-      />
+    <Box sx={{ 
+      position: 'relative',
+      height: '100%',
+      width: '100%',
+      zIndex: 2
+    }}>
+      {barPosition === 'full-left' ? (
+        // In full-left mode, toon de pagina in een vlak
+        <Box sx={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '32px',
+          bgcolor: 'transparent'
+        }}>
+          <Box sx={{
+            width: 'calc(100% - 64px)',
+            height: '100%',
+            position: 'relative',
+            borderRadius: '16px',
+            overflow: 'auto',
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 8px 32px rgba(0,0,0,0.5)'
+              : '0 8px 32px rgba(0,0,0,0.25)',
+            bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f8f8',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}>
+            <Box sx={{ p: 4 }}>
+              <PageContent
+                content={[
+                  {
+                    type: 'contact',
+                    id: 'contact-form'
+                  }
+                ]}
+              />
+            </Box>
+          </Box>
+        </Box>
+      ) : (
+        // In top mode, toon de pagina gecentreerd
+        <Box sx={{ 
+          height: '100%',
+          width: '100%',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          pt: 4,
+          pb: 4,
+          overflow: 'auto',
+          bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f0f0f0'
+        }}>
+          <Container maxWidth="lg" sx={{ width: '100%' }}>
+            <Paper sx={{
+              width: '100%',
+              position: 'relative',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: theme.palette.mode === 'dark'
+                ? '0 8px 32px rgba(0,0,0,0.5)'
+                : '0 8px 32px rgba(0,0,0,0.25)',
+              bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f8f8',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}>
+              <Box sx={{ p: 4 }}>
+                <PageContent
+                  content={[
+                    {
+                      type: 'contact',
+                      id: 'contact-form'
+                    }
+                  ]}
+                />
+              </Box>
+            </Paper>
+          </Container>
+        </Box>
+      )}
     </Box>
   );
 };

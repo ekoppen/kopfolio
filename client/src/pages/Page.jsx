@@ -95,8 +95,14 @@ const Page = () => {
 
         // Als het een fullscreen slideshow is, laad dan de foto's
         if (response.data.is_fullscreen_slideshow && response.data.settings?.slideshow?.albumId) {
-          const photosResponse = await api.get(`/photos/album/${response.data.settings.slideshow.albumId}`);
-          setPhotos(photosResponse.data);
+          console.log('Fullscreen slideshow detected, loading photos from album:', response.data.settings.slideshow.albumId);
+          try {
+            const photosResponse = await api.get(`/photos/album/${response.data.settings.slideshow.albumId}`);
+            console.log('Photos loaded:', photosResponse.data);
+            setPhotos(photosResponse.data);
+          } catch (error) {
+            console.error('Error loading photos for slideshow:', error);
+          }
         }
 
         // Preload afbeeldingen uit de content
@@ -209,13 +215,53 @@ const Page = () => {
         <>
           {/* Als het een fullscreen slideshow is, toon dan alleen de PageContent component */}
           {page.is_fullscreen_slideshow ? (
-            <PageContent 
-              content={page.content} 
-              isFullscreenSlideshow={true}
-              photos={photos}
-              onSlideChange={setActiveSlide}
-            />
+            // Fullscreen slideshow layout
+            barPosition === 'full-left' ? (
+              // In full-left mode, toon de slideshow in een vlak
+              <Box sx={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '32px',
+                bgcolor: 'transparent'
+              }}>
+                <Box sx={{
+                  width: 'calc(100% - 64px)',
+                  height: '100%',
+                  position: 'relative',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 8px 32px rgba(0,0,0,0.5)'
+                    : '0 8px 32px rgba(0,0,0,0.25)',
+                  bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f8f8',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  <PageContent 
+                    content={page.content} 
+                    isFullscreenSlideshow={true}
+                    photos={photos}
+                    onSlideChange={setActiveSlide}
+                  />
+                </Box>
+              </Box>
+            ) : (
+              // In top mode, toon de slideshow beeldvullend
+              <PageContent 
+                content={page.content} 
+                isFullscreenSlideshow={true}
+                photos={photos}
+                onSlideChange={setActiveSlide}
+              />
+            )
           ) : (
+            // Gewone pagina layout
             <Box sx={{ 
               position: 'relative',
               height: '100%',
@@ -223,6 +269,7 @@ const Page = () => {
               zIndex: 2
             }}>
               {barPosition === 'full-left' ? (
+                // In full-left mode, toon de pagina in een vlak
                 <Box sx={{ 
                   position: 'absolute',
                   top: 0,
@@ -241,22 +288,37 @@ const Page = () => {
                     height: '100%',
                     position: 'relative',
                     borderRadius: '16px',
-                    overflow: 'hidden',
+                    overflow: 'auto',
                     boxShadow: theme.palette.mode === 'dark'
                       ? '0 8px 32px rgba(0,0,0,0.5)'
                       : '0 8px 32px rgba(0,0,0,0.25)',
                     bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f8f8',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}>
-                    <PageContent 
-                      content={page.content} 
-                      isFullscreenSlideshow={page.is_fullscreen_slideshow}
-                      photos={photos}
-                      onSlideChange={setActiveSlide}
-                    />
+                    {page.title && (
+                      <Box sx={{ p: 4, borderBottom: 1, borderColor: 'divider' }}>
+                        <Typography variant="h4" component="h1" sx={{ fontWeight: 500 }}>
+                          {page.title}
+                        </Typography>
+                        {page.description && (
+                          <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 1 }}>
+                            {page.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    <Box sx={{ p: 4 }}>
+                      <PageContent 
+                        content={page.content} 
+                        isFullscreenSlideshow={false}
+                        photos={photos}
+                        onSlideChange={setActiveSlide}
+                      />
+                    </Box>
                   </Box>
                 </Box>
               ) : (
+                // In top mode, toon de pagina gecentreerd
                 <Box sx={{ 
                   height: '100%',
                   width: '100%',
@@ -297,7 +359,7 @@ const Page = () => {
                       <Box sx={{ p: 4 }}>
                         <PageContent 
                           content={page.content} 
-                          isFullscreenSlideshow={page.is_fullscreen_slideshow}
+                          isFullscreenSlideshow={false}
                           photos={photos}
                           onSlideChange={setActiveSlide}
                         />
