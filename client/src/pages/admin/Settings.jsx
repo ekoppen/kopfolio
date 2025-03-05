@@ -234,7 +234,6 @@ const Settings = () => {
             <Tab icon={<ImageIcon />} label="Logo" />
             <Tab icon={<PaletteIcon />} label="Achtergrond" />
             <Tab icon={<TextFieldsIcon />} label="Typografie" />
-            <Tab icon={<FormatSizeIcon />} label="Menu" />
             <Tab icon={<PeopleIcon />} label="Gebruikers" />
             <Tab icon={<EmailIcon />} label="E-mail" />
           </Tabs>
@@ -686,12 +685,20 @@ const Settings = () => {
 
         {/* Gebruikers Instellingen */}
         <TabPanel value={activeTab} index={4}>
-          <UserManagement />
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+            <Typography variant="h6" gutterBottom>Gebruikersbeheer</Typography>
+            <Divider sx={{ mb: 3 }} />
+            <UserManagement />
+          </Paper>
         </TabPanel>
 
         {/* E-mail Instellingen */}
         <TabPanel value={activeTab} index={5}>
-          <EmailSettings />
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200' }}>
+            <Typography variant="h6" gutterBottom>E-mail Instellingen</Typography>
+            <Divider sx={{ mb: 3 }} />
+            <EmailSettings />
+          </Paper>
         </TabPanel>
       </Container>
     </Box>

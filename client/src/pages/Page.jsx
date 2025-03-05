@@ -330,7 +330,8 @@ const Page = () => {
                   pt: 4,
                   pb: 4,
                   overflow: 'auto',
-                  bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f0f0f0'
+                  bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f0f0f0',
+                  marginTop: 0 // Zorg ervoor dat er geen onbedoelde marge is
                 }}>
                   <Container maxWidth="lg" sx={{ width: '100%' }}>
                     <Paper sx={{
