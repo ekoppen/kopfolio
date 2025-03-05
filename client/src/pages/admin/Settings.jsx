@@ -469,6 +469,17 @@ const Settings = () => {
                 <Typography variant="subtitle2" gutterBottom>Logo Instellingen</Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={settings.logo_enabled !== false}
+                          onChange={(e) => handleChange('logo_enabled', e.target.checked)}
+                        />
+                      }
+                      label="Logo weergeven"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="Logo Grootte"

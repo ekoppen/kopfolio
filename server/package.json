@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "migrate": "node src/migrations/run_migrations.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",

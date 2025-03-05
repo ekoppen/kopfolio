@@ -456,36 +456,40 @@ const Layout = () => {
             width: barPosition === 'full-left' ? '100%' : 'auto',
             height: barPosition === 'full-left' ? 'auto' : '100%'
           }}>
-            <Box
-              component="img"
-              src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
-              alt={settings.site_title}
-              sx={{
-                height: 'auto',
-                width: `${settings.logo_size || 60}px`,
-                maxWidth: '100%',
-                objectFit: 'contain',
-                filter: settings.logo_shadow_enabled ? 
-                  `drop-shadow(${settings.logo_shadow_x}px ${settings.logo_shadow_y}px ${settings.logo_shadow_blur}px ${hexToRgba(settings.logo_shadow_color, settings.logo_shadow_opacity)})` : 
-                  'none'
-              }}
-            />
-            <Typography
-              variant="subtitle1"
-              sx={{
-                color: settings.subtitle_color || 'text.primary',
-                fontFamily: settings.subtitle_font || 'system-ui',
-                fontSize: `${settings.subtitle_size || 14}px`,
-                textAlign: 'left',
-                width: '100%',
-                whiteSpace: 'nowrap',
-                filter: settings.subtitle_shadow_enabled ? 
-                  `drop-shadow(${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)})` : 
-                  'none'
-              }}
-            >
-              {settings.site_subtitle}
-            </Typography>
+            {settings.logo_enabled !== false && settings.logo && (
+              <Box
+                component="img"
+                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+                alt={settings.site_title}
+                sx={{
+                  height: 'auto',
+                  width: `${settings.logo_size || 60}px`,
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                  filter: settings.logo_shadow_enabled ? 
+                    `drop-shadow(${settings.logo_shadow_x}px ${settings.logo_shadow_y}px ${settings.logo_shadow_blur}px ${hexToRgba(settings.logo_shadow_color, settings.logo_shadow_opacity)})` : 
+                    'none'
+                }}
+              />
+            )}
+            {settings.logo_enabled !== false && (
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  color: settings.subtitle_color || 'text.primary',
+                  fontFamily: settings.subtitle_font || 'system-ui',
+                  fontSize: `${settings.subtitle_size || 14}px`,
+                  textAlign: 'left',
+                  width: '100%',
+                  whiteSpace: 'nowrap',
+                  filter: settings.subtitle_shadow_enabled ? 
+                    `drop-shadow(${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)})` : 
+                    'none'
+                }}
+              >
+                {settings.site_subtitle}
+              </Typography>
+            )}
           </Box>
 
           {/* Menu en Navigatie Container */}

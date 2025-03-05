@@ -43,7 +43,7 @@ export const getSettings = async (req, res) => {
       `SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, 
               accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, 
               subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, 
-              pattern_opacity, pattern_scale, pattern_color, logo_size,
+              pattern_opacity, pattern_scale, pattern_color, logo_size, logo_enabled,
               subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
               subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
               menu_font_size, content_font_size, footer_font, footer_size, footer_color,
@@ -81,6 +81,7 @@ export const updateSettings = async (req, res) => {
       pattern_scale,
       pattern_color,
       logo_size,
+      logo_enabled,
       subtitle_shadow_enabled,
       subtitle_shadow_x,
       subtitle_shadow_y,
@@ -166,6 +167,7 @@ export const updateSettings = async (req, res) => {
     addField('pattern_scale', parsedValues.pattern_scale);
     addField('pattern_color', pattern_color);
     addField('logo_size', parsedValues.logo_size);
+    addField('logo_enabled', logo_enabled);
     addField('subtitle_shadow_enabled', subtitle_shadow_enabled);
     addField('subtitle_shadow_x', parsedValues.subtitle_shadow_x);
     addField('subtitle_shadow_y', parsedValues.subtitle_shadow_y);
