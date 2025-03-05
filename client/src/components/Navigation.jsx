@@ -3,7 +3,6 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Box, IconButton, Stack, Tooltip, Avatar } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { 
-  Home as HomeIcon, 
   Login as LoginIcon,
   Logout as LogoutIcon, 
   Dashboard as DashboardIcon, 
@@ -107,16 +106,6 @@ const Navigation = ({ isExpanded, onToggleExpand }) => {
         zIndex: 100 // Gebruik een redelijke z-index waarde
       }}
     >
-      <Tooltip title="Home">
-        <IconButton
-          component={RouterLink}
-          to="/"
-          sx={getActiveStyle('/')}
-        >
-          <HomeIcon />
-        </IconButton>
-      </Tooltip>
-
       <IconButton
         onClick={onToggleExpand}
         size="medium"

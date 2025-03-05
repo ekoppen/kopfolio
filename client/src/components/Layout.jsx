@@ -21,6 +21,7 @@ import {
   KeyboardArrowRight as KeyboardArrowRightIcon
 } from '@mui/icons-material';
 import Navigation from './Navigation';
+import DynamicFavicon from './DynamicFavicon';
 import api from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
 import {
@@ -379,262 +380,265 @@ const Layout = () => {
   };
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: barPosition === 'full-left' ? 'row' : 'column', 
-      minHeight: '100vh',
-      bgcolor: 'transparent',
-      position: 'relative',
-      ...(settings.sidebar_pattern && settings.sidebar_pattern !== 'none' && {
-        '&::before': {
-          content: '""',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/patterns/${settings.sidebar_pattern})`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: settings.sidebar_pattern.endsWith('.svg')
-            ? `${settings.pattern_scale * 280}px`
-            : `${Math.max(settings.pattern_scale * 25, 10)}%`,
-          backgroundPosition: 'center',
-          opacity: settings.pattern_opacity,
-          zIndex: -1,
-          pointerEvents: 'none',
-          imageRendering: settings.sidebar_pattern.endsWith('.svg') ? 'auto' : 'crisp-edges'
-        },
-        '&::after': {
-          content: '""',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.85)' : settings.pattern_color || '#FCF4FF',
-          mixBlendMode: theme.palette.mode === 'dark' ? 'color' : 'multiply',
-          opacity: theme.palette.mode === 'dark' ? 1 : 0.5,
-          zIndex: -1,
-          pointerEvents: 'none'
-        }
-      })
-    }}>
-      {/* Main Layout Container */}
-      <AppBar 
-        position={barPosition === 'full-left' ? 'relative' : "sticky"}
-        elevation={0}
-        sx={{ 
-          bgcolor: barPosition === 'full-left' ? 'transparent' : theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-          borderBottom: barPosition !== 'full-left' ? 'none' : 'none',
-          backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
-          zIndex: barPosition === 'full-left' ? 100 : 200,
-          width: barPosition === 'full-left' ? '280px' : '100%',
-          height: barPosition === 'full-left' ? '100vh' : 'auto',
-          display: 'flex',
-          flexDirection: barPosition === 'full-left' ? 'column' : 'row'
-        }}
-      >
-        <Toolbar 
+    <>
+      <DynamicFavicon />
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: barPosition === 'full-left' ? 'row' : 'column', 
+        minHeight: '100vh',
+        bgcolor: 'transparent',
+        position: 'relative',
+        ...(settings.sidebar_pattern && settings.sidebar_pattern !== 'none' && {
+          '&::before': {
+            content: '""',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `url(${import.meta.env.VITE_API_URL.replace('/api', '')}/patterns/${settings.sidebar_pattern})`,
+            backgroundRepeat: 'repeat',
+            backgroundSize: settings.sidebar_pattern.endsWith('.svg')
+              ? `${settings.pattern_scale * 280}px`
+              : `${Math.max(settings.pattern_scale * 25, 10)}%`,
+            backgroundPosition: 'center',
+            opacity: settings.pattern_opacity,
+            zIndex: -1,
+            pointerEvents: 'none',
+            imageRendering: settings.sidebar_pattern.endsWith('.svg') ? 'auto' : 'crisp-edges'
+          },
+          '&::after': {
+            content: '""',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.85)' : settings.pattern_color || '#FCF4FF',
+            mixBlendMode: theme.palette.mode === 'dark' ? 'color' : 'multiply',
+            opacity: theme.palette.mode === 'dark' ? 1 : 0.5,
+            zIndex: -1,
+            pointerEvents: 'none'
+          }
+        })
+      }}>
+        {/* Main Layout Container */}
+        <AppBar 
+          position={barPosition === 'full-left' ? 'relative' : "sticky"}
+          elevation={0}
           sx={{ 
-            width: '100%',
-            height: barPosition === 'full-left' ? '100%' : '64px',
-            minHeight: '64px !important',
-            px: 3,
-            py: 1,
+            bgcolor: barPosition === 'full-left' ? 'transparent' : theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+            borderBottom: barPosition !== 'full-left' ? 'none' : 'none',
+            backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
+            zIndex: barPosition === 'full-left' ? 100 : 200,
+            width: barPosition === 'full-left' ? '280px' : '100%',
+            height: barPosition === 'full-left' ? '100vh' : 'auto',
             display: 'flex',
-            flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-            alignItems: 'center',
-            justifyContent: barPosition === 'full-left' ? 'space-between' : 'space-between',
-            gap: 2
+            flexDirection: barPosition === 'full-left' ? 'column' : 'row'
           }}
         >
-          <Box sx={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: 0.5,
-            width: barPosition === 'full-left' ? '100%' : 'auto',
-            height: barPosition === 'full-left' ? 'auto' : '100%'
-          }}>
-            {settings.logo_enabled !== false && settings.logo && (
-              <Box
-                component="img"
-                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
-                alt={settings.site_title}
-                sx={{
-                  height: 'auto',
-                  width: `${settings.logo_size || 60}px`,
-                  maxWidth: '100%',
-                  objectFit: 'contain',
-                  filter: settings.logo_shadow_enabled ? 
-                    `drop-shadow(${settings.logo_shadow_x}px ${settings.logo_shadow_y}px ${settings.logo_shadow_blur}px ${hexToRgba(settings.logo_shadow_color, settings.logo_shadow_opacity)})` : 
-                    'none'
-                }}
-              />
-            )}
-            {settings.logo_enabled !== false && (
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  color: settings.subtitle_color || 'text.primary',
-                  fontFamily: settings.subtitle_font || 'system-ui',
-                  fontSize: `${settings.subtitle_size || 14}px`,
-                  textAlign: 'left',
-                  width: '100%',
-                  whiteSpace: 'nowrap',
-                  filter: settings.subtitle_shadow_enabled ? 
-                    `drop-shadow(${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)})` : 
-                    'none'
-                }}
-              >
-                {settings.site_subtitle}
-              </Typography>
-            )}
-          </Box>
+          <Toolbar 
+            sx={{ 
+              width: '100%',
+              height: barPosition === 'full-left' ? '100%' : '64px',
+              minHeight: '64px !important',
+              px: 3,
+              py: 1,
+              display: 'flex',
+              flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+              alignItems: 'center',
+              justifyContent: barPosition === 'full-left' ? 'space-between' : 'space-between',
+              gap: 2
+            }}
+          >
+            <Box sx={{ 
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 0.5,
+              width: barPosition === 'full-left' ? '100%' : 'auto',
+              height: barPosition === 'full-left' ? 'auto' : '100%'
+            }}>
+              {settings.logo_enabled !== false && settings.logo && (
+                <Box
+                  component="img"
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+                  alt={settings.site_title}
+                  sx={{
+                    height: 'auto',
+                    width: `${settings.logo_size || 60}px`,
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    filter: settings.logo_shadow_enabled ? 
+                      `drop-shadow(${settings.logo_shadow_x}px ${settings.logo_shadow_y}px ${settings.logo_shadow_blur}px ${hexToRgba(settings.logo_shadow_color, settings.logo_shadow_opacity)})` : 
+                      'none'
+                  }}
+                />
+              )}
+              {settings.logo_enabled !== false && (
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: settings.subtitle_color || 'text.primary',
+                    fontFamily: settings.subtitle_font || 'system-ui',
+                    fontSize: `${settings.subtitle_size || 14}px`,
+                    textAlign: 'left',
+                    width: '100%',
+                    whiteSpace: 'nowrap',
+                    filter: settings.subtitle_shadow_enabled ? 
+                      `drop-shadow(${settings.subtitle_shadow_x}px ${settings.subtitle_shadow_y}px ${settings.subtitle_shadow_blur}px ${hexToRgba(settings.subtitle_shadow_color, settings.subtitle_shadow_opacity)})` : 
+                      'none'
+                  }}
+                >
+                  {settings.site_subtitle}
+                </Typography>
+              )}
+            </Box>
 
-          {/* Menu en Navigatie Container */}
-          <Box sx={{ 
-            display: 'flex',
-            flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-            alignItems: barPosition === 'full-left' ? 'stretch' : 'center',
-            justifyContent: barPosition === 'full-left' ? 'space-between' : 'flex-end',
-            flex: 1,
-            width: '100%',
-            height: barPosition === 'full-left' ? 'calc(100vh - 200px)' : '100%',
-            ml: barPosition === 'full-left' ? 0 : 'auto',
-            position: 'relative',
-            zIndex: 100
-          }}>
-            {/* Menu Items */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <SortableContext
-                items={pages.filter(page => !page.parent_id).map(p => p.id)}
-                strategy={verticalListSortingStrategy}
+            {/* Menu en Navigatie Container */}
+            <Box sx={{ 
+              display: 'flex',
+              flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+              alignItems: barPosition === 'full-left' ? 'stretch' : 'center',
+              justifyContent: barPosition === 'full-left' ? 'space-between' : 'flex-end',
+              flex: 1,
+              width: '100%',
+              height: barPosition === 'full-left' ? 'calc(100vh - 200px)' : '100%',
+              ml: barPosition === 'full-left' ? 0 : 'auto',
+              position: 'relative',
+              zIndex: 100
+            }}>
+              {/* Menu Items */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
               >
+                <SortableContext
+                  items={pages.filter(page => !page.parent_id).map(p => p.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <Box sx={{ 
+                    display: 'flex',
+                    flexDirection: barPosition === 'full-left' ? 'column' : 'row',
+                    gap: barPosition === 'full-left' ? 0.5 : 3,
+                    alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
+                    flex: barPosition === 'full-left' ? 1 : 'unset',
+                    mt: barPosition === 'full-left' ? 4 : 0,
+                    mr: barPosition === 'full-left' ? 0 : 2,
+                    width: '100%',
+                    overflow: barPosition === 'full-left' ? 'auto' : 'visible',
+                    position: 'relative',
+                    zIndex: 100
+                  }}>
+                    {pages
+                      .filter(page => !page.parent_id)
+                      .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
+                      .map(page => (
+                        <MenuItem
+                          key={page.id}
+                          page={page}
+                          selectedPage={selectedPage}
+                          onPageSelect={setSelectedPage}
+                        />
+                      ))}
+                  </Box>
+                </SortableContext>
+              </DndContext>
+
+              {/* Navigation Buttons */}
+              {barPosition === 'full-left' && (
                 <Box sx={{ 
-                  display: 'flex',
-                  flexDirection: barPosition === 'full-left' ? 'column' : 'row',
-                  gap: barPosition === 'full-left' ? 0.5 : 3,
-                  alignItems: barPosition === 'full-left' ? 'flex-start' : 'center',
-                  flex: barPosition === 'full-left' ? 1 : 'unset',
-                  mt: barPosition === 'full-left' ? 4 : 0,
-                  mr: barPosition === 'full-left' ? 0 : 2,
                   width: '100%',
-                  overflow: barPosition === 'full-left' ? 'auto' : 'visible',
-                  position: 'relative',
-                  zIndex: 100
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                  pt: 2,
+                  mt: 'auto'
                 }}>
-                  {pages
-                    .filter(page => !page.parent_id)
-                    .sort((a, b) => (a.menu_order || 0) - (b.menu_order || 0))
-                    .map(page => (
-                      <MenuItem
-                        key={page.id}
-                        page={page}
-                        selectedPage={selectedPage}
-                        onPageSelect={setSelectedPage}
-                      />
-                    ))}
+                  <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
                 </Box>
-              </SortableContext>
-            </DndContext>
+              )}
+            </Box>
 
-            {/* Navigation Buttons */}
-            {barPosition === 'full-left' && (
-              <Box sx={{ 
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'flex-start',
-                borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
-                pt: 2,
-                mt: 'auto'
-              }}>
+            {barPosition !== 'full-left' && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
               </Box>
             )}
-          </Box>
+          </Toolbar>
+        </AppBar>
 
-          {barPosition !== 'full-left' && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Navigation isExpanded={isExpanded} onToggleExpand={handleToggle} />
-            </Box>
-          )}
-        </Toolbar>
-      </AppBar>
-
-      <Box sx={{ 
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        height: barPosition === 'full-left' ? '100vh' : 'calc(100vh - 64px)',
-        width: '100%',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <Container 
-          component="main" 
-          sx={{ 
-            flex: 1,
-            py: 4,
-            px: {
-              xs: 2,
-              sm: 3,
-              md: 4
-            },
-            ml: barPosition === 'full-left' ? '280px' : 0,
-            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            bgcolor: 'transparent',
-            display: 'flex',
-            flexDirection: 'column',
-            position: 'relative',
-            overflow: 'auto'
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Outlet />
-          </Box>
-        </Container>
-        <Box 
-          component="footer" 
-          sx={{ 
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
-            bgcolor: 'transparent',
-            position: 'fixed',
-            bottom: 0,
-            left: barPosition === 'full-left' ? '280px' : 0,
-            right: 0,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            backdropFilter: 'none',
-            zIndex: 1000
-          }}
-        >
-          <Typography 
-            variant="body2" 
+        <Box sx={{ 
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: barPosition === 'full-left' ? '100vh' : 'calc(100vh - 64px)',
+          width: '100%',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <Container 
+            component="main" 
             sx={{ 
-              color: settings.footer_color || (theme.palette.mode === 'dark' ? '#fff' : '#000'),
-              fontSize: `${settings.footer_size || 14}px`,
-              fontFamily: settings.footer_font || 'system-ui',
-              textAlign: settings.logo_position === 'center' ? 'center' : 'right',
+              flex: 1,
+              py: 4,
+              px: {
+                xs: 2,
+                sm: 3,
+                md: 4
+              },
+              ml: barPosition === 'full-left' ? '280px' : 0,
+              transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              bgcolor: 'transparent',
+              display: 'flex',
+              flexDirection: 'column',
               position: 'relative',
-              zIndex: 1,
-              width: settings.logo_position === 'center' ? '100%' : 'auto',
-              px: 3
+              overflow: 'auto'
             }}
           >
-            {settings.footer_text}
-          </Typography>
+            <Box sx={{ flex: 1 }}>
+              <Outlet />
+            </Box>
+          </Container>
+          <Box 
+            component="footer" 
+            sx={{ 
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: settings.logo_position === 'center' ? 'center' : 'flex-end',
+              bgcolor: 'transparent',
+              position: 'fixed',
+              bottom: 0,
+              left: barPosition === 'full-left' ? '280px' : 0,
+              right: 0,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              backdropFilter: 'none',
+              zIndex: 1000
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: settings.footer_color || (theme.palette.mode === 'dark' ? '#fff' : '#000'),
+                fontSize: `${settings.footer_size || 14}px`,
+                fontFamily: settings.footer_font || 'system-ui',
+                textAlign: settings.logo_position === 'center' ? 'center' : 'right',
+                position: 'relative',
+                zIndex: 1,
+                width: settings.logo_position === 'center' ? '100%' : 'auto',
+                px: 3
+              }}
+            >
+              {settings.footer_text}
+            </Typography>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </>
   );
 };
 

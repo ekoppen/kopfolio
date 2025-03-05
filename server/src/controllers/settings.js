@@ -49,7 +49,7 @@ export const getSettings = async (req, res) => {
               menu_font_size, content_font_size, footer_font, footer_size, footer_color,
               logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
               logo_shadow_color, logo_shadow_opacity, background_color, background_opacity,
-              use_dynamic_background_color
+              use_dynamic_background_color, favicon
        FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
@@ -101,7 +101,8 @@ export const updateSettings = async (req, res) => {
       logo_shadow_opacity,
       background_color,
       background_opacity,
-      use_dynamic_background_color
+      use_dynamic_background_color,
+      favicon
     } = req.body;
 
     console.log('Ontvangen instellingen in server controller:', req.body);
@@ -188,6 +189,7 @@ export const updateSettings = async (req, res) => {
     addField('background_color', background_color);
     addField('background_opacity', parsedValues.background_opacity);
     addField('use_dynamic_background_color', use_dynamic_background_color);
+    addField('favicon', favicon);
 
     // Als er een logo is geüpload
     if (req.files && req.files.logo) {
@@ -465,5 +467,163 @@ export const testEmailSettings = async (req, res) => {
   } catch (error) {
     console.error('Fout bij testen e-mail instellingen:', error);
     res.status(500).json({ error: 'Fout bij testen e-mail instellingen' });
+  }
+};
+
+// Voeg een nieuwe functie toe voor het uploaden van een favicon
+export const updateFavicon = async (req, res) => {
+  try {
+    console.log('updateFavicon aangeroepen');
+    console.log('req.files:', req.files);
+    
+    if (!req.files || !req.files.favicon) {
+      return res.status(400).json({ error: 'Geen favicon bestand ontvangen' });
+    }
+
+    const faviconFile = req.files.favicon;
+    console.log('Favicon bestand ontvangen:', faviconFile.name, faviconFile.mimetype, faviconFile.size);
+    
+    // Valideer bestandsgrootte
+    if (faviconFile.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Favicon bestand is te groot (max 5MB)' });
+    }
+
+    // Valideer bestandstype - accepteer alle afbeeldingsformaten
+    if (!faviconFile.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen afbeeldingsbestanden zijn toegestaan.' });
+    }
+
+    // Genereer unieke bestandsnaam
+    const filename = 'favicon-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + '.png';
+    const uploadDir = getUploadPath('branding');
+    
+    if (!uploadDir) {
+      throw new Error('Upload directory niet gevonden');
+    }
+
+    // Zorg dat de upload directory bestaat
+    await fs.mkdir(uploadDir, { recursive: true });
+    
+    const filepath = path.join(uploadDir, filename);
+    console.log('Bestand wordt opgeslagen naar:', filepath);
+
+    try {
+      // Verplaats het bestand
+      await faviconFile.mv(filepath);
+      console.log('Bestand succesvol verplaatst');
+    } catch (error) {
+      console.error('Fout bij verplaatsen bestand:', error);
+      return res.status(500).json({ error: 'Fout bij opslaan van favicon bestand' });
+    }
+
+    // Verwijder het oude favicon bestand als het bestaat
+    try {
+      const oldResult = await pool.query('SELECT favicon FROM settings WHERE id = 1');
+      const oldFavicon = oldResult.rows[0]?.favicon;
+      if (oldFavicon) {
+        const oldPath = path.join(uploadDir, oldFavicon);
+        try {
+          await fs.access(oldPath);
+          await fs.unlink(oldPath);
+          console.log('Oud favicon bestand verwijderd:', oldFavicon);
+        } catch (err) {
+          console.error('Oud favicon bestand niet gevonden of kon niet worden verwijderd:', err);
+          // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+        }
+      }
+    } catch (error) {
+      console.error('Fout bij opzoeken oud favicon:', error);
+      // Ga door met de update, zelfs als er een fout is bij het opzoeken van het oude bestand
+    }
+
+    // Update alleen het favicon veld in de database
+    try {
+      const query = 'UPDATE settings SET favicon = $1 WHERE id = 1 RETURNING favicon';
+      const result = await pool.query(query, [filename]);
+      console.log('Database bijgewerkt met nieuwe favicon:', filename);
+      
+      res.json({ favicon: result.rows[0].favicon });
+    } catch (error) {
+      console.error('Fout bij bijwerken database:', error);
+      return res.status(500).json({ error: 'Fout bij bijwerken database met nieuwe favicon' });
+    }
+  } catch (error) {
+    console.error('Error handling favicon upload:', error);
+    res.status(500).json({ error: 'Fout bij uploaden van favicon' });
+  }
+};
+
+// Functie voor het uploaden van een favicon via base64
+export const updateFaviconBase64 = async (req, res) => {
+  try {
+    console.log('updateFaviconBase64 aangeroepen');
+    
+    if (!req.body || !req.body.image) {
+      return res.status(400).json({ error: 'Geen afbeelding ontvangen' });
+    }
+
+    // Haal de base64 string uit de request
+    const base64Image = req.body.image;
+    
+    // Verwijder het prefix (bijv. "data:image/png;base64,")
+    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+    
+    // Genereer unieke bestandsnaam
+    const filename = 'favicon-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + '.png';
+    const uploadDir = getUploadPath('branding');
+    
+    if (!uploadDir) {
+      throw new Error('Upload directory niet gevonden');
+    }
+
+    // Zorg dat de upload directory bestaat
+    await fs.mkdir(uploadDir, { recursive: true });
+    
+    const filepath = path.join(uploadDir, filename);
+    console.log('Bestand wordt opgeslagen naar:', filepath);
+
+    try {
+      // Schrijf het bestand naar de schijf
+      await fs.writeFile(filepath, base64Data, 'base64');
+      console.log('Bestand succesvol opgeslagen');
+    } catch (error) {
+      console.error('Fout bij opslaan bestand:', error);
+      return res.status(500).json({ error: 'Fout bij opslaan van favicon bestand' });
+    }
+
+    // Verwijder het oude favicon bestand als het bestaat
+    try {
+      const oldResult = await pool.query('SELECT favicon FROM settings WHERE id = 1');
+      const oldFavicon = oldResult.rows[0]?.favicon;
+      if (oldFavicon) {
+        const oldPath = path.join(uploadDir, oldFavicon);
+        try {
+          await fs.access(oldPath);
+          await fs.unlink(oldPath);
+          console.log('Oud favicon bestand verwijderd:', oldFavicon);
+        } catch (err) {
+          console.error('Oud favicon bestand niet gevonden of kon niet worden verwijderd:', err);
+          // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+        }
+      }
+    } catch (error) {
+      console.error('Fout bij opzoeken oud favicon:', error);
+      // Ga door met de update, zelfs als er een fout is bij het opzoeken van het oude bestand
+    }
+
+    // Update alleen het favicon veld in de database
+    try {
+      const query = 'UPDATE settings SET favicon = $1 WHERE id = 1 RETURNING favicon';
+      const result = await pool.query(query, [filename]);
+      console.log('Database bijgewerkt met nieuwe favicon:', filename);
+      
+      res.json({ favicon: result.rows[0].favicon });
+    } catch (error) {
+      console.error('Fout bij bijwerken database:', error);
+      return res.status(500).json({ error: 'Fout bij bijwerken database met nieuwe favicon' });
+    }
+  } catch (error) {
+    console.error('Error handling favicon upload:', error);
+    res.status(500).json({ error: 'Fout bij uploaden van favicon' });
   }
 }; 

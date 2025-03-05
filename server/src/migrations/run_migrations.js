@@ -32,10 +32,22 @@ const runMigration = async (filename) => {
   }
 };
 
+const runJsMigration = async (filename) => {
+  try {
+    console.log(`Running JS migration: ${filename}`);
+    // Dynamisch importeren van het JS migratiescript
+    const migrationModule = await import(`./${filename}`);
+    console.log(`JS Migration ${filename} completed successfully`);
+  } catch (error) {
+    console.error(`Error running JS migration ${filename}:`, error);
+  }
+};
+
 const runMigrations = async () => {
   try {
     // Voer de migraties uit in de juiste volgorde
     await runMigration('add_logo_enabled.sql');
+    await runJsMigration('add_favicon_field.js');
     
     console.log('All migrations completed');
     process.exit(0);

@@ -30,7 +30,8 @@ import {
   FontDownload as FontDownloadIcon,
   People as PeopleIcon,
   Email as EmailIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Crop as CropIcon
 } from '@mui/icons-material';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../utils/api';
@@ -41,6 +42,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import UserManagement from '../../components/UserManagement';
 import EmailSettings from '../../components/EmailSettings';
 import ColorPicker from '../../components/ColorPicker';
+import LogoCropper from '../../components/LogoCropper';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;
@@ -72,6 +74,7 @@ const Settings = () => {
   const [useDynamicBackgroundColor, setUseDynamicBackgroundColor] = useState(
     settings?.use_dynamic_background_color || false
   );
+  const [cropperOpen, setCropperOpen] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -126,10 +129,61 @@ const Settings = () => {
     } catch (error) {
       console.error('Fout bij uploaden logo:', error);
       showToast('Fout bij uploaden logo', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFaviconChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('favicon', file);
+
+    try {
+      setLoading(true);
+      const response = await api.post('/settings/favicon', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      // Update de lokale instellingen met de nieuwe favicon
+      const updatedSettings = { ...settings, favicon: response.data.favicon };
+      updateSettingsLocally(updatedSettings);
+      
+      showToast('Favicon succesvol geüpload', 'success');
+    } catch (error) {
+      console.error('Fout bij uploaden favicon:', error);
+      showToast('Fout bij uploaden favicon', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCropComplete = async (base64Image) => {
+    if (!base64Image) return;
+
+    try {
+      setLoading(true);
+      // Stuur de base64 afbeelding direct naar de server
+      const response = await api.post('/settings/favicon-base64', {
+        image: base64Image
+      });
+      
+      // Update de lokale instellingen met de nieuwe favicon
+      const updatedSettings = { ...settings, favicon: response.data.favicon };
+      updateSettingsLocally(updatedSettings);
+      
+      showToast('Favicon succesvol gemaakt van logo', 'success');
+    } catch (error) {
+      console.error('Fout bij maken favicon van logo:', error);
+      showToast('Fout bij maken favicon van logo', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -567,6 +621,111 @@ const Settings = () => {
                   )}
                 </Box>
               </Grid>
+              
+              {/* Favicon sectie */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 3 }} />
+                <Typography variant="h6" gutterBottom>Favicon Instellingen</Typography>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  De favicon is het kleine icoontje dat in de adresbalk en tabblad van de browser wordt weergegeven.
+                </Typography>
+                
+                <Grid container spacing={3} sx={{ mt: 1 }}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      p: 3,
+                      border: '1px dashed',
+                      borderColor: theme.palette.mode === 'dark' ? 'grey.700' : 'grey.300',
+                      borderRadius: 2,
+                      minHeight: 150
+                    }}>
+                      {settings.favicon ? (
+                        <Box sx={{ position: 'relative', width: '100%', textAlign: 'center' }}>
+                          <img 
+                            src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.favicon}`} 
+                            alt="Favicon Preview" 
+                            style={{ 
+                              maxWidth: '100%', 
+                              maxHeight: 64,
+                              objectFit: 'contain'
+                            }} 
+                          />
+                          <IconButton 
+                            sx={{ 
+                              position: 'absolute', 
+                              top: -12, 
+                              right: -12,
+                              bgcolor: theme.palette.background.paper,
+                              boxShadow: 1
+                            }}
+                            onClick={() => {
+                              handleChange('favicon', null);
+                            }}
+                          >
+                            <UploadIcon />
+                          </IconButton>
+                        </Box>
+                      ) : (
+                        <>
+                          <Typography variant="body2" color="textSecondary" gutterBottom>
+                            Sleep een afbeelding hierheen of klik om te uploaden
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              component="label"
+                              startIcon={<UploadIcon />}
+                              disabled={loading}
+                            >
+                              Favicon Uploaden
+                              <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                onChange={handleFaviconChange}
+                              />
+                            </Button>
+                            
+                            {logoPreview && (
+                              <Button
+                                variant="outlined"
+                                startIcon={<CropIcon />}
+                                disabled={loading}
+                                onClick={() => setCropperOpen(true)}
+                              >
+                                Van logo maken
+                              </Button>
+                            )}
+                          </Box>
+                        </>
+                      )}
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2">
+                      Tips voor een goede favicon:
+                    </Typography>
+                    <ul>
+                      <li>Gebruik een vierkante afbeelding (bijv. 32x32, 64x64 of 128x128 pixels)</li>
+                      <li>Houd het ontwerp eenvoudig en herkenbaar, zelfs op kleine formaten</li>
+                      <li>SVG-formaat wordt aanbevolen voor de beste kwaliteit op alle apparaten</li>
+                      <li>Gebruik dezelfde stijl als je logo voor consistentie</li>
+                    </ul>
+                    
+                    {logoPreview && !settings.favicon && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="body2" color="primary">
+                          Tip: Je kunt een deel van je logo selecteren om als favicon te gebruiken met de "Van logo maken" knop.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Grid>
+                </Grid>
+              </Grid>
             </Grid>
           </Paper>
         </TabPanel>
@@ -712,6 +871,16 @@ const Settings = () => {
           </Paper>
         </TabPanel>
       </Container>
+      
+      {/* LogoCropper component */}
+      {logoPreview && (
+        <LogoCropper
+          open={cropperOpen}
+          onClose={() => setCropperOpen(false)}
+          logoUrl={logoPreview}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </Box>
   );
 };
