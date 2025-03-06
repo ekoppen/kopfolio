@@ -36,21 +36,80 @@ export const getPatterns = async (req, res) => {
   }
 };
 
-// Haal de huidige instellingen op
-export const getSettings = async (req, res) => {
+ // Haal de huidige instellingen op
+ export const getSettings = async (req, res) => {
   try {
+    // Controleer eerst of de logo_enabled kolom bestaat
+    const checkColumnQuery = `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'logo_enabled'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN logo_enabled BOOLEAN DEFAULT TRUE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'background_opacity'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN background_opacity NUMERIC DEFAULT 1;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'background_color'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN background_color VARCHAR(50) DEFAULT NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'use_dynamic_background_color'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN use_dynamic_background_color BOOLEAN DEFAULT FALSE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'favicon'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN favicon TEXT;
+        END IF;
+      END $$;
+    `;
+
+    await pool.query(checkColumnQuery);
+
+    // Nu kunnen we veilig alle kolommen opvragen
     const result = await pool.query(
       `SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, 
-              accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, 
-              subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, 
-              pattern_opacity, pattern_scale, pattern_color, logo_size, logo_enabled,
-              subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
-              subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
-              menu_font_size, content_font_size, footer_font, footer_size, footer_color,
-              logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
-              logo_shadow_color, logo_shadow_opacity, background_color, background_opacity,
-              use_dynamic_background_color, favicon
-       FROM settings WHERE id = 1`
+             accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, 
+             subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, 
+             pattern_opacity, pattern_scale, pattern_color, logo_size, logo_enabled,
+             subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
+             subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
+             menu_font_size, content_font_size, footer_font, footer_size, footer_color,
+             logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
+             logo_shadow_color, logo_shadow_opacity, background_color, background_opacity,
+             use_dynamic_background_color, favicon
+      FROM settings WHERE id = 1`
     );
     res.json(result.rows[0]);
   } catch (error) {
