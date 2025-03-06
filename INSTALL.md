@@ -221,7 +221,7 @@ Voor ontwikkeling kun je SQLite gebruiken, wat geen aparte installatie vereist:
 | Variabele | Beschrijving | Voorbeeld |
 |-----------|-------------|-----------|
 | `DB_DIALECT` | Database type | `postgres` of `sqlite` |
-| `DB_HOST` | Database host | `localhost` |
+| `DB_HOST` | Database host | `localhost` of `db` (voor Docker) |
 | `DB_PORT` | Database poort | `5432` |
 | `DB_USER` | Database gebruiker | `kopfolio` |
 | `DB_PASSWORD` | Database wachtwoord | `jouw_wachtwoord` |
@@ -239,9 +239,9 @@ Voor ontwikkeling kun je SQLite gebruiken, wat geen aparte installatie vereist:
 
 ### Client Omgevingsvariabelen
 
-| Variabele | Beschrijving | Voorbeeld |
-|-----------|-------------|-----------|
-| `VITE_API_URL` | Backend API URL | `http://localhost:3000/api` |
+| Variabele | Beschrijving | Voorbeeld voor lokale ontwikkeling | Voorbeeld voor productie |
+|-----------|-------------|-----------|-----------|
+| `VITE_API_URL` | Backend API URL | `http://localhost:3000/api` | `/api` (relatief pad voor productie) |
 
 ## Eerste Configuratie
 
@@ -275,7 +275,9 @@ Volg deze stappen voor de eerste configuratie:
 
 ## Productie Deployment
 
-Voor een productie-omgeving raden we de volgende stappen aan:
+### Standaard Deployment
+
+Voor een standaard productie-omgeving:
 
 1. **Bouw de frontend**:
    ```bash
@@ -288,6 +290,11 @@ Voor een productie-omgeving raden we de volgende stappen aan:
    Pas je `.env` bestand aan:
    ```env
    NODE_ENV=production
+   ```
+
+   Pas je client `.env` bestand aan voor relatieve API paden:
+   ```env
+   VITE_API_URL=/api
    ```
 
 3. **Start de server**:
@@ -306,13 +313,34 @@ Voor een productie-omgeving raden we de volgende stappen aan:
        listen 80;
        server_name jouwdomein.com;
 
+       # Frontend bestanden
        location / {
-           proxy_pass http://localhost:3000;
+           root /pad/naar/kopfolio/client/dist;
+           try_files $uri $uri/ /index.html;
+           index index.html;
+       }
+
+       # API proxy
+       location /api/ {
+           proxy_pass http://localhost:3000/api/;
            proxy_http_version 1.1;
            proxy_set_header Upgrade $http_upgrade;
            proxy_set_header Connection 'upgrade';
            proxy_set_header Host $host;
            proxy_cache_bypass $http_upgrade;
+       }
+
+       # Uploads en statische bestanden
+       location /uploads/ {
+           alias /pad/naar/kopfolio/content/uploads/;
+       }
+
+       location /patterns/ {
+           alias /pad/naar/kopfolio/content/patterns/;
+       }
+
+       location /fonts/ {
+           alias /pad/naar/kopfolio/content/fonts/;
        }
    }
    ```
@@ -324,6 +352,197 @@ Voor een productie-omgeving raden we de volgende stappen aan:
    sudo certbot --nginx -d jouwdomein.com
    ```
 
+### Docker Productie Deployment
+
+Voor een Docker-gebaseerde productie-omgeving:
+
+1. **Maak een productie Docker Compose bestand**:
+
+   Maak een bestand genaamd `docker-compose.production.yml`:
+   ```yaml
+   version: '3.8'
+
+   services:
+     frontend:
+       build: 
+         context: ./client
+         dockerfile: Dockerfile
+       ports:
+         - "5173:5173"
+       volumes:
+         - ./client:/app
+         - /app/node_modules
+       environment:
+         - VITE_API_URL=/api
+       depends_on:
+         - backend
+       networks:
+         - app-network
+
+     backend:
+       build: 
+         context: ./server
+         dockerfile: Dockerfile
+       ports:
+         - "3000:3000"
+       volumes:
+         - ./server:/app
+         - /app/node_modules
+         - ./content/uploads:/app/public/uploads:delegated
+         - ./content/patterns:/app/public/patterns:delegated
+         - ./content/fonts:/app/public/fonts:delegated
+         - uploads_data:/app/public/uploads
+       environment:
+         - DB_HOST=db
+         - DB_USER=kopfolio
+         - DB_PASSWORD=kopfolio
+         - DB_NAME=kopfolio
+         - JWT_SECRET=your-secret-key
+       depends_on:
+         db:
+           condition: service_healthy
+       networks:
+         - app-network
+
+     db:
+       image: postgres:16-alpine
+       environment:
+         - POSTGRES_USER=kopfolio
+         - POSTGRES_PASSWORD=kopfolio
+         - POSTGRES_DB=kopfolio
+       ports:
+         - "5432:5432"
+       volumes:
+         - postgres_data:/var/lib/postgresql/data
+       healthcheck:
+         test: ["CMD-SHELL", "pg_isready -U kopfolio"]
+         interval: 5s
+         timeout: 5s
+         retries: 5
+       networks:
+         - app-network
+
+     nginx:
+       image: nginx:alpine
+       ports:
+         - "80:80"
+       volumes:
+         - ./nginx.conf.production:/etc/nginx/conf.d/default.conf
+         - ./client/dist:/usr/share/nginx/html
+         - ./content/uploads:/usr/share/nginx/html/uploads
+         - ./content/patterns:/usr/share/nginx/html/patterns
+         - ./content/fonts:/usr/share/nginx/html/fonts
+       depends_on:
+         - frontend
+         - backend
+       networks:
+         - app-network
+
+   networks:
+     app-network:
+       driver: bridge
+
+   volumes:
+     postgres_data:
+     uploads_data:
+   ```
+
+2. **Maak een Nginx configuratie voor productie**:
+
+   Maak een bestand genaamd `nginx.conf.production`:
+   ```nginx
+   server {
+       listen 80;
+       server_name jouwdomein.com;  # Vervang dit door je eigen domeinnaam
+
+       # Frontend bestanden
+       location / {
+           root /usr/share/nginx/html;
+           try_files $uri $uri/ /index.html;
+           index index.html;
+       }
+
+       # API proxy
+       location /api/ {
+           proxy_pass http://backend:3000/api/;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+3. **Maak een build script voor productie**:
+
+   Maak een bestand genaamd `build-production.sh`:
+   ```bash
+   #!/bin/bash
+
+   # Stop alle containers
+   echo "Stopping all containers..."
+   docker-compose down
+
+   # Bouw de frontend voor productie
+   echo "Building frontend for production..."
+   cd client
+   npm run build
+   cd ..
+
+   # Start de productie containers
+   echo "Starting production containers..."
+   docker-compose -f docker-compose.production.yml up -d
+
+   echo "Production environment is now running!"
+   echo "Access your application at http://jouwdomein.com"
+   ```
+
+   Maak het script uitvoerbaar:
+   ```bash
+   chmod +x build-production.sh
+   ```
+
+4. **Start de productie-omgeving**:
+   ```bash
+   ./build-production.sh
+   ```
+
+## Cross-Platform Compatibiliteit
+
+Bij het werken met Kopfolio op verschillende besturingssystemen, houd rekening met het volgende:
+
+### Bestandsnamen en Hoofdlettergevoeligheid
+
+- **Linux/Unix**: Bestandssystemen zijn hoofdlettergevoelig (bijv. `Routes.jsx` en `routes.jsx` zijn verschillende bestanden)
+- **macOS**: Standaard niet hoofdlettergevoelig, maar kan hoofdlettergevoelig zijn afhankelijk van het bestandssysteem
+- **Windows**: Niet hoofdlettergevoelig
+
+Zorg ervoor dat imports in je code exact overeenkomen met de bestandsnamen, inclusief hoofdletters:
+
+```javascript
+// Correct (als het bestand Routes.jsx heet)
+import AppRoutes from './Routes';
+
+// Fout op Linux/Unix (als het bestand Routes.jsx heet)
+import AppRoutes from './routes';
+```
+
+### Paden en Slashes
+
+- **Linux/Unix/macOS**: Gebruikt forward slashes (`/`) in paden
+- **Windows**: Gebruikt backslashes (`\`) in paden, maar JavaScript accepteert ook forward slashes
+
+Gebruik in je code altijd forward slashes voor paden, ongeacht het besturingssysteem:
+
+```javascript
+// Correct voor alle platforms
+const path = './uploads/images/photo.jpg';
+
+// Kan problemen veroorzaken op sommige platforms
+const path = '.\\uploads\\images\\photo.jpg';
+```
+
 ## Probleemoplossing
 
 ### Veelvoorkomende problemen
@@ -332,6 +551,7 @@ Voor een productie-omgeving raden we de volgende stappen aan:
    - Controleer of PostgreSQL draait: `sudo service postgresql status`
    - Controleer de database credentials in je `.env` bestand
    - Controleer of de database bestaat: `psql -U postgres -c "\l"`
+   - Voor Docker: zorg ervoor dat `DB_HOST=db` is ingesteld in plaats van `localhost`
 
 2. **Node.js versie problemen**:
    - Gebruik nvm om de juiste Node.js versie te installeren: `nvm install 16`
@@ -343,6 +563,15 @@ Voor een productie-omgeving raden we de volgende stappen aan:
 
 4. **Bestandsrechten problemen**:
    - Zorg ervoor dat de uploads directory schrijfbaar is: `chmod -R 755 content/uploads`
+
+5. **API URL problemen**:
+   - **Localhost verwijzingen in productie**: Wijzig `VITE_API_URL` in client/.env naar `/api` in plaats van `http://localhost:3000/api`
+   - **CORS fouten**: Zorg ervoor dat de API en frontend op dezelfde domein draaien of configureer CORS correct
+   - **404 Not Found bij API verzoeken**: Controleer of de proxy correct is geconfigureerd in Nginx of Vite
+
+6. **Hoofdlettergevoeligheid problemen**:
+   - **Import fouten op Linux**: Zorg ervoor dat imports exact overeenkomen met bestandsnamen, inclusief hoofdletters
+   - Voorbeeld: Als je een fout krijgt bij `import AppRoutes from "./routes"`, controleer of het bestand misschien `Routes.jsx` heet
 
 ### Logbestanden
 
