@@ -62,12 +62,25 @@ async function generateThumbnails() {
   await import('./scripts/generate-thumbnails.js');
 }
 
+async function runMigrations() {
+  console.log('Uitvoeren van database migraties...');
+  try {
+    const { runMigrations } = await import('./migrations/run_migrations.js');
+    await runMigrations();
+    console.log('Database migraties succesvol uitgevoerd');
+  } catch (error) {
+    console.error('Fout bij uitvoeren van migraties:', error);
+    throw error;
+  }
+}
+
 async function start() {
   try {
     await checkDatabase();
     await setupDirectories();
     await copyDemoPhotos();
     await generateThumbnails();
+    await runMigrations();
     
     // Start de applicatie
     const { spawn } = await import('child_process');

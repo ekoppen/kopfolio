@@ -45,16 +45,74 @@ const runJsMigration = async (filename) => {
 
 const runMigrations = async () => {
   try {
-    // Voer de migraties uit in de juiste volgorde
-    await runMigration('add_logo_enabled.sql');
-    await runJsMigration('add_favicon_field.js');
+    // Maak de migrations tabel aan als deze nog niet bestaat
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Lees alle SQL migratie bestanden
+    const migrationsDir = path.join(__dirname);
+    const sqlFiles = fs.readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql'))
+      .sort(); // Sorteer om volgorde te garanderen
+
+    // Lees alle JS migratie bestanden
+    const jsFiles = fs.readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.js') && file !== 'run_migrations.js')
+      .sort(); // Sorteer om volgorde te garanderen
+
+    // Voer SQL migraties uit
+    for (const file of sqlFiles) {
+      // Controleer of de migratie al is uitgevoerd
+      const { rows } = await pool.query('SELECT * FROM migrations WHERE name = $1', [file]);
+      
+      if (rows.length === 0) {
+        await runMigration(file);
+        // Registreer de migratie als uitgevoerd
+        await pool.query('INSERT INTO migrations (name) VALUES ($1)', [file]);
+      } else {
+        console.log(`Migration ${file} already executed, skipping`);
+      }
+    }
+
+    // Voer JS migraties uit
+    for (const file of jsFiles) {
+      // Controleer of de migratie al is uitgevoerd
+      const { rows } = await pool.query('SELECT * FROM migrations WHERE name = $1', [file]);
+      
+      if (rows.length === 0) {
+        await runJsMigration(file);
+        // Registreer de migratie als uitgevoerd
+        await pool.query('INSERT INTO migrations (name) VALUES ($1)', [file]);
+      } else {
+        console.log(`JS Migration ${file} already executed, skipping`);
+      }
+    }
     
     console.log('All migrations completed');
-    process.exit(0);
+    
+    // Alleen afsluiten als het script direct wordt uitgevoerd (niet als het wordt geïmporteerd)
+    if (process.argv[1] === fileURLToPath(import.meta.url)) {
+      process.exit(0);
+    }
   } catch (error) {
     console.error('Error running migrations:', error);
-    process.exit(1);
+    if (process.argv[1] === fileURLToPath(import.meta.url)) {
+      process.exit(1);
+    } else {
+      throw error;
+    }
   }
 };
 
-runMigrations(); 
+// Voer migraties uit als het script direct wordt uitgevoerd
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  runMigrations();
+}
+
+// Exporteer de functie voor gebruik in andere modules
+export { runMigrations }; 
