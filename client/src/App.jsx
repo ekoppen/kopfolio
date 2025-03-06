@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Box, GlobalStyles } from '@mui/material';
-import AppRoutes from './routes';
+import AppRoutes from './Routes';
 import ThemeProvider from './contexts/ThemeContext';
 import SettingsProvider from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
