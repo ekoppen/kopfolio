@@ -109,10 +109,11 @@ export async function initDb() {
 // Functie om de database structuur te controleren en bij te werken
 const initializeDatabase = async () => {
   try {
-    // Check en voeg logo_size kolom toe
-    const checkLogoSizeQuery = `
+    // Controleer en voeg alle benodigde kolommen toe
+    const checkColumnsQuery = `
       DO $$
       BEGIN
+        -- Logo size kolom
         IF NOT EXISTS (
           SELECT 1 
           FROM information_schema.columns 
@@ -126,13 +127,93 @@ const initializeDatabase = async () => {
           SET logo_size = 60
           WHERE id = 1;
         END IF;
+
+        -- Logo enabled kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'logo_enabled'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN logo_enabled BOOLEAN DEFAULT TRUE;
+
+          UPDATE settings 
+          SET logo_enabled = TRUE
+          WHERE id = 1;
+        END IF;
+
+        -- Background opacity kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'background_opacity'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN background_opacity NUMERIC DEFAULT 1;
+
+          UPDATE settings 
+          SET background_opacity = 1
+          WHERE id = 1;
+        END IF;
+
+        -- Background color kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'background_color'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN background_color VARCHAR(50) DEFAULT NULL;
+        END IF;
+
+        -- Use dynamic background color kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'use_dynamic_background_color'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN use_dynamic_background_color BOOLEAN DEFAULT FALSE;
+
+          UPDATE settings 
+          SET use_dynamic_background_color = FALSE
+          WHERE id = 1;
+        END IF;
+
+        -- Favicon kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'favicon'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN favicon TEXT;
+        END IF;
+
+        -- Controleer of de font kolommen correcte waarden hebben
+        UPDATE settings 
+        SET font = 'Arial' 
+        WHERE font IS NULL OR font = 'system-ui';
+
+        UPDATE settings 
+        SET subtitle_font = 'Arial' 
+        WHERE subtitle_font IS NULL OR subtitle_font = 'system-ui';
+
+        UPDATE settings 
+        SET footer_font = 'Arial' 
+        WHERE footer_font IS NULL OR footer_font = 'system-ui';
       END $$;
     `;
 
-    await pool.query(checkLogoSizeQuery);
+    await pool.query(checkColumnsQuery);
     console.log('Database structuur gecontroleerd en bijgewerkt');
   } catch (error) {
-    console.error('Fout bij initialiseren database:', error);
+    console.error('Fout bij controleren database structuur:', error);
   }
 };
 

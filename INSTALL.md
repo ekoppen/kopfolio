@@ -621,8 +621,28 @@ const path = '.\\uploads\\images\\photo.jpg';
 
 7. **Database migratie problemen**:
    - **Ontbrekende kolommen**: Als je een fout krijgt zoals `column X does not exist`, controleer of de migratie correct is uitgevoerd
-   - **Oplossing**: Voer een volledige herstart van alle containers uit: `docker-compose down && docker-compose up -d`
-   - **Handmatige migratie**: Als het probleem aanhoudt, voer de migratie handmatig uit: `docker-compose exec backend npm run migrate`
+   - **Oplossing 1**: Voer een volledige herstart van alle containers uit: `docker-compose down && docker-compose up -d`
+   - **Oplossing 2**: Voer de migratie handmatig uit: `docker-compose exec backend npm run migrate`
+   - **Oplossing 3**: Voeg de ontbrekende kolommen handmatig toe:
+     ```bash
+     docker-compose exec db psql -U kopfolio -c "
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS logo_enabled BOOLEAN DEFAULT TRUE;
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS background_opacity NUMERIC DEFAULT 1;
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS background_color VARCHAR(50) DEFAULT NULL;
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS use_dynamic_background_color BOOLEAN DEFAULT FALSE;
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS favicon TEXT;
+     "
+     ```
+   - **Oplossing 4**: Als alle bovenstaande oplossingen niet werken, overweeg dan om de database volledig opnieuw te initialiseren (let op: dit verwijdert alle gegevens):
+     ```bash
+     # Maak eerst een backup als je belangrijke gegevens hebt
+     docker-compose exec db pg_dump -U kopfolio kopfolio > kopfolio_backup.sql
+     
+     # Verwijder de database en maak een nieuwe aan
+     docker-compose down
+     docker volume rm kopfolio_postgres_data
+     docker-compose up -d
+     ```
 
 8. **Problemen met het laden van assets**:
    - **Ontbrekende patronen of fonts**: Als patronen of fonts niet zichtbaar zijn in de instellingen, controleer de proxy configuratie
@@ -685,6 +705,30 @@ docker-compose down && docker-compose up -d
 ```
 
 Een volledige herstart zorgt ervoor dat alle caches worden gewist en dat alle componenten de nieuwe database structuur gebruiken.
+
+### Automatische Database Controle
+
+Naast het migratiesysteem voert Kopfolio ook een automatische controle uit op de database structuur bij elke start van de server. Deze controle:
+
+1. Controleert of alle benodigde kolommen aanwezig zijn in de database
+2. Voegt ontbrekende kolommen automatisch toe met standaardwaarden
+3. Corrigeert ongeldige waarden in bepaalde kolommen (zoals fonts)
+
+Deze dubbele beveiliging zorgt ervoor dat de database altijd correct is geconfigureerd, zelfs als er problemen zijn met de migraties.
+
+### Volledige Herstart na Migraties
+
+**Belangrijk**: Na het uitvoeren van migraties of na een update van de applicatie is het sterk aanbevolen om alle containers volledig te herstarten. Dit zorgt ervoor dat alle wijzigingen correct worden toegepast en dat alle caches worden gewist.
+
+```bash
+docker-compose down && docker-compose up -d
+```
+
+Een volledige herstart zorgt ervoor dat:
+- Alle containers worden gestopt en opnieuw gestart
+- Alle caches worden gewist
+- Alle componenten de nieuwe database structuur gebruiken
+- Eventuele connectieproblemen worden opgelost
 
 ### Handmatige Migraties
 
