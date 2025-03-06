@@ -1,0 +1,34 @@
+server {
+    listen 80;
+    server_name jouw-domein.nl www.jouw-domein.nl;
+
+    # Frontend bestanden
+    location / {
+        root /pad/naar/kopfolio/client/dist;
+        try_files $uri $uri/ /index.html;
+        index index.html;
+    }
+
+    # API proxy
+    location /api/ {
+        proxy_pass http://localhost:3000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Uploads en statische bestanden
+    location /uploads/ {
+        alias /pad/naar/kopfolio/content/uploads/;
+    }
+
+    location /patterns/ {
+        alias /pad/naar/kopfolio/content/patterns/;
+    }
+
+    location /fonts/ {
+        alias /pad/naar/kopfolio/content/fonts/;
+    }
+} 
