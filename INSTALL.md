@@ -604,6 +604,11 @@ const path = '.\\uploads\\images\\photo.jpg';
    - **Import fouten op Linux**: Zorg ervoor dat imports exact overeenkomen met bestandsnamen, inclusief hoofdletters
    - Voorbeeld: Als je een fout krijgt bij `import AppRoutes from "./routes"`, controleer of het bestand misschien `Routes.jsx` heet
 
+7. **Database migratie problemen**:
+   - **Ontbrekende kolommen**: Als je een fout krijgt zoals `column X does not exist`, controleer of de migratie correct is uitgevoerd
+   - **Oplossing**: Voer een volledige herstart van alle containers uit: `docker-compose down && docker-compose up -d`
+   - **Handmatige migratie**: Als het probleem aanhoudt, voer de migratie handmatig uit: `docker-compose exec backend npm run migrate`
+
 ### Logbestanden
 
 Controleer de volgende logbestanden voor meer informatie:
@@ -634,6 +639,14 @@ Het migratiesysteem werkt als volgt:
 4. Alle uitgevoerde migraties worden geregistreerd in de `migrations` tabel
 
 Dit betekent dat je bij een nieuwe deployment niet handmatig migraties hoeft uit te voeren. De server zal dit automatisch doen.
+
+**Belangrijk**: Na het uitvoeren van migraties kan het nodig zijn om alle containers volledig te herstarten om ervoor te zorgen dat de wijzigingen correct worden toegepast. Dit kan worden gedaan met het volgende commando:
+
+```bash
+docker-compose down && docker-compose up -d
+```
+
+Een volledige herstart zorgt ervoor dat alle caches worden gewist en dat alle componenten de nieuwe database structuur gebruiken.
 
 ### Handmatige Migraties
 
