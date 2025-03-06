@@ -14,7 +14,12 @@ Deze handleiding bevat gedetailleerde instructies voor het installeren en config
 - [Omgevingsvariabelen](#omgevingsvariabelen)
 - [Eerste Configuratie](#eerste-configuratie)
 - [Productie Deployment](#productie-deployment)
+- [Cross-Platform Compatibiliteit](#cross-platform-compatibiliteit)
 - [Probleemoplossing](#probleemoplossing)
+- [Database Migraties](#database-migraties)
+  - [Automatische Migraties](#automatische-migraties)
+  - [Handmatige Migraties](#handmatige-migraties)
+  - [Nieuwe Migraties Toevoegen](#nieuwe-migraties-toevoegen)
 
 ## Vereisten
 
@@ -613,4 +618,44 @@ Als je problemen ondervindt die niet in deze handleiding worden behandeld:
 
 1. Controleer de [GitHub issues](https://github.com/[username]/kopfolio/issues)
 2. Maak een nieuw issue aan met een gedetailleerde beschrijving van je probleem
-3. Voeg relevante logbestanden en omgevingsinformatie toe 
+3. Voeg relevante logbestanden en omgevingsinformatie toe
+
+## Database Migraties
+
+### Automatische Migraties
+
+Kopfolio is nu geconfigureerd om automatisch database migraties uit te voeren bij het opstarten van de server. Dit zorgt ervoor dat de database structuur altijd up-to-date is, zelfs na updates van de applicatie.
+
+Het migratiesysteem werkt als volgt:
+
+1. Bij het opstarten van de server worden alle beschikbare migraties gedetecteerd
+2. Elke migratie wordt gecontroleerd of deze al is uitgevoerd
+3. Alleen nieuwe migraties worden uitgevoerd
+4. Alle uitgevoerde migraties worden geregistreerd in de `migrations` tabel
+
+Dit betekent dat je bij een nieuwe deployment niet handmatig migraties hoeft uit te voeren. De server zal dit automatisch doen.
+
+### Handmatige Migraties
+
+Als je toch handmatig migraties wilt uitvoeren, bijvoorbeeld voor ontwikkelingsdoeleinden, kun je het volgende commando gebruiken:
+
+```bash
+# In de server directory
+npm run migrate
+
+# Of in Docker
+docker-compose exec backend npm run migrate
+```
+
+### Nieuwe Migraties Toevoegen
+
+Als je zelf migraties wilt toevoegen, volg dan deze stappen:
+
+1. Maak een nieuw SQL bestand aan in de `server/src/migrations` directory
+   - Gebruik een duidelijke naamgeving, bijvoorbeeld `026_add_new_feature.sql`
+
+2. Of maak een JavaScript migratie voor complexere wijzigingen:
+   - Maak een nieuw JS bestand aan in de `server/src/migrations` directory
+   - Exporteer een functie die de migratie uitvoert
+
+Bij de volgende start van de server zullen deze migraties automatisch worden uitgevoerd. 
