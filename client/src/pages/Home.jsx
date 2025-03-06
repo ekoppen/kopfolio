@@ -234,25 +234,7 @@ const Home = () => {
       display: 'flex',
       bgcolor: 'transparent'
     }}>
-      {/* Patroon achtergrond */}
-      {settings?.sidebar_pattern && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `url(/patterns/${settings.sidebar_pattern})`,
-            backgroundRepeat: 'repeat',
-            backgroundSize: settings?.pattern_scale ? `${settings.pattern_scale * 25}%` : '200px',
-            backgroundPosition: 'center center',
-            opacity: settings?.pattern_opacity !== undefined ? settings.pattern_opacity : 0.15,
-            pointerEvents: 'none',
-            zIndex: 0
-          }}
-        />
-      )}
+      {/* Patroon achtergrond wordt nu alleen in Layout.jsx gerenderd */}
       
       <Box sx={{
         position: 'absolute',
