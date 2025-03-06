@@ -250,7 +250,7 @@ Voor ontwikkeling kun je SQLite gebruiken, wat geen aparte installatie vereist:
 
 ### Vite Proxy Configuratie
 
-Voor ontwikkeling met Docker is het belangrijk om de Vite proxy correct te configureren in `client/vite.config.js`:
+Voor ontwikkeling met Docker is het belangrijk om de Vite proxy correct te configureren in `client/vite.config.js`. Zorg ervoor dat alle benodigde routes worden doorgestuurd naar de backend server:
 
 ```javascript
 server: {
@@ -267,12 +267,27 @@ server: {
     '/uploads': {
       target: 'http://backend:3000',
       changeOrigin: true
+    },
+    '/patterns': {
+      target: 'http://backend:3000',
+      changeOrigin: true
+    },
+    '/fonts': {
+      target: 'http://backend:3000',
+      changeOrigin: true
     }
   }
 },
 ```
 
-Deze configuratie zorgt ervoor dat zowel API-verzoeken als verzoeken voor geüploade bestanden correct worden doorgestuurd naar de backend server.
+Deze configuratie zorgt ervoor dat alle benodigde assets correct worden doorgestuurd naar de backend server:
+
+- **API verzoeken**: Alle verzoeken naar `/api` worden doorgestuurd naar de backend
+- **Uploads**: Afbeeldingen en andere geüploade bestanden worden correct geladen
+- **Patronen**: SVG patronen voor de achtergrond worden correct geladen in de instellingen
+- **Fonts**: Custom fonts worden correct geladen voor de website
+
+**Belangrijk**: Als je problemen ondervindt met het laden van bepaalde assets (zoals patronen of fonts niet zichtbaar in de instellingen), controleer dan of de juiste proxy routes zijn geconfigureerd.
 
 ## Eerste Configuratie
 
@@ -608,6 +623,29 @@ const path = '.\\uploads\\images\\photo.jpg';
    - **Ontbrekende kolommen**: Als je een fout krijgt zoals `column X does not exist`, controleer of de migratie correct is uitgevoerd
    - **Oplossing**: Voer een volledige herstart van alle containers uit: `docker-compose down && docker-compose up -d`
    - **Handmatige migratie**: Als het probleem aanhoudt, voer de migratie handmatig uit: `docker-compose exec backend npm run migrate`
+
+8. **Problemen met het laden van assets**:
+   - **Ontbrekende patronen of fonts**: Als patronen of fonts niet zichtbaar zijn in de instellingen, controleer de proxy configuratie
+   - **Oplossing**: Voeg de ontbrekende proxy routes toe aan `client/vite.config.js`:
+     ```javascript
+     '/patterns': {
+       target: 'http://backend:3000',
+       changeOrigin: true
+     },
+     '/fonts': {
+       target: 'http://backend:3000',
+       changeOrigin: true
+     }
+     ```
+   - **Controleer of de bestanden bestaan**: Controleer of de patronen en fonts bestaan op de server:
+     ```bash
+     docker-compose exec backend ls -la /app/public/patterns
+     docker-compose exec backend ls -la /app/public/fonts
+     ```
+   - **Herstart de frontend**: Na het aanpassen van de proxy configuratie, herstart de frontend container:
+     ```bash
+     docker-compose restart frontend
+     ```
 
 ### Logbestanden
 

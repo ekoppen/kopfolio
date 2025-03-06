@@ -17,6 +17,14 @@ export default defineConfig({
       '/uploads': {
         target: 'http://backend:3000',
         changeOrigin: true
+      },
+      '/patterns': {
+        target: 'http://backend:3000',
+        changeOrigin: true
+      },
+      '/fonts': {
+        target: 'http://backend:3000',
+        changeOrigin: true
       }
     }
   },
