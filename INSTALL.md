@@ -243,6 +243,32 @@ Voor ontwikkeling kun je SQLite gebruiken, wat geen aparte installatie vereist:
 |-----------|-------------|-----------|-----------|
 | `VITE_API_URL` | Backend API URL | `http://localhost:3000/api` | `/api` (relatief pad voor productie) |
 
+### Vite Proxy Configuratie
+
+Voor ontwikkeling met Docker is het belangrijk om de Vite proxy correct te configureren in `client/vite.config.js`:
+
+```javascript
+server: {
+  host: true,
+  port: 5173,
+  watch: {
+    usePolling: true
+  },
+  proxy: {
+    '/api': {
+      target: 'http://backend:3000',
+      changeOrigin: true
+    },
+    '/uploads': {
+      target: 'http://backend:3000',
+      changeOrigin: true
+    }
+  }
+},
+```
+
+Deze configuratie zorgt ervoor dat zowel API-verzoeken als verzoeken voor geüploade bestanden correct worden doorgestuurd naar de backend server.
+
 ## Eerste Configuratie
 
 Na de installatie kun je inloggen met de standaard admin account:

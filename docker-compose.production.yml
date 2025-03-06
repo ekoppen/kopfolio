@@ -67,7 +67,7 @@ services:
     volumes:
       - ./nginx.conf.production:/etc/nginx/conf.d/default.conf
       - ./client/dist:/usr/share/nginx/html
-      - ./content/uploads:/usr/share/nginx/html/uploads
+      - ./server/public/uploads:/usr/share/nginx/html/uploads
       - ./content/patterns:/usr/share/nginx/html/patterns
       - ./content/fonts:/usr/share/nginx/html/fonts
     depends_on:
