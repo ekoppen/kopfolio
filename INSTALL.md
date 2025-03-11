@@ -687,48 +687,28 @@ Als je problemen ondervindt die niet in deze handleiding worden behandeld:
 
 ### Automatische Migraties
 
-Kopfolio is nu geconfigureerd om automatisch database migraties uit te voeren bij het opstarten van de server. Dit zorgt ervoor dat de database structuur altijd up-to-date is, zelfs na updates van de applicatie.
+Kopfolio voert automatisch database migraties uit bij het opstarten van de server. Dit zorgt ervoor dat de database structuur altijd up-to-date is met de nieuwste versie van de applicatie.
 
-Het migratiesysteem werkt als volgt:
+#### Automatische Database Controle
+Bij elke start van de server wordt de database structuur gecontroleerd en worden ontbrekende kolommen automatisch toegevoegd. Dit omvat:
+- Controleren of alle vereiste kolommen aanwezig zijn
+- Toevoegen van ontbrekende kolommen met standaardwaarden
+- Corrigeren van ongeldige waarden (zoals 'system-ui' in font kolommen)
 
-1. Bij het opstarten van de server worden alle beschikbare migraties gedetecteerd
-2. Elke migratie wordt gecontroleerd of deze al is uitgevoerd
-3. Alleen nieuwe migraties worden uitgevoerd
-4. Alle uitgevoerde migraties worden geregistreerd in de `migrations` tabel
+#### Robuuste Kolom Verificatie
+Om problemen met ontbrekende kolommen te voorkomen, heeft Kopfolio meerdere veiligheidslagen:
+1. **Migratie Scripts**: Voegen nieuwe kolommen toe tijdens updates
+2. **Database Initialisatie**: Controleert bij elke serverstart of alle kolommen aanwezig zijn
+3. **Controller Verificatie**: De settings controller controleert ook of alle benodigde kolommen bestaan
 
-Dit betekent dat je bij een nieuwe deployment niet handmatig migraties hoeft uit te voeren. De server zal dit automatisch doen.
+Deze gelaagde aanpak zorgt ervoor dat de applicatie blijft werken, zelfs als een migratie om een of andere reden niet correct is uitgevoerd.
 
-**Belangrijk**: Na het uitvoeren van migraties kan het nodig zijn om alle containers volledig te herstarten om ervoor te zorgen dat de wijzigingen correct worden toegepast. Dit kan worden gedaan met het volgende commando:
-
-```bash
-docker-compose down && docker-compose up -d
-```
-
-Een volledige herstart zorgt ervoor dat alle caches worden gewist en dat alle componenten de nieuwe database structuur gebruiken.
-
-### Automatische Database Controle
-
-Naast het migratiesysteem voert Kopfolio ook een automatische controle uit op de database structuur bij elke start van de server. Deze controle:
-
-1. Controleert of alle benodigde kolommen aanwezig zijn in de database
-2. Voegt ontbrekende kolommen automatisch toe met standaardwaarden
-3. Corrigeert ongeldige waarden in bepaalde kolommen (zoals fonts)
-
-Deze dubbele beveiliging zorgt ervoor dat de database altijd correct is geconfigureerd, zelfs als er problemen zijn met de migraties.
-
-### Volledige Herstart na Migraties
-
-**Belangrijk**: Na het uitvoeren van migraties of na een update van de applicatie is het sterk aanbevolen om alle containers volledig te herstarten. Dit zorgt ervoor dat alle wijzigingen correct worden toegepast en dat alle caches worden gewist.
+#### Volledige Herstart na Migraties
+Na het uitvoeren van migraties of na een update van de applicatie is het belangrijk om alle containers volledig te herstarten om wijzigingen correct toe te passen en caches te legen:
 
 ```bash
 docker-compose down && docker-compose up -d
 ```
-
-Een volledige herstart zorgt ervoor dat:
-- Alle containers worden gestopt en opnieuw gestart
-- Alle caches worden gewist
-- Alle componenten de nieuwe database structuur gebruiken
-- Eventuele connectieproblemen worden opgelost
 
 ### Handmatige Migraties
 

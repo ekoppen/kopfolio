@@ -64,7 +64,11 @@ export async function initDb() {
       '021_add_logo_shadow.sql',
       '022_add_sub_order.sql',
       '024_add_exif_data.sql',
-      '025_add_background_color.sql'
+      '025_add_background_color.sql',
+      'add_logo_enabled.sql',
+      'add_sub_order_column.sql',
+      'add_favicon_field.js',
+      'ensure_all_columns.js'
     ];
 
     for (const migration of migrations) {
