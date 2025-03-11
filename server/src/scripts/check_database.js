@@ -61,7 +61,9 @@ export const checkDatabaseStructure = async () => {
           background_color VARCHAR(50) DEFAULT NULL,
           background_opacity NUMERIC DEFAULT 1,
           use_dynamic_background_color BOOLEAN DEFAULT FALSE,
-          favicon TEXT DEFAULT NULL
+          favicon TEXT DEFAULT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
       
@@ -146,6 +148,32 @@ export const checkDatabaseStructure = async () => {
           column_added := TRUE;
         END IF;
 
+        -- Created_at kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'created_at'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+          RAISE NOTICE 'Kolom created_at toegevoegd aan settings tabel';
+          column_added := TRUE;
+        END IF;
+
+        -- Updated_at kolom
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'settings' 
+          AND column_name = 'updated_at'
+        ) THEN
+          ALTER TABLE settings
+          ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+          RAISE NOTICE 'Kolom updated_at toegevoegd aan settings tabel';
+          column_added := TRUE;
+        END IF;
+
         -- Geef resultaat terug
         IF column_added THEN
           RAISE NOTICE 'Database structuur bijgewerkt met ontbrekende kolommen';
@@ -163,7 +191,7 @@ export const checkDatabaseStructure = async () => {
       FROM information_schema.columns 
       WHERE table_name = 'settings' AND column_name IN (
         'logo_enabled', 'background_opacity', 'background_color', 
-        'use_dynamic_background_color', 'favicon'
+        'use_dynamic_background_color', 'favicon', 'created_at', 'updated_at'
       )
     `);
     

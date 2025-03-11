@@ -632,6 +632,8 @@ const path = '.\\uploads\\images\\photo.jpg';
      ALTER TABLE settings ADD COLUMN IF NOT EXISTS background_color VARCHAR(50) DEFAULT NULL;
      ALTER TABLE settings ADD COLUMN IF NOT EXISTS use_dynamic_background_color BOOLEAN DEFAULT FALSE;
      ALTER TABLE settings ADD COLUMN IF NOT EXISTS favicon TEXT;
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+     ALTER TABLE settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
      "
      ```
    - **Oplossing 4**: Als alle bovenstaande oplossingen niet werken, overweeg dan om de database volledig opnieuw te initialiseren (let op: dit verwijdert alle gegevens):
