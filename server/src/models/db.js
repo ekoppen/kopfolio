@@ -114,6 +114,77 @@ export async function initDb() {
 // Functie om de database structuur te controleren en bij te werken
 const initializeDatabase = async () => {
   try {
+    // Controleer eerst of de settings tabel bestaat
+    const tableResult = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'settings'
+      );
+    `);
+    
+    const tableExists = tableResult.rows[0].exists;
+    
+    if (!tableExists) {
+      console.log('Settings tabel bestaat niet en wordt aangemaakt...');
+      
+      // Maak de settings tabel aan
+      await pool.query(`
+        CREATE TABLE settings (
+          id SERIAL PRIMARY KEY,
+          site_title VARCHAR(100) DEFAULT 'Kopfolio',
+          site_subtitle VARCHAR(255) DEFAULT 'Portfolio Website Tool',
+          accent_color VARCHAR(50) DEFAULT '#1a5637',
+          font VARCHAR(100) DEFAULT 'Arial',
+          subtitle_font VARCHAR(100) DEFAULT 'Arial',
+          subtitle_size INTEGER DEFAULT 16,
+          subtitle_color VARCHAR(50) DEFAULT '#000000',
+          logo TEXT DEFAULT NULL,
+          logo_position VARCHAR(50) DEFAULT 'left',
+          logo_margin_top INTEGER DEFAULT 0,
+          logo_margin_left INTEGER DEFAULT 0,
+          subtitle_margin_top INTEGER DEFAULT 0,
+          subtitle_margin_left INTEGER DEFAULT 0,
+          footer_text TEXT DEFAULT '',
+          sidebar_pattern TEXT DEFAULT NULL,
+          pattern_opacity NUMERIC DEFAULT 0.5,
+          pattern_scale NUMERIC DEFAULT 1,
+          pattern_color VARCHAR(50) DEFAULT '#000000',
+          logo_size INTEGER DEFAULT 60,
+          logo_enabled BOOLEAN DEFAULT TRUE,
+          subtitle_shadow_enabled BOOLEAN DEFAULT FALSE,
+          subtitle_shadow_x INTEGER DEFAULT 0,
+          subtitle_shadow_y INTEGER DEFAULT 0,
+          subtitle_shadow_blur INTEGER DEFAULT 0,
+          subtitle_shadow_color VARCHAR(50) DEFAULT '#000000',
+          subtitle_shadow_opacity NUMERIC DEFAULT 0.5,
+          menu_font_size INTEGER DEFAULT 16,
+          content_font_size INTEGER DEFAULT 16,
+          footer_font VARCHAR(100) DEFAULT 'Arial',
+          footer_size INTEGER DEFAULT 14,
+          footer_color VARCHAR(50) DEFAULT '#666666',
+          logo_shadow_enabled BOOLEAN DEFAULT FALSE,
+          logo_shadow_x INTEGER DEFAULT 0,
+          logo_shadow_y INTEGER DEFAULT 0,
+          logo_shadow_blur INTEGER DEFAULT 0,
+          logo_shadow_color VARCHAR(50) DEFAULT '#000000',
+          logo_shadow_opacity NUMERIC DEFAULT 0.5,
+          background_color VARCHAR(50) DEFAULT NULL,
+          background_opacity NUMERIC DEFAULT 1,
+          use_dynamic_background_color BOOLEAN DEFAULT FALSE,
+          favicon TEXT DEFAULT NULL
+        );
+      `);
+      
+      // Voeg een standaard record toe
+      await pool.query(`
+        INSERT INTO settings (id) VALUES (1);
+      `);
+      
+      console.log('Settings tabel succesvol aangemaakt met standaard waarden');
+    } else {
+      console.log('Settings tabel bestaat al');
+    }
+
     // Controleer en voeg alle benodigde kolommen toe
     const checkColumnsQuery = `
       DO $$

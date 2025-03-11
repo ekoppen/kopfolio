@@ -620,8 +620,8 @@ const path = '.\\uploads\\images\\photo.jpg';
    - Voorbeeld: Als je een fout krijgt bij `import AppRoutes from "./routes"`, controleer of het bestand misschien `Routes.jsx` heet
 
 7. **Database migratie problemen**:
-   - **Ontbrekende kolommen**: Als je een fout krijgt zoals `column X does not exist`, controleer of de migratie correct is uitgevoerd
-   - **Automatische oplossing**: Vanaf versie 1.2.0 controleert Kopfolio automatisch of alle benodigde kolommen aanwezig zijn en voegt ze toe indien nodig. Herstart de backend container om deze controle uit te voeren: `docker-compose restart backend`
+   - **Ontbrekende tabellen of kolommen**: Als je een fout krijgt zoals `relation "settings" does not exist` of `column X does not exist`, controleer of de migratie correct is uitgevoerd
+   - **Automatische oplossing**: Vanaf versie 1.3.0 controleert Kopfolio automatisch of de settings tabel bestaat en maakt deze aan indien nodig. Ook worden alle benodigde kolommen automatisch toegevoegd. Herstart de backend container om deze controle uit te voeren: `docker-compose restart backend`
    - **Oplossing 1**: Voer een volledige herstart van alle containers uit: `docker-compose down && docker-compose up -d`
    - **Oplossing 2**: Voer de migratie handmatig uit: `docker-compose exec backend npm run migrate`
    - **Oplossing 3**: Voeg de ontbrekende kolommen handmatig toe:
@@ -702,8 +702,9 @@ Om problemen met ontbrekende kolommen te voorkomen, heeft Kopfolio meerdere veil
 2. **Database Initialisatie**: Controleert bij elke serverstart of alle kolommen aanwezig zijn
 3. **Controller Verificatie**: De settings controller controleert ook of alle benodigde kolommen bestaan
 4. **Automatische Kolom Toevoeging**: Een speciaal script controleert bij elke serverstart of alle benodigde kolommen aanwezig zijn en voegt ze toe indien nodig
+5. **Automatische Tabel Aanmaak**: Vanaf versie 1.3.0 controleert Kopfolio of de settings tabel bestaat en maakt deze automatisch aan indien nodig, inclusief alle benodigde kolommen en standaardwaarden
 
-Deze gelaagde aanpak zorgt ervoor dat de applicatie blijft werken, zelfs als een migratie om een of andere reden niet correct is uitgevoerd. Zelfs bij een nieuwe deployment zullen alle benodigde kolommen automatisch worden aangemaakt.
+Deze gelaagde aanpak zorgt ervoor dat de applicatie blijft werken, zelfs als een migratie om een of andere reden niet correct is uitgevoerd. Zelfs bij een nieuwe deployment of een volledig lege database zullen alle benodigde tabellen en kolommen automatisch worden aangemaakt.
 
 #### Volledige Herstart na Migraties
 Na het uitvoeren van migraties of na een update van de applicatie is het belangrijk om alle containers volledig te herstarten om wijzigingen correct toe te passen en caches te legen:
