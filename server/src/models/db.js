@@ -68,7 +68,8 @@ export async function initDb() {
       'add_logo_enabled.sql',
       'add_sub_order_column.sql',
       'add_favicon_field.js',
-      'ensure_all_columns.js'
+      'ensure_all_columns.js',
+      '026_ensure_all_columns.sql'
     ];
 
     for (const migration of migrations) {

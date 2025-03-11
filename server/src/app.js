@@ -13,6 +13,7 @@ import usersRouter from './routes/users.js';
 import imagesRouter from './routes/images.js';
 import contactRouter from './routes/contact.js';
 import { uploadDirs } from './middleware/upload.js';
+import checkDatabaseStructure from './scripts/check_database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -110,5 +111,8 @@ app.use('/api/backup', backupRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/images', imagesRouter);
 app.use('/api/contact', contactRouter);
+
+// Controleer de database structuur bij het opstarten
+checkDatabaseStructure();
 
 export default app; 

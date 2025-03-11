@@ -22,6 +22,9 @@ RUN mkdir -p /app/public/uploads/photos \
 # Kopieer de rest van de applicatie
 COPY . .
 
+# Maak scripts directory aan
+RUN mkdir -p /app/src/scripts
+
 EXPOSE 3000
 
 CMD ["node", "src/start.js"] 
