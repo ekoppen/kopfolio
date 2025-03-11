@@ -36,85 +36,135 @@ export const getPatterns = async (req, res) => {
   }
 };
 
- // Haal de huidige instellingen op
- export const getSettings = async (req, res) => {
+// Haal de huidige instellingen op
+export const getSettings = async (req, res) => {
   try {
-    // Controleer eerst of de logo_enabled kolom bestaat
-    const checkColumnQuery = `
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 
-          FROM information_schema.columns 
-          WHERE table_name = 'settings' 
-          AND column_name = 'logo_enabled'
-        ) THEN
-          ALTER TABLE settings
-          ADD COLUMN logo_enabled BOOLEAN DEFAULT TRUE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 
-          FROM information_schema.columns 
-          WHERE table_name = 'settings' 
-          AND column_name = 'background_opacity'
-        ) THEN
-          ALTER TABLE settings
-          ADD COLUMN background_opacity NUMERIC DEFAULT 1;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 
-          FROM information_schema.columns 
-          WHERE table_name = 'settings' 
-          AND column_name = 'background_color'
-        ) THEN
-          ALTER TABLE settings
-          ADD COLUMN background_color VARCHAR(50) DEFAULT NULL;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 
-          FROM information_schema.columns 
-          WHERE table_name = 'settings' 
-          AND column_name = 'use_dynamic_background_color'
-        ) THEN
-          ALTER TABLE settings
-          ADD COLUMN use_dynamic_background_color BOOLEAN DEFAULT FALSE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 
-          FROM information_schema.columns 
-          WHERE table_name = 'settings' 
-          AND column_name = 'favicon'
-        ) THEN
-          ALTER TABLE settings
-          ADD COLUMN favicon TEXT;
-        END IF;
-      END $$;
+    // Stap 1: Controleer welke kolommen bestaan in de settings tabel
+    const columnsResult = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'settings'
+    `);
+    
+    const existingColumns = columnsResult.rows.map(row => row.column_name);
+    
+    // Stap 2: Bouw een dynamische query op basis van bestaande kolommen
+    const selectColumns = ['id'];
+    
+    // Lijst van alle mogelijke kolommen met hun standaardwaarden
+    const allColumns = {
+      site_title: "'Kopfolio'",
+      site_subtitle: "'Portfolio Website Tool'",
+      accent_color: "'#1a5637'",
+      font: "'Arial'",
+      subtitle_font: "'Arial'",
+      subtitle_size: "16",
+      subtitle_color: "'#000000'",
+      logo: "NULL",
+      logo_position: "'left'",
+      logo_margin_top: "0",
+      logo_margin_left: "0",
+      subtitle_margin_top: "0",
+      subtitle_margin_left: "0",
+      footer_text: "''",
+      sidebar_pattern: "NULL",
+      pattern_opacity: "0.5",
+      pattern_scale: "1",
+      pattern_color: "'#000000'",
+      logo_size: "60",
+      logo_enabled: "TRUE",
+      subtitle_shadow_enabled: "FALSE",
+      subtitle_shadow_x: "0",
+      subtitle_shadow_y: "0",
+      subtitle_shadow_blur: "0",
+      subtitle_shadow_color: "'#000000'",
+      subtitle_shadow_opacity: "0.5",
+      menu_font_size: "16",
+      content_font_size: "16",
+      footer_font: "'Arial'",
+      footer_size: "14",
+      footer_color: "'#666666'",
+      logo_shadow_enabled: "FALSE",
+      logo_shadow_x: "0",
+      logo_shadow_y: "0",
+      logo_shadow_blur: "0",
+      logo_shadow_color: "'#000000'",
+      logo_shadow_opacity: "0.5",
+      background_color: "NULL",
+      background_opacity: "1",
+      use_dynamic_background_color: "FALSE",
+      favicon: "NULL"
+    };
+    
+    // Voeg elke kolom toe aan de query als deze bestaat, anders gebruik de standaardwaarde
+    for (const [column, defaultValue] of Object.entries(allColumns)) {
+      if (existingColumns.includes(column)) {
+        selectColumns.push(column);
+      } else {
+        selectColumns.push(`${defaultValue} as ${column}`);
+      }
+    }
+    
+    // Stap 3: Voer de dynamische query uit
+    const query = `
+      SELECT ${selectColumns.join(', ')}
+      FROM settings 
+      WHERE id = 1
     `;
-
-    await pool.query(checkColumnQuery);
-
-    // Nu kunnen we veilig alle kolommen opvragen
-    const result = await pool.query(
-      `SELECT site_title, site_subtitle, subtitle_font, subtitle_size, subtitle_color, 
-             accent_color, font, logo, logo_position, logo_margin_top, logo_margin_left, 
-             subtitle_margin_top, subtitle_margin_left, footer_text, sidebar_pattern, 
-             pattern_opacity, pattern_scale, pattern_color, logo_size, logo_enabled,
-             subtitle_shadow_enabled, subtitle_shadow_x, subtitle_shadow_y, 
-             subtitle_shadow_blur, subtitle_shadow_color, subtitle_shadow_opacity,
-             menu_font_size, content_font_size, footer_font, footer_size, footer_color,
-             logo_shadow_enabled, logo_shadow_x, logo_shadow_y, logo_shadow_blur,
-             logo_shadow_color, logo_shadow_opacity, background_color, background_opacity,
-             use_dynamic_background_color, favicon
-      FROM settings WHERE id = 1`
-    );
+    
+    console.log('Dynamische query:', query);
+    
+    const result = await pool.query(query);
+    
+    // Stap 4: Stuur het resultaat terug
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error getting settings:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    
+    // Als er een fout optreedt, stuur dan standaard instellingen terug
+    res.json({
+      site_title: 'Kopfolio',
+      site_subtitle: 'Portfolio Website Tool',
+      accent_color: '#1a5637',
+      font: 'Arial',
+      subtitle_font: 'Arial',
+      subtitle_size: 16,
+      subtitle_color: '#000000',
+      logo: null,
+      logo_position: 'left',
+      logo_margin_top: 0,
+      logo_margin_left: 0,
+      subtitle_margin_top: 0,
+      subtitle_margin_left: 0,
+      footer_text: '',
+      sidebar_pattern: null,
+      pattern_opacity: 0.5,
+      pattern_scale: 1,
+      pattern_color: '#000000',
+      logo_size: 60,
+      logo_enabled: true,
+      subtitle_shadow_enabled: false,
+      subtitle_shadow_x: 0,
+      subtitle_shadow_y: 0,
+      subtitle_shadow_blur: 0,
+      subtitle_shadow_color: '#000000',
+      subtitle_shadow_opacity: 0.5,
+      menu_font_size: 16,
+      content_font_size: 16,
+      footer_font: 'Arial',
+      footer_size: 14,
+      footer_color: '#666666',
+      logo_shadow_enabled: false,
+      logo_shadow_x: 0,
+      logo_shadow_y: 0,
+      logo_shadow_blur: 0,
+      logo_shadow_color: '#000000',
+      logo_shadow_opacity: 0.5,
+      background_color: null,
+      background_opacity: 1,
+      use_dynamic_background_color: false,
+      favicon: null
+    });
   }
 };
 
