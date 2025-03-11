@@ -185,6 +185,31 @@ export const updateSettings = async (req, res) => {
     const existingColumns = columnsResult.rows.map(row => row.column_name);
     console.log('Bestaande kolommen in settings tabel:', existingColumns);
     
+    // Stap 1.5: Voeg ontbrekende kolommen toe indien nodig
+    const requiredColumns = [
+      { name: 'logo_enabled', type: 'BOOLEAN', default: 'TRUE' },
+      { name: 'background_opacity', type: 'NUMERIC', default: '1' },
+      { name: 'background_color', type: 'VARCHAR(50)', default: 'NULL' },
+      { name: 'use_dynamic_background_color', type: 'BOOLEAN', default: 'FALSE' },
+      { name: 'favicon', type: 'TEXT', default: 'NULL' }
+    ];
+    
+    for (const column of requiredColumns) {
+      if (!existingColumns.includes(column.name)) {
+        console.log(`Kolom ${column.name} ontbreekt en wordt toegevoegd...`);
+        try {
+          await pool.query(`
+            ALTER TABLE settings 
+            ADD COLUMN ${column.name} ${column.type} DEFAULT ${column.default}
+          `);
+          console.log(`Kolom ${column.name} succesvol toegevoegd`);
+          existingColumns.push(column.name);
+        } catch (error) {
+          console.error(`Fout bij toevoegen van kolom ${column.name}:`, error);
+        }
+      }
+    }
+    
     // Stap 2: Bouw een dynamische query op basis van bestaande kolommen
     let query = 'UPDATE settings SET';
     const values = [];
@@ -312,15 +337,43 @@ export const updateLogo = async (req, res) => {
     const columnsResult = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
-      WHERE table_name = 'settings' AND column_name = 'logo'
+      WHERE table_name = 'settings' AND column_name IN ('logo', 'logo_enabled')
     `);
     
-    if (columnsResult.rows.length === 0) {
-      console.error('Logo kolom bestaat niet in de settings tabel');
-      return res.status(500).json({ 
-        error: 'Logo kolom bestaat niet in de database',
-        logo: null
-      });
+    const existingColumns = columnsResult.rows.map(row => row.column_name);
+    
+    // Voeg ontbrekende kolommen toe indien nodig
+    if (!existingColumns.includes('logo')) {
+      console.log('Logo kolom ontbreekt en wordt toegevoegd...');
+      try {
+        await pool.query(`
+          ALTER TABLE settings 
+          ADD COLUMN logo TEXT DEFAULT NULL
+        `);
+        console.log('Kolom logo succesvol toegevoegd');
+        existingColumns.push('logo');
+      } catch (error) {
+        console.error('Fout bij toevoegen van kolom logo:', error);
+        return res.status(500).json({ 
+          error: 'Logo kolom kon niet worden toegevoegd aan de database',
+          logo: null
+        });
+      }
+    }
+    
+    if (!existingColumns.includes('logo_enabled')) {
+      console.log('Logo_enabled kolom ontbreekt en wordt toegevoegd...');
+      try {
+        await pool.query(`
+          ALTER TABLE settings 
+          ADD COLUMN logo_enabled BOOLEAN DEFAULT TRUE
+        `);
+        console.log('Kolom logo_enabled succesvol toegevoegd');
+        existingColumns.push('logo_enabled');
+      } catch (error) {
+        console.error('Fout bij toevoegen van kolom logo_enabled:', error);
+        // Ga door, zelfs als deze kolom niet kan worden toegevoegd
+      }
     }
 
     const logoFile = req.files.logo;
@@ -348,36 +401,45 @@ export const updateLogo = async (req, res) => {
     await logoFile.mv(filepath);
 
     try {
-      // Verwijder het oude logo bestand als het bestaat
+      // Haal het oude logo op
       const oldResult = await pool.query('SELECT logo FROM settings WHERE id = 1');
       const oldLogo = oldResult.rows[0]?.logo;
+      
+      // Update de database met het nieuwe logo en zet logo_enabled op true
+      let query = 'UPDATE settings SET logo = $1';
+      const values = [filename];
+      
+      // Voeg logo_enabled toe aan de query als de kolom bestaat
+      if (existingColumns.includes('logo_enabled')) {
+        query += ', logo_enabled = TRUE';
+      }
+      
+      query += ' WHERE id = 1 RETURNING *';
+      
+      const result = await pool.query(query, values);
+      
+      // Verwijder het oude logo bestand als het bestaat
       if (oldLogo) {
         const oldPath = path.join(uploadDir, oldLogo);
         try {
           await fs.unlink(oldPath);
         } catch (err) {
           console.error('Error removing old logo:', err);
-          // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+          // Ga door, zelfs als het oude bestand niet verwijderd kon worden
         }
       }
-
-      // Update alleen het logo veld in de database
-      const query = 'UPDATE settings SET logo = $1 WHERE id = 1 RETURNING logo';
-      const result = await pool.query(query, [filename]);
       
-      res.json({ logo: result.rows[0].logo });
+      res.json({
+        logo: filename,
+        logo_enabled: true
+      });
     } catch (error) {
       console.error('Error updating logo in database:', error);
-      
-      // Als er een fout optreedt, stuur dan toch het nieuwe bestand terug
-      res.json({ 
-        logo: filename,
-        warning: 'Logo bestand is opgeslagen, maar de database kon niet worden bijgewerkt'
-      });
+      res.status(500).json({ error: 'Fout bij bijwerken logo in database' });
     }
   } catch (error) {
-    console.error('Error handling logo upload:', error);
-    res.status(500).json({ error: 'Fout bij uploaden van logo' });
+    console.error('Error updating logo:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -544,9 +606,6 @@ export const testEmailSettings = async (req, res) => {
 // Voeg een nieuwe functie toe voor het uploaden van een favicon
 export const updateFavicon = async (req, res) => {
   try {
-    console.log('updateFavicon aangeroepen');
-    console.log('req.files:', req.files);
-    
     if (!req.files || !req.files.favicon) {
       return res.status(400).json({ error: 'Geen favicon bestand ontvangen' });
     }
@@ -558,107 +617,86 @@ export const updateFavicon = async (req, res) => {
       WHERE table_name = 'settings' AND column_name = 'favicon'
     `);
     
+    // Voeg de favicon kolom toe als deze niet bestaat
     if (columnsResult.rows.length === 0) {
-      console.error('Favicon kolom bestaat niet in de settings tabel');
-      
-      // Voeg de kolom toe als deze niet bestaat
+      console.log('Favicon kolom ontbreekt en wordt toegevoegd...');
       try {
-        await pool.query(`ALTER TABLE settings ADD COLUMN favicon TEXT`);
-        console.log('Favicon kolom toegevoegd aan settings tabel');
+        await pool.query(`
+          ALTER TABLE settings 
+          ADD COLUMN favicon TEXT DEFAULT NULL
+        `);
+        console.log('Kolom favicon succesvol toegevoegd');
       } catch (error) {
-        console.error('Fout bij toevoegen favicon kolom:', error);
+        console.error('Fout bij toevoegen van kolom favicon:', error);
         return res.status(500).json({ 
-          error: 'Favicon kolom bestaat niet in de database en kon niet worden toegevoegd',
+          error: 'Favicon kolom kon niet worden toegevoegd aan de database',
           favicon: null
         });
       }
     }
 
     const faviconFile = req.files.favicon;
-    console.log('Favicon bestand ontvangen:', faviconFile.name, faviconFile.mimetype, faviconFile.size);
     
     // Valideer bestandsgrootte
     if (faviconFile.size > 5 * 1024 * 1024) {
       return res.status(400).json({ error: 'Favicon bestand is te groot (max 5MB)' });
     }
 
-    // Valideer bestandstype - accepteer alle afbeeldingsformaten
-    if (!faviconFile.mimetype.startsWith('image/')) {
-      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen afbeeldingsbestanden zijn toegestaan.' });
+    // Valideer bestandstype
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon'];
+    if (!allowedTypes.includes(faviconFile.mimetype)) {
+      return res.status(400).json({ error: 'Ongeldig bestandstype. Alleen JPG, PNG, GIF en ICO zijn toegestaan.' });
     }
 
     // Genereer unieke bestandsnaam
-    const filename = 'favicon-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + '.png';
+    const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(faviconFile.name);
     const uploadDir = getUploadPath('branding');
-    
-    if (!uploadDir) {
-      throw new Error('Upload directory niet gevonden');
-    }
+    const filepath = path.join(uploadDir, filename);
 
     // Zorg dat de upload directory bestaat
     await fs.mkdir(uploadDir, { recursive: true });
     
-    const filepath = path.join(uploadDir, filename);
-    console.log('Bestand wordt opgeslagen naar:', filepath);
+    // Verplaats het bestand
+    await faviconFile.mv(filepath);
 
     try {
-      // Verplaats het bestand
-      await faviconFile.mv(filepath);
-      console.log('Bestand succesvol verplaatst');
-    } catch (error) {
-      console.error('Fout bij verplaatsen bestand:', error);
-      return res.status(500).json({ error: 'Fout bij opslaan van favicon bestand' });
-    }
-
-    // Verwijder het oude favicon bestand als het bestaat
-    try {
+      // Haal het oude favicon op
       const oldResult = await pool.query('SELECT favicon FROM settings WHERE id = 1');
       const oldFavicon = oldResult.rows[0]?.favicon;
+      
+      // Update de database met het nieuwe favicon
+      const query = 'UPDATE settings SET favicon = $1 WHERE id = 1 RETURNING favicon';
+      const result = await pool.query(query, [filename]);
+      
+      // Verwijder het oude favicon bestand als het bestaat
       if (oldFavicon) {
         const oldPath = path.join(uploadDir, oldFavicon);
         try {
-          await fs.access(oldPath);
           await fs.unlink(oldPath);
-          console.log('Oud favicon bestand verwijderd:', oldFavicon);
         } catch (err) {
-          console.error('Oud favicon bestand niet gevonden of kon niet worden verwijderd:', err);
-          // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+          console.error('Error removing old favicon:', err);
+          // Ga door, zelfs als het oude bestand niet verwijderd kon worden
         }
       }
-    } catch (error) {
-      console.error('Fout bij opzoeken oud favicon:', error);
-      // Ga door met de update, zelfs als er een fout is bij het opzoeken van het oude bestand
-    }
-
-    // Update alleen het favicon veld in de database
-    try {
-      const query = 'UPDATE settings SET favicon = $1 WHERE id = 1 RETURNING favicon';
-      const result = await pool.query(query, [filename]);
-      console.log('Database bijgewerkt met nieuwe favicon:', filename);
       
       res.json({ favicon: result.rows[0].favicon });
     } catch (error) {
-      console.error('Fout bij bijwerken database:', error);
-      
-      // Als er een fout optreedt, stuur dan toch het nieuwe bestand terug
-      res.json({ 
-        favicon: filename,
-        warning: 'Favicon bestand is opgeslagen, maar de database kon niet worden bijgewerkt'
-      });
+      console.error('Error updating favicon in database:', error);
+      res.status(500).json({ error: 'Fout bij bijwerken favicon in database' });
     }
   } catch (error) {
-    console.error('Error handling favicon upload:', error);
-    res.status(500).json({ error: 'Fout bij uploaden van favicon' });
+    console.error('Error updating favicon:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 // Functie voor het uploaden van een favicon via base64
 export const updateFaviconBase64 = async (req, res) => {
   try {
-    console.log('updateFaviconBase64 aangeroepen');
+    const { base64Data } = req.body;
     
-    if (!req.body || !req.body.image) {
-      return res.status(400).json({ error: 'Geen afbeelding ontvangen' });
+    if (!base64Data) {
+      return res.status(400).json({ error: 'Geen base64 data ontvangen' });
     }
 
     // Controleer eerst of de favicon kolom bestaat
@@ -668,89 +706,89 @@ export const updateFaviconBase64 = async (req, res) => {
       WHERE table_name = 'settings' AND column_name = 'favicon'
     `);
     
+    // Voeg de favicon kolom toe als deze niet bestaat
     if (columnsResult.rows.length === 0) {
-      console.error('Favicon kolom bestaat niet in de settings tabel');
-      
-      // Voeg de kolom toe als deze niet bestaat
+      console.log('Favicon kolom ontbreekt en wordt toegevoegd...');
       try {
-        await pool.query(`ALTER TABLE settings ADD COLUMN favicon TEXT`);
-        console.log('Favicon kolom toegevoegd aan settings tabel');
+        await pool.query(`
+          ALTER TABLE settings 
+          ADD COLUMN favicon TEXT DEFAULT NULL
+        `);
+        console.log('Kolom favicon succesvol toegevoegd');
       } catch (error) {
-        console.error('Fout bij toevoegen favicon kolom:', error);
+        console.error('Fout bij toevoegen van kolom favicon:', error);
         return res.status(500).json({ 
-          error: 'Favicon kolom bestaat niet in de database en kon niet worden toegevoegd',
+          error: 'Favicon kolom kon niet worden toegevoegd aan de database',
           favicon: null
         });
       }
     }
 
-    // Haal de base64 string uit de request
-    const base64Image = req.body.image;
-    
-    // Verwijder het prefix (bijv. "data:image/png;base64,")
-    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
-    
-    // Genereer unieke bestandsnaam
-    const filename = 'favicon-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + '.png';
-    const uploadDir = getUploadPath('branding');
-    
-    if (!uploadDir) {
-      throw new Error('Upload directory niet gevonden');
+    // Valideer de base64 data
+    if (!base64Data.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Ongeldige base64 data. Alleen afbeeldingsbestanden zijn toegestaan.' });
     }
+
+    // Extraheer het MIME type en de data
+    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: 'Ongeldige base64 data formaat' });
+    }
+    
+    const mimeType = matches[1];
+    const base64 = matches[2];
+    const buffer = Buffer.from(base64, 'base64');
+    
+    // Valideer bestandsgrootte
+    if (buffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Favicon bestand is te groot (max 5MB)' });
+    }
+
+    // Bepaal de extensie op basis van het MIME type
+    let extension = '.png';
+    if (mimeType === 'image/jpeg') extension = '.jpg';
+    else if (mimeType === 'image/gif') extension = '.gif';
+    else if (mimeType === 'image/x-icon' || mimeType === 'image/vnd.microsoft.icon') extension = '.ico';
+
+    // Genereer unieke bestandsnaam
+    const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + extension;
+    const uploadDir = getUploadPath('branding');
+    const filepath = path.join(uploadDir, filename);
 
     // Zorg dat de upload directory bestaat
     await fs.mkdir(uploadDir, { recursive: true });
     
-    const filepath = path.join(uploadDir, filename);
-    console.log('Bestand wordt opgeslagen naar:', filepath);
+    // Schrijf het bestand
+    await fs.writeFile(filepath, buffer);
 
     try {
-      // Schrijf het bestand naar de schijf
-      await fs.writeFile(filepath, base64Data, 'base64');
-      console.log('Bestand succesvol opgeslagen');
-    } catch (error) {
-      console.error('Fout bij opslaan bestand:', error);
-      return res.status(500).json({ error: 'Fout bij opslaan van favicon bestand' });
-    }
-
-    // Verwijder het oude favicon bestand als het bestaat
-    try {
+      // Haal het oude favicon op
       const oldResult = await pool.query('SELECT favicon FROM settings WHERE id = 1');
       const oldFavicon = oldResult.rows[0]?.favicon;
+      
+      // Update de database met het nieuwe favicon
+      const query = 'UPDATE settings SET favicon = $1 WHERE id = 1 RETURNING favicon';
+      const result = await pool.query(query, [filename]);
+      
+      // Verwijder het oude favicon bestand als het bestaat
       if (oldFavicon) {
         const oldPath = path.join(uploadDir, oldFavicon);
         try {
-          await fs.access(oldPath);
           await fs.unlink(oldPath);
-          console.log('Oud favicon bestand verwijderd:', oldFavicon);
         } catch (err) {
-          console.error('Oud favicon bestand niet gevonden of kon niet worden verwijderd:', err);
-          // Ga door met de update, zelfs als het oude bestand niet verwijderd kon worden
+          console.error('Error removing old favicon:', err);
+          // Ga door, zelfs als het oude bestand niet verwijderd kon worden
         }
       }
-    } catch (error) {
-      console.error('Fout bij opzoeken oud favicon:', error);
-      // Ga door met de update, zelfs als er een fout is bij het opzoeken van het oude bestand
-    }
-
-    // Update alleen het favicon veld in de database
-    try {
-      const query = 'UPDATE settings SET favicon = $1 WHERE id = 1 RETURNING favicon';
-      const result = await pool.query(query, [filename]);
-      console.log('Database bijgewerkt met nieuwe favicon:', filename);
       
       res.json({ favicon: result.rows[0].favicon });
     } catch (error) {
-      console.error('Fout bij bijwerken database:', error);
-      
-      // Als er een fout optreedt, stuur dan toch het nieuwe bestand terug
-      res.json({ 
-        favicon: filename,
-        warning: 'Favicon bestand is opgeslagen, maar de database kon niet worden bijgewerkt'
-      });
+      console.error('Error updating favicon in database:', error);
+      res.status(500).json({ error: 'Fout bij bijwerken favicon in database' });
     }
   } catch (error) {
-    console.error('Error handling favicon upload:', error);
-    res.status(500).json({ error: 'Fout bij uploaden van favicon' });
+    console.error('Error updating favicon with base64:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }; 
