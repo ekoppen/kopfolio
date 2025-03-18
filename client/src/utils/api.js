@@ -1,27 +1,63 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 // Request interceptor voor het toevoegen van de auth token
 api.interceptors.request.use(
   (config) => {
+    console.log('API Request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      data: config.data,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`
+    });
+    
     const token = localStorage.getItem('token');
     if (token) {
+      console.log('Adding token to request headers');
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.log('No token found in localStorage');
     }
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor voor het afhandelen van auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data,
+      headers: response.headers,
+      fullURL: `${response.config.baseURL}${response.config.url}`
+    });
+    return response;
+  },
   (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      headers: error.config?.headers,
+      baseURL: error.config?.baseURL,
+      fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown'
+    });
+
     // Haal de foutmelding op uit de response data of gebruik een standaard melding
     const errorMessage = error.response?.data?.error || 'Er is een fout opgetreden';
 
@@ -32,10 +68,10 @@ api.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Niet geauthenticeerd - stuur gebruiker naar login
+          // Niet geauthenticeerd - verwijder token
+          console.log('Unauthorized - removing token');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
           error.userMessage = 'Je sessie is verlopen. Log opnieuw in.';
           break;
         case 403:

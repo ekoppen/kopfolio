@@ -42,13 +42,27 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('Login poging met:', formData);
       const response = await api.post('/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      showToast('Succesvol ingelogd', 'success');
-      navigate('/admin');
+      console.log('Login response:', response.data);
+      
+      if (response.data.token) {
+        console.log('Token ontvangen, opslaan in localStorage');
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        showToast('Succesvol ingelogd', 'success');
+        navigate('/admin', { replace: true });
+      } else {
+        console.error('Geen token in response:', response.data);
+        throw new Error('Geen token ontvangen van de server');
+      }
     } catch (error) {
-      console.error('Login fout:', error);
+      console.error('Login fout details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      });
       showToast(error.userMessage || 'Fout bij inloggen', 'error');
     } finally {
       setLoading(false);

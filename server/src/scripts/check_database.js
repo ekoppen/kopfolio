@@ -1,4 +1,5 @@
 import { pool } from '../models/db.js';
+import bcrypt from 'bcryptjs';
 
 export const checkDatabaseStructure = async () => {
   try {
@@ -75,6 +76,34 @@ export const checkDatabaseStructure = async () => {
       console.log('Settings tabel succesvol aangemaakt met standaard waarden');
     } else {
       console.log('Settings tabel bestaat al');
+    }
+    
+    // Controleer of de admin gebruiker bestaat
+    const adminResult = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM users 
+        WHERE username = 'admin'
+      );
+    `);
+    
+    const adminExists = adminResult.rows[0].exists;
+    
+    if (!adminExists) {
+      console.log('Admin gebruiker bestaat niet en wordt aangemaakt...');
+      
+      // Hash het wachtwoord
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('admin123', salt);
+      
+      // Maak de admin gebruiker aan
+      await pool.query(`
+        INSERT INTO users (username, password, role, full_name, email)
+        VALUES ($1, $2, $3, $4, $5)
+      `, ['admin', hashedPassword, 'admin', 'Administrator', 'admin@example.com']);
+      
+      console.log('Admin gebruiker succesvol aangemaakt');
+    } else {
+      console.log('Admin gebruiker bestaat al');
     }
     
     // Voer een query uit om alle benodigde kolommen te controleren en toe te voegen

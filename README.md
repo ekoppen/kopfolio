@@ -375,4 +375,100 @@ Voor grote wijzigingen, open eerst een issue om te bespreken wat je wilt verande
 
 ## Licentie
 
-[MIT](https://choosealicense.com/licenses/mit/) 
+[MIT](https://choosealicense.com/licenses/mit/)
+
+## Ontwikkeling
+
+### Vereisten
+- Node.js 20 of hoger
+- Docker en Docker Compose
+- Git
+
+### Installatie
+
+1. Clone de repository:
+```bash
+git clone https://github.com/jouwusername/kopfolio.git
+cd kopfolio
+```
+
+2. Kopieer de voorbeeld environment bestanden:
+```bash
+cp client/.env.example client/.env
+cp server/.env.example server/.env
+```
+
+3. Start de ontwikkelomgeving:
+```bash
+docker-compose up -d
+```
+
+De applicatie is nu beschikbaar op:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000/api
+
+### Environment Variables
+
+#### Frontend (client/.env)
+- `VITE_API_URL`: De URL van de backend API
+  - Ontwikkeling: `http://localhost:3000/api`
+  - Productie: `https://api.jouwdomein.nl/api`
+
+#### Backend (server/.env)
+- `PORT`: De poort waar de backend server op draait (standaard: 3000)
+- `DB_HOST`: Database host (standaard: db)
+- `DB_PORT`: Database poort (standaard: 5432)
+- `DB_NAME`: Database naam (standaard: kopfolio)
+- `DB_USER`: Database gebruiker (standaard: kopfolio)
+- `DB_PASSWORD`: Database wachtwoord
+- `JWT_SECRET`: Geheime sleutel voor JWT tokens
+- `NODE_ENV`: Omgevingsvariabele (development/production)
+
+### Deployment
+
+1. Maak een `.env` bestand aan in de `client` directory met de juiste productie configuratie:
+```bash
+VITE_API_URL=https://api.jouwdomein.nl/api
+```
+
+2. Build de frontend:
+```bash
+cd client
+npm run build
+```
+
+3. De backend kan worden gestart met:
+```bash
+cd server
+npm start
+```
+
+Of gebruik Docker Compose voor een volledige container deployment:
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## Features
+
+- Responsive design
+- Foto galerij met albums
+- Admin dashboard
+- Pagina beheer
+- Instellingen voor thema en layout
+- Gebruikersbeheer met rollen
+- JWT authenticatie
+- Database migraties
+- Docker containerisatie
+
+## Technologieën
+
+- Frontend: React, Vite, Material-UI
+- Backend: Node.js, Express
+- Database: PostgreSQL
+- Authenticatie: JWT
+- Containerisatie: Docker
+- Build tools: Vite
+
+## Licentie
+
+MIT 

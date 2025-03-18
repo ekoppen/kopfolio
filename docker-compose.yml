@@ -33,7 +33,7 @@ services:
       - DB_USER=kopfolio
       - DB_PASSWORD=kopfolio
       - DB_NAME=kopfolio
-      - JWT_SECRET=your-secret-key
+      - JWT_SECRET=K0pf0l10_S3cr3t_2024!@#
     depends_on:
       db:
         condition: service_healthy
@@ -50,9 +50,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kopfolio"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: always
 
 volumes:
   postgres_data:
