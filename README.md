@@ -423,6 +423,9 @@ De applicatie is nu beschikbaar op:
 - `DB_PASSWORD`: Database wachtwoord
 - `JWT_SECRET`: Geheime sleutel voor JWT tokens
 - `NODE_ENV`: Omgevingsvariabele (development/production)
+- `CORS_ALLOWED_ORIGINS`: Lijst van toegestane domeinen voor CORS (gescheiden door komma's)
+  - Ontwikkeling: `http://localhost:5173,http://localhost:3000`
+  - Productie: `https://www.jouwdomein.nl,https://jouwdomein.nl`
 
 ### Deployment
 
@@ -431,13 +434,21 @@ De applicatie is nu beschikbaar op:
 VITE_API_URL=https://api.jouwdomein.nl/api
 ```
 
-2. Build de frontend:
+2. Maak een `.env` bestand aan in de `server` directory met de juiste productie configuratie:
+```bash
+NODE_ENV=production
+DB_PASSWORD=sterk_productie_wachtwoord
+JWT_SECRET=sterke_productie_secret
+CORS_ALLOWED_ORIGINS=https://www.jouwdomein.nl,https://jouwdomein.nl
+```
+
+3. Build de frontend:
 ```bash
 cd client
 npm run build
 ```
 
-3. De backend kan worden gestart met:
+4. De backend kan worden gestart met:
 ```bash
 cd server
 npm start

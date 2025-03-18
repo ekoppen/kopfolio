@@ -6,6 +6,11 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    allowedHosts: [
+      'localhost',
+      'www.wouterkoppen.com',
+      'wouterkoppen.com'
+    ],
     watch: {
       usePolling: true
     },
@@ -33,5 +38,9 @@ export default defineConfig({
       'chunk-MX2ZZMPV',
       'chunk-N4MPQGFL'
     ]
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true
   }
 }); 

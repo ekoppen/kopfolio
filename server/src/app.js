@@ -21,35 +21,12 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Basic middleware
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS ? 
+  process.env.CORS_ALLOWED_ORIGINS.split(',') : 
+  ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ];
-    
-    // Check if the origin's hostname is an IP address in the local network
-    try {
-      const url = new URL(origin);
-      if (url.hostname.match(/^192\.168\.|^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\.|^localhost$|^127\./)) {
-        return callback(null, true);
-      }
-    } catch (error) {
-      console.error('Error parsing origin:', error);
-    }
-    
-    // Check against allowed origins
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
