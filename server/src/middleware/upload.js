@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Base upload directory
-const baseUploadDir = process.env.NODE_ENV === 'production' ? '/app/public' : './public';
+const baseUploadDir = '/app/public';
 
 // Specifieke directories voor verschillende type uploads
 const uploadDirs = {

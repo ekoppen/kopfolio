@@ -38,10 +38,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve static files first, before any other middleware
-const baseUploadDir = process.env.NODE_ENV === 'production' ? '/app/public/uploads' : './public/uploads';
+const baseUploadDir = '/app/public/uploads';
 app.use('/uploads', express.static(baseUploadDir));
-app.use('/patterns', express.static(process.env.NODE_ENV === 'production' ? '/app/public/patterns' : './public/patterns'));
-app.use('/fonts', express.static(process.env.NODE_ENV === 'production' ? '/app/public/fonts' : './public/fonts', {
+app.use('/patterns', express.static('/app/public/patterns'));
+app.use('/fonts', express.static('/app/public/fonts', {
   setHeaders: (res, filePath) => {
     console.log('Serving font file:', filePath);
     
@@ -72,25 +72,43 @@ app.use('/fonts', express.static(process.env.NODE_ENV === 'production' ? '/app/p
 const fileUploadMiddleware = fileUpload({
   createParentPath: true,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 100 * 1024 * 1024, // 100MB
   },
   abortOnLimit: true,
   useTempFiles: true,
   tempFileDir: '/tmp/',
   debug: true,
-  parseNested: true
+  parseNested: true,
+  safeFileNames: true,
+  preserveExtension: true,
+  responseOnLimit: "File size limit has been reached",
+  uploadTimeout: 60000,
+  maxFileSize: 100 * 1024 * 1024,
+  maxFiles: 1,
+  parseNested: true,
+  preserveExtension: true,
+  safeFileNames: true,
+  createParentPath: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/',
+  debug: true,
+  abortOnLimit: true,
+  responseOnLimit: "File size limit has been reached",
+  uploadTimeout: 60000,
+  maxFileSize: 100 * 1024 * 1024,
+  maxFiles: 1
 });
 
 // Routes met file upload middleware waar nodig
 app.use('/api/photos', fileUploadMiddleware, photosRouter);
 app.use('/api/albums', fileUploadMiddleware, albumsRouter);
 app.use('/api/settings', fileUploadMiddleware, settingsRouter);
-app.use('/api/pages', pagesRouter);
-app.use('/api/auth', authRouter);
-app.use('/api/backup', backupRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/images', imagesRouter);
-app.use('/api/contact', contactRouter);
+app.use('/api/pages', fileUploadMiddleware, pagesRouter);
+app.use('/api/auth', fileUploadMiddleware, authRouter);
+app.use('/api/backup', fileUploadMiddleware, backupRouter);
+app.use('/api/users', fileUploadMiddleware, usersRouter);
+app.use('/api/images', fileUploadMiddleware, imagesRouter);
+app.use('/api/contact', fileUploadMiddleware, contactRouter);
 
 // Controleer de database structuur bij het opstarten
 checkDatabaseStructure();

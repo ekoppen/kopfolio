@@ -257,8 +257,8 @@ export const updateSettings = async (req, res) => {
         const logoFile = req.files.logo;
         
         // Valideer bestandsgrootte
-        if (logoFile.size > 10 * 1024 * 1024) {
-          return res.status(400).json({ error: 'Logo bestand is te groot (max 10MB)' });
+        if (logoFile.size > 100 * 1024 * 1024) {
+          return res.status(400).json({ error: 'Logo bestand is te groot (max 100MB)' });
         }
 
         // Valideer bestandstype
@@ -379,8 +379,8 @@ export const updateLogo = async (req, res) => {
     const logoFile = req.files.logo;
     
     // Valideer bestandsgrootte
-    if (logoFile.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Logo bestand is te groot (max 10MB)' });
+    if (logoFile.size > 100 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Logo bestand is te groot (max 100MB)' });
     }
 
     // Valideer bestandstype

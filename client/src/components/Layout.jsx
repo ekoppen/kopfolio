@@ -462,7 +462,7 @@ const Layout = () => {
               {settings.logo_enabled !== false && settings.logo && (
                 <Box
                   component="img"
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/branding/${settings.logo}`}
+                  src={`/uploads/branding/${settings.logo}`}
                   alt={settings.site_title}
                   sx={{
                     height: 'auto',

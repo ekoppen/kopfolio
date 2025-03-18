@@ -115,17 +115,22 @@ const Settings = () => {
     if (!file) return;
 
     const formData = new FormData();
-    formData.append('logo', file);
+    formData.append('logo', file, file.name);
 
     try {
       setLoading(true);
       const response = await api.post('/settings/logo', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-        },
+          'Accept': 'application/json'
+        }
       });
-      setLogoPreview(URL.createObjectURL(file));
-      showToast('Logo succesvol geüpload', 'success');
+      
+      if (response.data) {
+        // Herlaad de settings om de nieuwe logo URL te krijgen
+        await loadSettings();
+        showToast('Logo succesvol geüpload', 'success');
+      }
     } catch (error) {
       console.error('Fout bij uploaden logo:', error);
       showToast('Fout bij uploaden logo', 'error');

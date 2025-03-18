@@ -29,7 +29,6 @@ services:
       - ./content/uploads:/app/public/uploads:delegated
       - ./content/patterns:/app/public/patterns:delegated
       - ./content/fonts:/app/public/fonts:delegated
-      - uploads_data:/app/public/uploads
     environment:
       - DB_HOST=db
       - DB_USER=kopfolio
