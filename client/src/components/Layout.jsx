@@ -314,12 +314,12 @@ const Layout = () => {
             width: '100%',
             minWidth: 200,
             zIndex: barPosition === 'full-left' ? 100 : 200,
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(35, 35, 45, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            bgcolor: 'transparent',
             borderRadius: barPosition === 'full-left' ? 0 : 1,
-            boxShadow: barPosition === 'full-left' ? 'none' : theme.shadows[8],
-            backdropFilter: barPosition === 'full-left' ? 'none' : 'blur(8px)',
-            border: barPosition === 'full-left' ? 'none' : '1px solid',
-            borderColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200'
+            boxShadow: barPosition === 'full-left' ? 'none' : 'none',
+            backdropFilter: barPosition === 'full-left' ? 'none' : 'none',
+            border: 'none',
+            borderColor: 'transparent'
           }}>
             {page.children.map((childPage) => (
               <MenuItem

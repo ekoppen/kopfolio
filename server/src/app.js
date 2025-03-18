@@ -32,7 +32,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Type', 'Content-Length']
 }));
-app.use(express.json());
+
+// Verhoog de limiet voor JSON requests naar 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve static files first, before any other middleware
 const baseUploadDir = process.env.NODE_ENV === 'production' ? '/app/public/uploads' : './public/uploads';

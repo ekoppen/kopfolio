@@ -211,8 +211,8 @@ const PageContent = ({
         }}
       >
         <Swiper
-          modules={[EffectFade, Autoplay, Pagination, Navigation]}
-          effect={blockSettings?.transition === 'fade' ? 'fade' : 'slide'}
+          modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay, Pagination, Navigation]}
+          effect={blockSettings?.transition || 'fade'}
           speed={blockSettings?.speed || 1000}
           autoplay={blockSettings?.autoplay ? {
             delay: (blockSettings?.delay || 5) * 1000,
@@ -224,6 +224,27 @@ const PageContent = ({
           } : false}
           navigation={blockSettings?.navigation}
           loop={blockSettings?.loop}
+          creativeEffect={{
+            prev: {
+              shadow: true,
+              translate: [0, 0, -400],
+            },
+            next: {
+              translate: ['100%', 0, 0],
+            },
+          }}
+          coverflowEffect={{
+            rotate: 50,
+            stretch: 0,
+            depth: 100,
+            modifier: 1,
+            slideShadows: true,
+          }}
+          cardsEffect={{
+            slideShadows: true,
+            perSlideOffset: 8,
+            perSlideRotate: 2,
+          }}
           slidesPerView={1}
           onSwiper={(swiper) => {
             swiperRef.current = swiper;
@@ -594,7 +615,7 @@ const PageContent = ({
         }}
       >
         <Swiper
-          modules={[EffectFade, Autoplay, Pagination, Navigation]}
+          modules={[EffectFade, EffectCreative, EffectCards, EffectCoverflow, Autoplay, Pagination, Navigation]}
           effect={slideshowSettings?.transition === 'fade' ? 'fade' : 'slide'}
           speed={slideshowSettings?.speed || 1000}
           autoplay={slideshowSettings?.autoplay !== false ? {
@@ -607,6 +628,27 @@ const PageContent = ({
           } : false}
           navigation={slideshowSettings?.navigation}
           loop={slideshowSettings?.loop !== false}
+          creativeEffect={{
+            prev: {
+              shadow: true,
+              translate: [0, 0, -400],
+            },
+            next: {
+              translate: ['100%', 0, 0],
+            },
+          }}
+          coverflowEffect={{
+            rotate: 50,
+            stretch: 0,
+            depth: 100,
+            modifier: 1,
+            slideShadows: true,
+          }}
+          cardsEffect={{
+            slideShadows: true,
+            perSlideOffset: 8,
+            perSlideRotate: 2,
+          }}
           slidesPerView={1}
           onSlideChange={(swiper) => {
             setActiveSlide(swiper.activeIndex);
